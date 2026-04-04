@@ -1,0 +1,8 @@
+{
+  "plugins": {
+    "vim-startify": {
+      "rev": "4e089dffdad46f3f5593f34362d530e8fe823dcf",
+      "src": "https://github.com/mhinz/vim-startify"
+    }
+  }
+}
