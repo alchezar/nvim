@@ -24,7 +24,9 @@ local colors = {
 	white   = "#F7F1FF",
 	gray    = "#ABB2BF",
 	dark    = "#5A5A5A",
-	brown   = "#71504D"
+	brown   = "#71504D",
+	lime    = "#CDEF58",
+	teal    = "#20999D"
 }
 
 local function highlight(group, color)
@@ -69,6 +71,11 @@ vim.api.nvim_set_hl(0, "Quote", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "Identifier", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "Comment", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "WinSeparator", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "VirtColumn", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "FloatBorder", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "FloatTitle", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "LspHoverSeparator", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.dark })
 
 -- CPP highlights
 vim.api.nvim_set_hl(0, "@variable.cpp", { fg = colors.gray })
@@ -93,6 +100,13 @@ vim.api.nvim_set_hl(0, "yamlInteger", { fg = colors.purple })
 
 -- Rust highlights for Treesitter
 local rust_highlights = {
+	["rustStorage"] = { fg = colors.red },
+	["rustMacro"] = { fg = colors.red },
+	["rustOperator"] = { fg = colors.gray },
+	["rustMacroVariable"] = { fg = colors.orange },
+	["rustEnumVariant"] = { fg = colors.pink },
+	["rustLifetime"] = { fg = colors.teal },
+	["@lsp.type.lifetime.rust"] = { fg = colors.teal },
 	["rustAttribute"] = { fg = colors.dark },
 	["rustDerive"] = { fg = colors.dark },
 	["rustFoldBraces"] = { fg = colors.gray },
@@ -132,6 +146,19 @@ local rust_highlights = {
 	["@lsp.type.namespace.rust"] = { fg = colors.dark },
 	["@lsp.type.macro.rust"] = { fg = colors.brown, bold = true },
 	["@lsp.type.interface.rust"] = { fg = colors.cyan },
+	["@lsp.type.typeAlias.rust"] = { fg = colors.blue },
+	["@lsp.type.selfKeyword.rust"] = { fg = colors.red },
+	["@lsp.type.selfTypeKeyword.rust"] = { fg = colors.red },
+	["@lsp.type.keyword.rust"] = { fg = colors.red },
+	["@lsp.type.static.rust"] = { fg = colors.emerald },
+	["@lsp.typemod.static.declaration.rust"] = { fg = colors.emerald },
+	["@lsp.typemod.function.static.rust"] = { fg = colors.emerald },
+	["@lsp.type.typeParameter.rust"] = { fg = colors.emerald },
+	["@lsp.type.punctuation.rust"] = { fg = colors.gray },
+	["@lsp.type.variable.rust"] = { fg = colors.gray },
+	["@lsp.type.const.rust"] = { fg = colors.lime },
+	["@lsp.typemod.variable.declaration.rust"] = { fg = colors.gray },
+	["@lsp.typemod.property.declaration.rust"] = { fg = colors.white },
 }
 for group, color in pairs(rust_highlights) do
 	vim.api.nvim_set_hl(0, group, color)

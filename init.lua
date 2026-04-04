@@ -14,6 +14,10 @@ vim.opt.clipboard = "unnamedplus"
 -- Relative line numbers
 vim.opt.number = true
 vim.opt.relativenumber = true
+-- Rounded border for all floating windows
+vim.o.winborder = 'rounded'
+-- Column guide at 80 characters
+vim.opt.colorcolumn = "80"
 -- Visual lines move (for lines longer than terminal width)
 vim.keymap.set('n', 'j', 'gj')
 vim.keymap.set('n', 'k', 'gk')
@@ -29,17 +33,27 @@ vim.api.nvim_set_keymap('n', '<C-j>', ":m .+1<Enter>", { noremap = true, silent 
 -- Move selected lines up/down
 vim.api.nvim_set_keymap('v', '<C-k>', ":m '<-2<CR>gv", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('v', '<C-j>', ":m '>+1<CR>gv", { noremap = true, silent = true })
--- Disable search highlight
-vim.api.nvim_set_keymap('n', '<space>n', ":noh<CR>", { noremap = true, silent = true })
--- Auto closed parentheses
-vim.keymap.set('i', '(', '()<Left>')
-vim.keymap.set('i', '{', '{}<Left>')  
-vim.keymap.set('i', '[', '[]<Left>')
-vim.keymap.set('i', '"', '""<Left>')
-vim.keymap.set('i', "'", "''<Left>")
+-- Disable search highlight (mapped in keys.lua as <leader>n)
 -- Map UA layout
 vim.cmd([[
 set langmap=йq,цw,уe,кr,еt,нy,гu,шi,щo,зp,х[,ї],фa,іs,вd,аf,пg,рh,оj,лk,дl,ж\\;,є',яz,чx,сc,мv,иb,тn,ьm,б\\,,ю.,ЙQ,ЦW,УE,КR,ЕT,НY,ГU,ШI,ЩO,ЗP,Х{,Ї},ФA,ІS,ВD,АF,ПG,РH,ОJ,ЛK,ДL,Ж:,Є\",ЯZ,ЧX,СC,МV,ИB,ТN,ЬM,Б<,Ю>
 ]])
 -- Plugins
 require("plugins")
+
+-- Plugin configs
+require("lsp")
+require("completion")
+require("treesitter")
+require("debugging")
+require("keys")
+
+-- Plugin setup
+require('nvim-autopairs').setup()
+require('Comment').setup()
+require('gitsigns').setup()
+require('todo-comments').setup()
+require('trouble').setup()
+require('nvim-tree').setup()
+require('nvim-web-devicons').setup()
+require('virt-column').setup({ char = '▕', virtcolumn = '80' })

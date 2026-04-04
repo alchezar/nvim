@@ -1,0 +1,2 @@
+-- Treesitter highlighting is built-in in Neovim 0.12
+-- Install parsers manually after first launch: :TSInstall rust toml lua
