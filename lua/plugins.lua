@@ -31,6 +31,9 @@ vim.pack.add({
   'https://github.com/nvim-tree/nvim-web-devicons',
   'https://github.com/nvim-tree/nvim-tree.lua',
 
+  -- Formatting
+  'https://github.com/stevearc/conform.nvim',
+
   -- UI / utilities
   'https://github.com/folke/trouble.nvim',
   'https://github.com/folke/todo-comments.nvim',

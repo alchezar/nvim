@@ -3,7 +3,7 @@
 vim.opt.termguicolors = true
 -- Font settings. My own font with concinese name.
 -- Based on the Iosevka Font. https://typeof.net/Iosevka/
-vim.opt.guifont = "Iosevka Chill Nerd:h15"
+vim.opt.guifont = "Iosevka Chill Nerd:h12"
 -- Set color scheme. My own color theme with a concine name. 
 -- Based on the MonokaiPro(Spectrum) and OneDarkPro color themes.
 vim.cmd("colorscheme kinder_theme")
@@ -65,6 +65,7 @@ require("lsp")
 require("completion")
 require("treesitter")
 require("debugging")
+require("formatting")
 require("keys")
 
 -- Plugin setup

@@ -18,6 +18,36 @@ vim.g.rustaceanvim = {
   },
 }
 
+-- Default capabilities for all LSP servers (extends core with cmp_nvim_lsp)
+vim.lsp.config('*', {
+  capabilities = require('cmp_nvim_lsp').default_capabilities(),
+})
+
+-- TypeScript / JavaScript
+local ts_inlay_hints = {
+  includeInlayParameterNameHints = 'all',
+  includeInlayFunctionParameterTypeHints = true,
+  includeInlayVariableTypeHints = true,
+  includeInlayPropertyDeclarationTypeHints = true,
+  includeInlayFunctionLikeReturnTypeHints = true,
+  includeInlayEnumMemberValueHints = true,
+}
+vim.lsp.config('ts_ls', {
+  settings = {
+    typescript = { inlayHints = ts_inlay_hints },
+    javascript = { inlayHints = ts_inlay_hints },
+  },
+})
+vim.lsp.enable('ts_ls')
+
+-- ESLint
+vim.lsp.config('eslint', {
+  settings = {
+    workingDirectories = { mode = 'auto' },
+  },
+})
+vim.lsp.enable('eslint')
+
 -- Enable code lenses
 vim.lsp.codelens.enable(true)
 

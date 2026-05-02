@@ -23,6 +23,7 @@ local colors = {
 	emerald = "#00DCC3",
 	white   = "#F7F1FF",
 	gray    = "#ABB2BF",
+	silver  = "#797979",
 	dark    = "#5A5A5A",
 	brown   = "#71504D",
 	lime    = "#CDEF58",
@@ -69,7 +70,7 @@ vim.api.nvim_set_hl(0, "Punctuation.bracket", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "Delimiter", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "Quote", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "Identifier", { fg = colors.gray })
-vim.api.nvim_set_hl(0, "Comment", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "Comment", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "WinSeparator", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "VirtColumn", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "FloatBorder", { fg = colors.dark })
@@ -98,69 +99,179 @@ vim.api.nvim_set_hl(0, "yamlPlainScalar", { fg = colors.blue })
 vim.api.nvim_set_hl(0, "yamlFlowString", { fg = colors.yellow })
 vim.api.nvim_set_hl(0, "yamlInteger", { fg = colors.purple })
 
--- Rust highlights for Treesitter
-local rust_highlights = {
-	["rustStorage"] = { fg = colors.red },
-	["rustMacro"] = { fg = colors.red },
-	["rustOperator"] = { fg = colors.gray },
-	["rustMacroVariable"] = { fg = colors.orange },
-	["rustEnumVariant"] = { fg = colors.pink },
-	["rustLifetime"] = { fg = colors.teal },
-	["@lsp.type.lifetime.rust"] = { fg = colors.teal },
-	["rustAttribute"] = { fg = colors.dark },
-	["rustDerive"] = { fg = colors.dark },
-	["rustFoldBraces"] = { fg = colors.gray },
-	["rustSigil"] = { fg = colors.red },
-	--
-	["@keyword.rust"] = { fg = colors.red },                -- Keywords (fn, let, etc.)
-	["@keyword.storate.rust"] = { fg = colors.red },        -- Keywords (mut, &, etc.)
-	["@function.rust"] = { fg = colors.green },             -- Function names
-	["@function.call.rust"] = { fg = colors.green },        -- Function calls
-	["@macro.rust"] = { fg = colors.brown },                -- Macros (derive!, etc.)
-	["@type.rust"] = { fg = colors.blue },                  -- Types (i32, String, your enums)
-	["@type.builtin.rust"] = { fg = colors.cyan },          -- Built-in types
-	["@field.rust"] = { fg = colors.gray },                 -- Struct/enum fields
-	["@variable.rust"] = { fg = colors.white },             -- Variables
-	["@variable.parameter.rust"] = { fg = colors.orange },  -- Function parameters
-	["@comment.rust"] = { fg = colors.dark },               -- Comments
-	["@string.rust"] = { fg = colors.yellow },              -- Strings
-	["@number.rust"] = { fg = colors.purple },              -- Numbers
-	["@operator.rust"] = { fg = colors.red },               -- Operators (+, -, *, etc.)
-	["@punctuation.bracket.rust"] = { fg = colors.gray },   -- Brackets ([, ], {, })
-	["@punctuation.delimiter.rust"] = { fg = colors.gray }, -- Delimiters (,, ;, .)
-	["@attribute.rust"] = { fg = colors.cyan },             -- Attributes (#derive, etc.)
-	["@namespace.rust"] = { fg = colors.blue },             -- Namespaces/modules
-	["@constructor.rust"] = { fg = colors.green },          -- Constructors (e.g., `MyStruct {}`)
-	-- LSP Semantic highlight
-	["@lsp.type.enum.rust"] = { fg = colors.cyan },
-	["@lsp.type.enumMember.rust"] = { fg = colors.pink },
-	["@lsp.type.decorator.rust"] = { fg = colors.dark },
-	["@lsp.type.attributeBracket.rust"] = { fg = colors.dark },
-	["@lsp.type.derive.rust"] = { fg = colors.cyan },
-	["@lsp.type.builtinType.rust"] = { fg = colors.red },
-	["@lsp.type.struct.rust"] = { fg = colors.blue },
-	["@lsp.type.parameter.rust"] = { fg = colors.orange },
-	["@lsp.type.builtinAttribute.rust"] = { fg = colors.dark },
-	["@lsp.type.deriveHelper.rust"] = { fg = colors.dark },
-	["@lsp.mode.attribute.rust"] = { fg = colors.dark },
-	["@lsp.type.namespace.rust"] = { fg = colors.dark },
-	["@lsp.type.macro.rust"] = { fg = colors.brown, bold = true },
-	["@lsp.type.interface.rust"] = { fg = colors.cyan },
-	["@lsp.type.typeAlias.rust"] = { fg = colors.blue },
-	["@lsp.type.selfKeyword.rust"] = { fg = colors.red },
-	["@lsp.type.selfTypeKeyword.rust"] = { fg = colors.red },
-	["@lsp.type.keyword.rust"] = { fg = colors.red },
-	["@lsp.type.static.rust"] = { fg = colors.emerald },
-	["@lsp.typemod.static.declaration.rust"] = { fg = colors.emerald },
-	["@lsp.typemod.function.static.rust"] = { fg = colors.emerald },
-	["@lsp.type.typeParameter.rust"] = { fg = colors.emerald },
-	["@lsp.type.punctuation.rust"] = { fg = colors.gray },
-	["@lsp.type.variable.rust"] = { fg = colors.gray },
-	["@lsp.type.const.rust"] = { fg = colors.lime },
-	["@lsp.typemod.variable.declaration.rust"] = { fg = colors.gray },
-	["@lsp.typemod.property.declaration.rust"] = { fg = colors.white },
+-- Rust highlights (Treesitter + LSP semantic tokens)
+-- Vim regex syntax fallbacks (used when treesitter rust parser unavailable).
+local rust_legacy_highlights = {
+	rustStorage       = { fg = colors.red },
+	rustMacro         = { fg = colors.red },
+	rustOperator      = { fg = colors.gray },
+	rustMacroVariable = { fg = colors.orange },
+	rustEnumVariant   = { fg = colors.pink },
+	rustLifetime      = { fg = colors.teal },
+	rustAttribute     = { fg = colors.dark },
+	rustDerive        = { fg = colors.dark },
+	rustFoldBraces    = { fg = colors.gray },
+	rustSigil         = { fg = colors.red },
 }
-for group, color in pairs(rust_highlights) do
+for group, color in pairs(rust_legacy_highlights) do
 	vim.api.nvim_set_hl(0, group, color)
+end
+
+local function rust_treesitter_highlights(lang)
+	return {
+		["@keyword." .. lang]                = { fg = colors.red },
+		["@keyword.storate." .. lang]        = { fg = colors.red },
+		["@function." .. lang]               = { fg = colors.green },
+		["@function.call." .. lang]          = { fg = colors.green },
+		["@macro." .. lang]                  = { fg = colors.brown },
+		["@type." .. lang]                   = { fg = colors.blue },
+		["@type.builtin." .. lang]           = { fg = colors.cyan },
+		["@field." .. lang]                  = { fg = colors.gray },
+		["@variable." .. lang]               = { fg = colors.white },
+		["@variable.parameter." .. lang]     = { fg = colors.orange },
+		["@comment." .. lang]                = { fg = colors.silver },
+		["@string." .. lang]                 = { fg = colors.yellow },
+		["@number." .. lang]                 = { fg = colors.purple },
+		["@operator." .. lang]               = { fg = colors.red },
+		["@punctuation.bracket." .. lang]    = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang]  = { fg = colors.gray },
+		["@attribute." .. lang]              = { fg = colors.cyan },
+		["@namespace." .. lang]              = { fg = colors.blue },
+		["@constructor." .. lang]            = { fg = colors.green },
+	}
+end
+
+local function rust_lsp_highlights(lang)
+	return {
+		["@lsp.type.lifetime." .. lang]                = { fg = colors.teal },
+		["@lsp.type.enum." .. lang]                    = { fg = colors.cyan },
+		["@lsp.type.enumMember." .. lang]              = { fg = colors.pink },
+		["@lsp.type.decorator." .. lang]               = { fg = colors.dark },
+		["@lsp.type.attributeBracket." .. lang]        = { fg = colors.dark },
+		["@lsp.type.derive." .. lang]                  = { fg = colors.cyan },
+		["@lsp.type.builtinType." .. lang]             = { fg = colors.red },
+		["@lsp.type.struct." .. lang]                  = { fg = colors.blue },
+		["@lsp.type.parameter." .. lang]               = { fg = colors.orange },
+		["@lsp.type.builtinAttribute." .. lang]        = { fg = colors.dark },
+		["@lsp.type.deriveHelper." .. lang]            = { fg = colors.dark },
+		["@lsp.mode.attribute." .. lang]               = { fg = colors.dark },
+		["@lsp.type.namespace." .. lang]               = { fg = colors.dark },
+		["@lsp.type.macro." .. lang]                   = { fg = colors.brown, bold = true },
+		["@lsp.type.interface." .. lang]               = { fg = colors.cyan },
+		["@lsp.type.typeAlias." .. lang]               = { fg = colors.blue },
+		["@lsp.type.selfKeyword." .. lang]             = { fg = colors.red },
+		["@lsp.type.selfTypeKeyword." .. lang]         = { fg = colors.red },
+		["@lsp.type.keyword." .. lang]                 = { fg = colors.red },
+		["@lsp.type.static." .. lang]                  = { fg = colors.emerald },
+		["@lsp.typemod.static.declaration." .. lang]   = { fg = colors.emerald },
+		["@lsp.typemod.function.static." .. lang]      = { fg = colors.emerald },
+		["@lsp.type.typeParameter." .. lang]           = { fg = colors.emerald },
+		["@lsp.type.punctuation." .. lang]             = { fg = colors.gray },
+		["@lsp.type.variable." .. lang]                = { fg = colors.gray },
+		["@lsp.type.const." .. lang]                   = { fg = colors.lime },
+		["@lsp.typemod.variable.declaration." .. lang] = { fg = colors.gray },
+		["@lsp.typemod.property.declaration." .. lang] = { fg = colors.white },
+	}
+end
+
+for _, lang in ipairs({ "rust" }) do
+	for group, color in pairs(rust_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+for _, lang in ipairs({ "rust" }) do
+	for group, color in pairs(rust_lsp_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+-- TypeScript / JavaScript / TSX highlights (Treesitter + LSP semantic tokens)
+local function ts_treesitter_highlights(lang)
+	return {
+		["@keyword." .. lang]                 = { fg = colors.red },
+		["@keyword.import." .. lang]          = { fg = colors.red },
+		["@keyword.export." .. lang]          = { fg = colors.red },
+		["@keyword.return." .. lang]          = { fg = colors.red },
+		["@keyword.operator." .. lang]        = { fg = colors.red },
+		["@keyword.function." .. lang]        = { fg = colors.red },
+		["@keyword.coroutine." .. lang]       = { fg = colors.red },
+		["@keyword.modifier." .. lang]        = { fg = colors.red },
+		["@keyword.conditional." .. lang]     = { fg = colors.red },
+		["@keyword.repeat." .. lang]          = { fg = colors.red },
+		["@function." .. lang]                = { fg = colors.green },
+		["@function.call." .. lang]           = { fg = colors.green },
+		["@function.method." .. lang]         = { fg = colors.green },
+		["@function.method.call." .. lang]    = { fg = colors.green },
+		["@function.builtin." .. lang]        = { fg = colors.green },
+		["@type." .. lang]                    = { fg = colors.blue },
+		["@type.builtin." .. lang]            = { fg = colors.red },
+		["@variable." .. lang]                = { fg = colors.gray },
+		["@variable.parameter." .. lang]      = { fg = colors.orange },
+		["@variable.member." .. lang]         = { fg = colors.white },
+		["@variable.builtin." .. lang]        = { fg = colors.white },
+		["@property." .. lang]                = { fg = colors.white },
+		["@constructor." .. lang]             = { fg = colors.green },
+		["@string." .. lang]                  = { fg = colors.yellow },
+		["@string.escape." .. lang]           = { fg = colors.purple },
+		["@string.special." .. lang]          = { fg = colors.purple },
+		["@string.regexp." .. lang]           = { fg = colors.orange },
+		["@number." .. lang]                  = { fg = colors.purple },
+		["@boolean." .. lang]                 = { fg = colors.purple },
+		["@constant." .. lang]                = { fg = colors.lime },
+		["@constant.builtin." .. lang]        = { fg = colors.purple },
+		["@operator." .. lang]                = { fg = colors.gray },
+		["@punctuation.bracket." .. lang]     = { fg = colors.silver },
+		["@punctuation.delimiter." .. lang]   = { fg = colors.red },
+		["@punctuation.special." .. lang]     = { fg = colors.silver },
+		["@comment." .. lang]                 = { fg = colors.silver },
+		["@module." .. lang]                  = { fg = colors.silver },
+		["@tag." .. lang]                     = { fg = colors.red },
+		["@tag.attribute." .. lang]           = { fg = colors.orange },
+		["@tag.delimiter." .. lang]           = { fg = colors.gray },
+	}
+end
+
+local function ts_lsp_highlights(lang)
+	return {
+		["@lsp.type.class." .. lang]             = { fg = colors.blue },
+		["@lsp.type.interface." .. lang]         = { fg = colors.teal },
+		["@lsp.type.enum." .. lang]              = { fg = colors.cyan },
+		["@lsp.type.enumMember." .. lang]        = { fg = colors.pink },
+		["@lsp.type.parameter." .. lang]         = { fg = colors.orange },
+		["@lsp.type.property." .. lang]          = { fg = colors.white },
+		["@lsp.type.method." .. lang]            = { fg = colors.green },
+		["@lsp.type.function." .. lang]          = { fg = colors.green },
+		["@lsp.type.variable." .. lang]          = { fg = colors.lime },
+		["@lsp.typemod.variable.local." .. lang] = { fg = colors.gray },
+		["@lsp.type.namespace." .. lang]         = { fg = colors.cyan },
+		["@lsp.type.typeAlias." .. lang]         = { fg = colors.blue },
+		["@lsp.type.typeParameter." .. lang]     = { fg = colors.teal },
+		["@lsp.type.keyword." .. lang]           = { fg = colors.red },
+		["@lsp.type.string." .. lang]            = { fg = colors.yellow },
+		["@lsp.type.number." .. lang]            = { fg = colors.purple },
+		["@lsp.type.decorator." .. lang]         = { fg = colors.brown },
+		["@lsp.type.builtinType." .. lang]       = { fg = colors.red },
+		-- Built-in globals carry the defaultLibrary modifier:
+		-- built-in classes / converters / global functions -> cyan;
+		-- built-in objects (console, Math, JSON, ...) -> lime.
+		["@lsp.typemod.class.defaultLibrary." .. lang]     = { fg = colors.cyan },
+		["@lsp.typemod.function.defaultLibrary." .. lang]  = { fg = colors.cyan },
+		["@lsp.typemod.method.defaultLibrary." .. lang]    = { fg = colors.cyan },
+		["@lsp.typemod.variable.defaultLibrary." .. lang]  = { fg = colors.lime },
+		["@lsp.typemod.namespace.defaultLibrary." .. lang] = { fg = colors.lime },
+	}
+end
+
+for _, lang in ipairs({ "typescript", "tsx", "javascript" }) do
+	for group, color in pairs(ts_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+for _, lang in ipairs({ "typescript", "typescriptreact", "javascript", "javascriptreact" }) do
+	for group, color in pairs(ts_lsp_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
 end
 

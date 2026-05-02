@@ -32,6 +32,9 @@ map('n', '<D-e>', ':NvimTreeToggle<CR>', { desc = 'Toggle file tree', silent = t
 -- Trouble
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })
 
+-- Format current buffer (Opt+Shift+F)
+map({ 'n', 'v' }, '<M-S-f>', function() require('conform').format({ async = true, lsp_format = 'fallback' }) end, { desc = 'Format buffer' })
+
 -- Disable search highlight
 map('n', '<leader>n', ':noh<CR>', { desc = 'Clear search highlight', silent = true })
 
