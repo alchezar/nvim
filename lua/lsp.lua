@@ -6,6 +6,9 @@ vim.g.rustaceanvim = {
         checkOnSave = true,
         check = { command = 'clippy' },
         cargo = { allFeatures = true },
+        semanticHighlighting = {
+          strings = { enable = false },
+        },
         inlayHints = {
           chainingHints = { enable = false },
         },
