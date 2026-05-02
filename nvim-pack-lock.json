@@ -92,9 +92,17 @@
       "rev": "bd67efe408d4816e25e8491cc5ad4088e708a69a",
       "src": "https://github.com/folke/trouble.nvim"
     },
+    "vim-easymotion": {
+      "rev": "b3cfab2a6302b3b39f53d9fd2cd997e1127d7878",
+      "src": "https://github.com/easymotion/vim-easymotion"
+    },
     "vim-startify": {
       "rev": "4e089dffdad46f3f5593f34362d530e8fe823dcf",
       "src": "https://github.com/mhinz/vim-startify"
+    },
+    "vim-surround": {
+      "rev": "3d188ed2113431cf8dac77be61b842acb64433d9",
+      "src": "https://github.com/tpope/vim-surround"
     },
     "virt-column.nvim": {
       "rev": "b87e3e0864211a32724a2ebf3be37e24e9e2fa99",

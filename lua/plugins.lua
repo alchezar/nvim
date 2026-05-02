@@ -26,6 +26,8 @@ vim.pack.add({
   -- Navigation
   'https://github.com/nvim-lua/plenary.nvim',
   'https://github.com/nvim-telescope/telescope.nvim',
+  'https://github.com/easymotion/vim-easymotion',
+  'https://github.com/tpope/vim-surround',
 
   -- File explorer
   'https://github.com/nvim-tree/nvim-web-devicons',

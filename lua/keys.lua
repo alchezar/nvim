@@ -18,6 +18,8 @@ map('n', ']d', vim.diagnostic.goto_next, { desc = 'Next diagnostic' })
 
 -- Telescope
 local builtin = require('telescope.builtin')
+map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })
+map('n', '<D-e>', builtin.buffers, { desc = 'Open buffers' })
 map('n', '<C-p>', builtin.find_files, { desc = 'Find files' })
 map('n', '<leader>fg', builtin.live_grep, { desc = 'Live grep' })
 map('n', '<leader>fb', builtin.buffers, { desc = 'Buffers' })
@@ -26,11 +28,12 @@ map('n', '<leader>fh', builtin.help_tags, { desc = 'Help tags' })
 -- Nvim-tree (matching .ideavimrc NERDTree bindings)
 map('n', '<leader>e', ':NvimTreeToggle<CR>', { desc = 'Toggle file tree', silent = true })
 map('n', '<leader>f', ':NvimTreeFindFile<CR>', { desc = 'Find file in tree', silent = true })
--- Cmd+E for Neovide
-map('n', '<D-e>', ':NvimTreeToggle<CR>', { desc = 'Toggle file tree', silent = true })
 
 -- Trouble
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })
+
+-- Startify dashboard
+map('n', 'gq', ':Startify<CR>', { desc = 'Open Startify', silent = true })
 
 -- Format current buffer (Opt+Shift+F)
 map({ 'n', 'v' }, '<M-S-f>', function() require('conform').format({ async = true, lsp_format = 'fallback' }) end, { desc = 'Format buffer' })

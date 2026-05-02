@@ -45,6 +45,7 @@ vim.api.nvim_set_hl(0, 'CommandLine', {fg = colors.fg, bg = colors.bg})
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 
+
 -- Different background color if using Neovide
 if vim.g.neovide then
 	vim.api.nvim_set_hl(0, "Normal", { bg = colors.bg })
@@ -52,6 +53,7 @@ if vim.g.neovide then
 end
 
 -- Default highlights. Use ":Inspect" command to find correct type.
+vim.api.nvim_set_hl(0, "Whitespace", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "Constructor", { fg = colors.red })
 vim.api.nvim_set_hl(0, "Special", { fg = colors.red })
 vim.api.nvim_set_hl(0, "Keyword", { fg = colors.red })
@@ -148,7 +150,7 @@ local function rust_lsp_highlights(lang)
 		["@lsp.type.enumMember." .. lang]              = { fg = colors.pink },
 		["@lsp.type.decorator." .. lang]               = { fg = colors.dark },
 		["@lsp.type.attributeBracket." .. lang]        = { fg = colors.dark },
-		["@lsp.type.derive." .. lang]                  = { fg = colors.cyan },
+		["@lsp.type.derive." .. lang]                  = { fg = colors.teal },
 		["@lsp.type.builtinType." .. lang]             = { fg = colors.red },
 		["@lsp.type.struct." .. lang]                  = { fg = colors.blue },
 		["@lsp.type.parameter." .. lang]               = { fg = colors.orange },
@@ -157,7 +159,7 @@ local function rust_lsp_highlights(lang)
 		["@lsp.mode.attribute." .. lang]               = { fg = colors.dark },
 		["@lsp.type.namespace." .. lang]               = { fg = colors.dark },
 		["@lsp.type.macro." .. lang]                   = { fg = colors.brown, bold = true },
-		["@lsp.type.interface." .. lang]               = { fg = colors.cyan },
+		["@lsp.type.interface." .. lang]               = { fg = colors.teal },
 		["@lsp.type.typeAlias." .. lang]               = { fg = colors.blue },
 		["@lsp.type.selfKeyword." .. lang]             = { fg = colors.red },
 		["@lsp.type.selfTypeKeyword." .. lang]         = { fg = colors.red },
@@ -165,7 +167,7 @@ local function rust_lsp_highlights(lang)
 		["@lsp.type.static." .. lang]                  = { fg = colors.emerald },
 		["@lsp.typemod.static.declaration." .. lang]   = { fg = colors.emerald },
 		["@lsp.typemod.function.static." .. lang]      = { fg = colors.emerald },
-		["@lsp.type.typeParameter." .. lang]           = { fg = colors.emerald },
+		["@lsp.type.typeParameter." .. lang]           = { fg = colors.teal },
 		["@lsp.type.punctuation." .. lang]             = { fg = colors.gray },
 		["@lsp.type.variable." .. lang]                = { fg = colors.gray },
 		["@lsp.type.const." .. lang]                   = { fg = colors.lime },

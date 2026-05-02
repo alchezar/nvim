@@ -21,6 +21,18 @@ vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.softtabstop = 4
 vim.opt.expandtab = true
+-- Whitespace display: trailing dots always; full whitespace in visual mode
+vim.opt.list = true
+vim.opt.listchars = { trail = '·', tab = '  ' }
+vim.api.nvim_create_autocmd('ModeChanged', {
+    callback = function()
+        if vim.v.event.new_mode:match('^[vV\22]') then
+            vim.opt.listchars = { trail = '·', space = '·', tab = '→ ' }
+        else
+            vim.opt.listchars = { trail = '·', tab = '  ' }
+        end
+    end,
+})
 -- Visual lines move (for lines longer than terminal width)
 vim.keymap.set('n', 'j', 'gj')
 vim.keymap.set('n', 'k', 'gk')
@@ -77,3 +89,6 @@ require('trouble').setup()
 require('nvim-tree').setup()
 require('nvim-web-devicons').setup()
 require('virt-column').setup({ char = '▕', virtcolumn = '80' })
+-- EasyMotion (matches .ideavimrc binding: s = bidirectional 2-char search)
+vim.g.EasyMotion_smartcase = 1
+vim.keymap.set({ 'n', 'x', 'o' }, 's', '<Plug>(easymotion-s2)')
