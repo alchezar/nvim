@@ -1,4 +1,5 @@
 local map = vim.keymap.set
+local utils = require('utils')
 
 -- Leader key
 vim.g.mapleader = ' '
@@ -8,13 +9,16 @@ map('n', 'gd', vim.lsp.buf.definition, { desc = 'Go to declaration' })
 map('n', 'gu', vim.lsp.buf.references, { desc = 'Show usages' })
 map('n', 'gI', vim.lsp.buf.implementation, { desc = 'Quick implementations' })
 map('n', 'gi', vim.lsp.buf.implementation, { desc = 'Go to implementation' })
-map('n', 'gh', function() vim.lsp.buf.hover({ max_width = 80 }) end, { desc = 'Show hover info' })
+map('n', 'gh', utils.hover, { desc = 'Show hover info' })
 map('n', 'gH', vim.lsp.buf.incoming_calls, { desc = 'Call hierarchy' })
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
 map('n', '<leader>ca', vim.lsp.buf.code_action, { desc = 'Code action' })
 map('n', '<leader>o', vim.lsp.buf.document_symbol, { desc = 'File structure' })
 map('n', '[d', vim.diagnostic.goto_prev, { desc = 'Previous diagnostic' })
 map('n', ']d', vim.diagnostic.goto_next, { desc = 'Next diagnostic' })
+
+-- Switch between C/C++ source and header (clangd)
+map('n', 'go', utils.switch_source_header, { desc = 'Switch C/C++ source/header' })
 
 -- Telescope
 local builtin = require('telescope.builtin')
@@ -26,7 +30,7 @@ map('n', '<leader>fb', builtin.buffers, { desc = 'Buffers' })
 map('n', '<leader>fh', builtin.help_tags, { desc = 'Help tags' })
 
 -- Nvim-tree (matching .ideavimrc NERDTree bindings)
-map('n', '<leader>e', ':NvimTreeToggle<CR>', { desc = 'Toggle file tree', silent = true })
+map('n', '<leader>e', ':NvimTreeFindFileToggle<CR>', { desc = 'Toggle file tree (reveal current file)', silent = true })
 map('n', '<leader>f', ':NvimTreeFindFile<CR>', { desc = 'Find file in tree', silent = true })
 
 -- Trouble
@@ -36,7 +40,7 @@ map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics'
 map('n', 'gq', ':Startify<CR>', { desc = 'Open Startify', silent = true })
 
 -- Format current buffer (Opt+Shift+F)
-map({ 'n', 'v' }, '<M-S-f>', function() require('conform').format({ async = true, lsp_format = 'fallback' }) end, { desc = 'Format buffer' })
+map({ 'n', 'v' }, '<M-S-f>', utils.format, { desc = 'Format buffer' })
 
 -- Disable search highlight
 map('n', '<leader>n', ':noh<CR>', { desc = 'Clear search highlight', silent = true })
@@ -52,30 +56,18 @@ map('n', '<leader>p', '"_dP', { desc = 'Paste without overwriting register' })
 map('v', '*', 'y/<C-R>"<CR>', { desc = 'Search selected text' })
 
 -- DAP (debug)
-map('n', '<F5>', function() require('dap').continue() end, { desc = 'Debug: continue' })
-map('n', '<F10>', function() require('dap').step_over() end, { desc = 'Debug: step over' })
-map('n', '<F11>', function() require('dap').step_into() end, { desc = 'Debug: step into' })
-map('n', '<F12>', function() require('dap').step_out() end, { desc = 'Debug: step out' })
-map('n', '<leader>b', function() require('dap').toggle_breakpoint() end, { desc = 'Toggle breakpoint' })
+local dap = function(action) return function() require('dap')[action]() end end
+map('n', '<F5>', dap('continue'), { desc = 'Debug: continue' })
+map('n', '<F10>', dap('step_over'), { desc = 'Debug: step over' })
+map('n', '<F11>', dap('step_into'), { desc = 'Debug: step into' })
+map('n', '<F12>', dap('step_out'), { desc = 'Debug: step out' })
+map('n', '<leader>b', dap('toggle_breakpoint'), { desc = 'Toggle breakpoint' })
 
 -- Open yazi file manager
-map('n', '<leader>y', function()
-  local tmp = vim.fn.tempname()
-  vim.cmd('silent !yazi --chooser-file=' .. tmp)
-  vim.cmd('redraw!')
-  local f = io.open(tmp, 'r')
-  if f then
-    local path = f:read('*l')
-    f:close()
-    os.remove(tmp)
-    if path and path ~= '' then
-      vim.cmd('edit ' .. vim.fn.fnameescape(path))
-    end
-  end
-end, { desc = 'Open yazi' })
+map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })
 
 -- Toggle inlay hints
-map('n', '<D-C-]>', function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled()) end, { desc = 'Toggle inlay hints' })
-map('n', '<leader>i', function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled()) end, { desc = 'Toggle inlay hints' })
+map('n', '<D-C-]>', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })
+map('n', '<leader>i', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })
 
 -- Comment.nvim (gcc / gc in visual - works out of the box)

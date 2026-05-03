@@ -86,7 +86,25 @@ require('Comment').setup()
 require('gitsigns').setup()
 require('todo-comments').setup()
 require('trouble').setup()
-require('nvim-tree').setup()
+require('nvim-tree').setup({
+  sync_root_with_cwd = true,
+  respect_buf_cwd = true,
+  update_focused_file = {
+    enable = true,
+    update_root = {
+      enable = true,
+      ignore_list = {},
+    },
+  },
+  root_dirs = {},
+})
+
+-- Auto-cd to project root based on common markers
+vim.api.nvim_create_autocmd('BufEnter', {
+  callback = function(args)
+    require('utils').auto_cd_to_project_root(args.buf)
+  end,
+})
 require('nvim-web-devicons').setup()
 require('virt-column').setup({ char = '▕', virtcolumn = '80' })
 -- EasyMotion (matches .ideavimrc binding: s = bidirectional 2-char search)

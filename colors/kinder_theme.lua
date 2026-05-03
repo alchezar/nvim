@@ -80,13 +80,103 @@ vim.api.nvim_set_hl(0, "FloatTitle", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "LspHoverSeparator", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.dark })
 
--- CPP highlights
-vim.api.nvim_set_hl(0, "@variable.cpp", { fg = colors.gray })
-vim.api.nvim_set_hl(0, "@label.cpp", { fg = colors.red })
-vim.api.nvim_set_hl(0, "@constructor.cpp", { fg = colors.green })
-vim.api.nvim_set_hl(0, "@variable.parameter.cpp", { fg = colors.orange })
-vim.api.nvim_set_hl(1, "@modele.cpp", { fg = colors.blue })
-vim.api.nvim_set_hl(0, "@type.cpp", { fg = colors.blue })
+-- C / C++ highlights (Treesitter + LSP semantic tokens from clangd)
+local function cpp_treesitter_highlights(lang)
+	return {
+		["@keyword." .. lang]                  = { fg = colors.red },
+		["@keyword.return." .. lang]           = { fg = colors.red },
+		["@keyword.operator." .. lang]         = { fg = colors.red },
+		["@keyword.modifier." .. lang]         = { fg = colors.red },
+		["@keyword.conditional." .. lang]      = { fg = colors.red },
+		["@keyword.repeat." .. lang]           = { fg = colors.red },
+		["@keyword.import." .. lang]           = { fg = colors.red },
+		["@keyword.directive." .. lang]        = { fg = colors.red },
+		["@keyword.directive.define." .. lang] = { fg = colors.red },
+		["@function." .. lang]                 = { fg = colors.green },
+		["@function.call." .. lang]            = { fg = colors.green },
+		["@function.method." .. lang]          = { fg = colors.green },
+		["@function.method.call." .. lang]     = { fg = colors.green },
+		["@function.builtin." .. lang]         = { fg = colors.green },
+		["@constructor." .. lang]              = { fg = colors.green },
+		["@type." .. lang]                     = { fg = colors.blue },
+		["@type.builtin." .. lang]             = { fg = colors.red },
+		["@type.qualifier." .. lang]           = { fg = colors.red },
+		["@variable." .. lang]                 = { fg = colors.gray },
+		["@variable.parameter." .. lang]       = { fg = colors.orange },
+		["@variable.member." .. lang]          = { fg = colors.white },
+		["@variable.builtin." .. lang]         = { fg = colors.white },
+		["@property." .. lang]                 = { fg = colors.white },
+		["@string." .. lang]                   = { fg = colors.yellow },
+		["@string.escape." .. lang]            = { fg = colors.purple },
+		["@string.special." .. lang]           = { fg = colors.purple },
+		["@character." .. lang]                = { fg = colors.yellow },
+		["@character.special." .. lang]        = { fg = colors.yellow },
+		["@number." .. lang]                   = { fg = colors.purple },
+		["@boolean." .. lang]                  = { fg = colors.red },
+		["@constant." .. lang]                 = { fg = colors.lime },
+		["@constant.builtin." .. lang]         = { fg = colors.red },
+		["@constant.macro." .. lang]           = { fg = colors.brown },
+		["@operator." .. lang]                 = { fg = colors.red },
+		["@punctuation.bracket." .. lang]      = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang]    = { fg = colors.gray },
+		["@comment." .. lang]                  = { fg = colors.silver },
+		["@module." .. lang]                   = { fg = colors.dark },
+		["@label." .. lang]                    = { fg = colors.red },
+		["@attribute." .. lang]                = { fg = colors.cyan },
+		["@preproc." .. lang]                  = { fg = colors.red },
+	}
+end
+
+local function cpp_lsp_highlights(lang)
+	return {
+		["@lsp.type.class." .. lang]         = { fg = colors.blue },
+		["@lsp.type.struct." .. lang]        = { fg = colors.blue },
+		["@lsp.type.enum." .. lang]          = { fg = colors.cyan },
+		["@lsp.type.enumMember." .. lang]    = { fg = colors.pink },
+		["@lsp.type.interface." .. lang]     = { fg = colors.teal },
+		["@lsp.type.concept." .. lang]       = { fg = colors.teal },
+		["@lsp.type.type." .. lang]          = { fg = colors.blue },
+		["@lsp.type.typeAlias." .. lang]     = { fg = colors.blue },
+		["@lsp.type.typeParameter." .. lang] = { fg = colors.teal },
+		["@lsp.type.parameter." .. lang]     = { fg = colors.orange },
+		["@lsp.type.property." .. lang]      = { fg = colors.white },
+		["@lsp.type.method." .. lang]        = { fg = colors.green },
+		["@lsp.type.function." .. lang]      = { fg = colors.green },
+		["@lsp.type.variable." .. lang]      = { fg = colors.gray },
+		["@lsp.type.namespace." .. lang]     = { fg = colors.dark },
+		["@lsp.type.macro." .. lang]         = { fg = colors.brown, bold = true },
+		["@lsp.type.keyword." .. lang]       = { fg = colors.red },
+		["@lsp.type.string." .. lang]        = { fg = colors.yellow },
+		["@lsp.type.number." .. lang]        = { fg = colors.purple },
+		["@lsp.type.operator." .. lang]      = { fg = colors.red },
+		["@lsp.type.comment." .. lang]       = { fg = colors.silver },
+		["@lsp.type.bracket." .. lang]       = { fg = colors.gray },
+		["@lsp.type.label." .. lang]         = { fg = colors.red },
+		["@lsp.type.modifier." .. lang]      = { fg = colors.red },
+		["@lsp.type.unknown." .. lang]       = { fg = colors.gray },
+		-- Modifiers
+		["@lsp.typemod.variable.readonly." .. lang]        = { fg = colors.lime },
+		["@lsp.typemod.variable.fileScope." .. lang]       = { fg = colors.gray },
+		["@lsp.typemod.variable.globalScope." .. lang]     = { fg = colors.lime },
+		["@lsp.typemod.variable.functionScope." .. lang]   = { fg = colors.gray },
+		["@lsp.typemod.variable.classScope." .. lang]      = { fg = colors.white },
+		["@lsp.typemod.property.classScope." .. lang]      = { fg = colors.white },
+		["@lsp.typemod.parameter.functionScope." .. lang]  = { fg = colors.orange },
+		["@lsp.typemod.function.defaultLibrary." .. lang]  = { fg = colors.green },
+		["@lsp.typemod.method.defaultLibrary." .. lang]    = { fg = colors.green },
+		["@lsp.typemod.class.defaultLibrary." .. lang]     = { fg = colors.cyan },
+		["@lsp.typemod.namespace.defaultLibrary." .. lang] = { fg = colors.dark },
+	}
+end
+
+for _, lang in ipairs({ "cpp", "c" }) do
+	for group, color in pairs(cpp_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+	for group, color in pairs(cpp_lsp_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
 
 -- JSON highlights
 vim.api.nvim_set_hl(0, "jsonBoolean", { fg = colors.red })

@@ -34,3 +34,22 @@ dap.configurations.rust = {
     stopOnEntry = false,
   },
 }
+
+dap.configurations.cpp = {
+  {
+    name = 'Launch',
+    type = 'codelldb',
+    request = 'launch',
+    program = function()
+      return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/build/', 'file')
+    end,
+    cwd = '${workspaceFolder}',
+    stopOnEntry = false,
+    args = function()
+      local input = vim.fn.input('Args (space-separated): ')
+      return vim.split(input, ' ', { trimempty = true })
+    end,
+  },
+}
+
+dap.configurations.c = dap.configurations.cpp
