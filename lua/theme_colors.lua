@@ -1,0 +1,21 @@
+-- Shared color palette used by `colors/kinder_theme.lua` and other configs
+return {
+  bg      = "#262626",
+  fg      = "#DCDCDC",
+  red     = "#FC6161",
+  green   = "#7BD88F",
+  yellow  = "#FCE566",
+  orange  = "#FFA348",
+  blue    = "#61AFEF",
+  purple  = "#948AE3",
+  cyan    = "#5AD4E6",
+  pink    = "#FC618D",
+  emerald = "#00DCC3",
+  white   = "#F7F1FF",
+  gray    = "#ABB2BF",
+  silver  = "#797979",
+  dark    = "#5A5A5A",
+  brown   = "#71504D",
+  lime    = "#CDEF58",
+  teal    = "#20999D",
+}

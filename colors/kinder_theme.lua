@@ -8,27 +8,8 @@ if vim.fn.exists("syntax_on") then
 	vim.cmd("syntax reset")
 end
 
--- Define colors
-local colors = {
-	bg      = "#262626",
-	fg      = "#DCDCDC",
-	red     = "#FC6161",
-	green   = "#7BD88F",
-	yellow  = "#FCE566",
-	orange  = "#FFA348",
-	blue    = "#61AFEF",
-	purple  = "#948AE3",
-	cyan    = "#5AD4E6",
-	pink    = "#FC618D",
-	emerald = "#00DCC3",
-	white   = "#F7F1FF",
-	gray    = "#ABB2BF",
-	silver  = "#797979",
-	dark    = "#5A5A5A",
-	brown   = "#71504D",
-	lime    = "#CDEF58",
-	teal    = "#20999D"
-}
+-- Color palette is shared with other configs (see lua/theme_colors.lua)
+local colors = require('theme_colors')
 
 local function highlight(group, color)
 	local style = color.style and 'gui=' .. color.style or 'gui=NONE'
@@ -419,6 +400,11 @@ vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL",  { fg = colors.blue })  -- mod
 vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL",  { fg = colors.cyan })
 vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL",    { fg = colors.red })
 vim.api.nvim_set_hl(0, "NvimTreeGitFolderStagedHL", { fg = colors.blue })
+
+-- gitsigns: sign-column colors (also reused by nvim-scrollbar on the right edge)
+vim.api.nvim_set_hl(0, "GitSignsAdd",    { fg = colors.green })
+vim.api.nvim_set_hl(0, "GitSignsChange", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "GitSignsDelete", { fg = colors.red })
 
 -- ANSI palette for built-in :terminal (used by yazi-in-nvim, etc.)
 vim.g.terminal_color_0  = colors.bg       -- black

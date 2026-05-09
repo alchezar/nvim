@@ -33,6 +33,7 @@ end, { desc = 'Find files everywhere ($HOME)' })
 map('n', '<leader>fg', builtin.live_grep, { desc = 'Live grep' })
 map('n', '<leader>fb', builtin.buffers, { desc = 'Buffers' })
 map('n', '<leader>fh', builtin.help_tags, { desc = 'Help tags' })
+map('n', '<leader>fp', utils.open_clipboard_path, { desc = 'Open file path from clipboard' })
 
 -- Nvim-tree (matching .ideavimrc NERDTree bindings)
 map('n', '<D-S-e>', ':NvimTreeFindFileToggle<CR>', { desc = 'Toggle file tree (reveal current file)', silent = true })

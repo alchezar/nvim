@@ -128,6 +128,23 @@ function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end
 
+-- Open file path from system clipboard, supports `path`, `path:line`, `path:line:col`
+function M.open_clipboard_path()
+  local raw = vim.trim(vim.fn.getreg('+'))
+  local file, line, col = raw:match('^(.-):(%d+):(%d+)$')
+  if not file then file, line = raw:match('^(.-):(%d+)$') end
+  if not file then file = raw end
+  file = vim.fn.expand(file)
+  if vim.fn.filereadable(file) == 0 then
+    vim.notify('File not found: ' .. file, vim.log.levels.WARN)
+    return
+  end
+  vim.cmd.edit(vim.fn.fnameescape(file))
+  if line then
+    vim.api.nvim_win_set_cursor(0, { tonumber(line), tonumber(col or 1) - 1 })
+  end
+end
+
 -- Project root markers used to auto-cd into the project of the current buffer
 M.project_root_markers = {
   '.git',

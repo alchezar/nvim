@@ -44,6 +44,10 @@ vim.pack.add({
   'https://github.com/lewis6991/gitsigns.nvim',
   'https://github.com/lukas-reineke/virt-column.nvim',
   'https://github.com/chentoast/marks.nvim',
+  'https://github.com/petertriho/nvim-scrollbar',
+
+  -- Markdown
+  'https://github.com/MeanderingProgrammer/render-markdown.nvim',
 })
 
 -- Explicitly load all plugins so require() works in init.lua

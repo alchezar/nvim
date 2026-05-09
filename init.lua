@@ -95,6 +95,8 @@ vim.api.nvim_create_autocmd('BufEnter', {
 require('nvim-web-devicons').setup()
 require('virt-column').setup({ char = '▕', virtcolumn = '80' })
 require('bookmarks')
+require('markdown')
+require('scrollbar_setup')
 
 -- EasyMotion (matches .ideavimrc binding: s = bidirectional 2-char search)
 vim.g.EasyMotion_smartcase = 1
