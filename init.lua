@@ -27,7 +27,7 @@ vim.opt.listchars = { trail = '·', tab = '  ' }
 vim.api.nvim_create_autocmd('ModeChanged', {
     callback = function()
         if vim.v.event.new_mode:match('^[vV\22]') then
-            vim.opt.listchars = { trail = '·', space = '·', tab = '→ ' }
+            vim.opt.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = '│···' }
         else
             vim.opt.listchars = { trail = '·', tab = '  ' }
         end
@@ -90,13 +90,20 @@ require('nvim-tree').setup({
   sync_root_with_cwd = true,
   respect_buf_cwd = true,
   update_focused_file = {
-    enable = true,
     update_root = {
+    enable = true,
       enable = true,
       ignore_list = {},
     },
   },
   root_dirs = {},
+  git = { enable = true },
+  renderer = {
+    highlight_git = 'name',
+    icons = {
+      show = { git = false },
+    },
+  },
 })
 
 -- Auto-cd to project root based on common markers

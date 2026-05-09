@@ -375,6 +375,45 @@ for _, lang in ipairs({ "typescript", "typescriptreact", "javascript", "javascri
 	end
 end
 
+-- SQL highlights (used for sqlx::query! injections and standalone .sql files)
+local function sql_treesitter_highlights(lang)
+	return {
+		["@keyword." .. lang]                 = { fg = colors.red },
+		["@keyword.operator." .. lang]        = { fg = colors.red },
+		["@keyword.modifier." .. lang]        = { fg = colors.red },
+		["@keyword.conditional." .. lang]     = { fg = colors.red },
+		["@keyword.repeat." .. lang]          = { fg = colors.red },
+		["@type." .. lang]                    = { fg = colors.blue },
+		["@type.builtin." .. lang]            = { fg = colors.cyan },
+		["@function.call." .. lang]           = { fg = colors.green },
+		["@variable." .. lang]                = { fg = colors.white },
+		["@variable.member." .. lang]         = { fg = colors.gray },
+		["@variable.parameter." .. lang]      = { fg = colors.orange },
+		["@string." .. lang]                  = { fg = colors.yellow },
+		["@number." .. lang]                  = { fg = colors.purple },
+		["@number.float." .. lang]            = { fg = colors.purple },
+		["@boolean." .. lang]                 = { fg = colors.purple },
+		["@operator." .. lang]                = { fg = colors.red },
+		["@punctuation.bracket." .. lang]     = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang]   = { fg = colors.gray },
+		["@attribute." .. lang]               = { fg = colors.cyan },
+		["@comment." .. lang]                 = { fg = colors.silver },
+	}
+end
+
+for _, lang in ipairs({ "sql" }) do
+	for group, color in pairs(sql_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+-- LSP diagnostics: red errors, orange warnings, green hints
+vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
+vim.api.nvim_set_hl(0, "DiagnosticWarn",  { fg = colors.orange })
+vim.api.nvim_set_hl(0, "DiagnosticInfo",  { fg = colors.blue })
+vim.api.nvim_set_hl(0, "DiagnosticHint",  { fg = colors.gray })
+vim.api.nvim_set_hl(0, "DiagnosticOk",    { fg = colors.green })
+
 -- Telescope borders: match yazi's darkgray
 vim.api.nvim_set_hl(0, "TelescopeBorder",        { fg = colors.dark })
 vim.api.nvim_set_hl(0, "TelescopePromptBorder",  { fg = colors.dark })
@@ -387,6 +426,14 @@ vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.gray, bold = tr
 vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName",  { fg = colors.gray })
 vim.api.nvim_set_hl(0, "NvimTreeFolderIcon",       { fg = colors.blue })
 vim.api.nvim_set_hl(0, "NvimTreeRootFolder",       { fg = colors.blue, bold = true })
+
+-- nvim-tree git status colors on file names
+vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL",   { fg = colors.cyan })  -- modified, unstaged
+vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL",     { fg = colors.red })   -- untracked
+vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL",  { fg = colors.blue })  -- modified, staged
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL",  { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL",    { fg = colors.red })
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderStagedHL", { fg = colors.blue })
 
 -- ANSI palette for built-in :terminal (used by yazi-in-nvim, etc.)
 vim.g.terminal_color_0  = colors.bg       -- black

@@ -73,9 +73,54 @@ function M.toggle_inlay_hints()
   vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
 end
 
--- LSP hover with limited width
+-- LSP hover with line diagnostics prepended (if any)
 function M.hover()
-  vim.lsp.buf.hover({ max_width = 80 })
+  local bufnr = 0
+  local lnum = vim.fn.line('.') - 1
+  local diags = vim.diagnostic.get(bufnr, { lnum = lnum })
+
+  local prefix = {}
+  for _, d in ipairs(diags) do
+    local sev = ({ 'ERROR', 'WARN', 'INFO', 'HINT' })[d.severity] or 'INFO'
+    local src = d.source and (' (' .. d.source .. ')') or ''
+    for i, msg_line in ipairs(vim.split(d.message, '\n', { plain = true })) do
+      if i == 1 then
+        table.insert(prefix, string.format('**[%s]**%s %s', sev, src, msg_line))
+      else
+        table.insert(prefix, msg_line)
+      end
+    end
+  end
+
+  local clients = vim.lsp.get_clients({ bufnr = bufnr, method = 'textDocument/hover' })
+  local function show(lines)
+    if #lines == 0 then return end
+    vim.lsp.util.open_floating_preview(lines, 'markdown', {
+      border = 'rounded',
+      max_width = 80,
+      focus_id = 'kinder-hover',
+    })
+  end
+
+  if #clients == 0 then
+    show(prefix)
+    return
+  end
+
+  local client = clients[1]
+  local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+  client:request('textDocument/hover', params, function(err, result)
+    local lines = {}
+    vim.list_extend(lines, prefix)
+    if not err and result and result.contents then
+      local hover = vim.lsp.util.convert_input_to_markdown_lines(result.contents)
+      if #hover > 0 then
+        if #lines > 0 then table.insert(lines, '---') end
+        vim.list_extend(lines, hover)
+      end
+    end
+    show(lines)
+  end, bufnr)
 end
 
 -- Format current buffer via conform.nvim

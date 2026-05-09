@@ -22,6 +22,7 @@ map('n', 'go', utils.switch_source_header, { desc = 'Switch C/C++ source/header'
 
 -- Telescope
 local builtin = require('telescope.builtin')
+map('n', '<Tab>', '<C-^>', { desc = 'Switch to alternate file' })
 map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })
 map('n', '<D-e>', builtin.buffers, { desc = 'Open buffers' })
 map('n', '<C-p>', builtin.find_files, { desc = 'Find files' })
@@ -71,6 +72,16 @@ map('n', '<leader>b', dap('toggle_breakpoint'), { desc = 'Toggle breakpoint' })
 
 -- Open yazi file manager
 map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })
+
+-- Copy file path / location to system clipboard
+local function yank_to_clipboard(text)
+  vim.fn.setreg('+', text)
+  vim.notify('Copied: ' .. text)
+end
+map('n', '<leader>cp', function() yank_to_clipboard(vim.fn.expand('%') .. ':' .. vim.fn.line('.')) end,   { desc = 'Copy relative path:line' })
+map('n', '<leader>cP', function() yank_to_clipboard(vim.fn.expand('%:p') .. ':' .. vim.fn.line('.')) end, { desc = 'Copy absolute path:line' })
+map('n', '<leader>cf', function() yank_to_clipboard(vim.fn.expand('%:t') .. ':' .. vim.fn.line('.')) end, { desc = 'Copy filename:line' })
+map('n', '<leader>cr', function() yank_to_clipboard(vim.fn.expand('%')) end, { desc = 'Copy relative path' })
 
 -- Toggle inlay hints
 map('n', '<D-C-]>', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })
