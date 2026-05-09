@@ -367,3 +367,34 @@ for _, lang in ipairs({ "typescript", "typescriptreact", "javascript", "javascri
 	end
 end
 
+-- Telescope borders: match yazi's darkgray
+vim.api.nvim_set_hl(0, "TelescopeBorder",        { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopePromptBorder",  { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopeResultsBorder", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopePreviewBorder", { fg = colors.dark })
+
+-- nvim-tree folder colors: blue icons, gray names
+vim.api.nvim_set_hl(0, "NvimTreeFolderName",       { fg = colors.gray })
+vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.gray, bold = true })
+vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName",  { fg = colors.gray })
+vim.api.nvim_set_hl(0, "NvimTreeFolderIcon",       { fg = colors.blue })
+vim.api.nvim_set_hl(0, "NvimTreeRootFolder",       { fg = colors.blue, bold = true })
+
+-- ANSI palette for built-in :terminal (used by yazi-in-nvim, etc.)
+vim.g.terminal_color_0  = colors.bg       -- black
+vim.g.terminal_color_1  = colors.red
+vim.g.terminal_color_2  = colors.green
+vim.g.terminal_color_3  = colors.yellow
+vim.g.terminal_color_4  = colors.blue
+vim.g.terminal_color_5  = colors.purple   -- magenta
+vim.g.terminal_color_6  = colors.cyan
+vim.g.terminal_color_7  = colors.fg       -- white
+vim.g.terminal_color_8  = colors.dark     -- bright black
+vim.g.terminal_color_9  = colors.pink     -- bright red
+vim.g.terminal_color_10 = colors.lime     -- bright green
+vim.g.terminal_color_11 = colors.orange   -- bright yellow
+vim.g.terminal_color_12 = colors.blue     -- bright blue
+vim.g.terminal_color_13 = colors.purple   -- bright magenta
+vim.g.terminal_color_14 = colors.emerald  -- bright cyan
+vim.g.terminal_color_15 = colors.white    -- bright white
+

@@ -1,18 +1,49 @@
 local M = {}
 
--- Open yazi file manager and edit the chosen file
+-- Open yazi file manager in a floating terminal, edit the chosen file
 function M.open_yazi()
   local tmp = vim.fn.tempname()
-  vim.cmd('silent !yazi --chooser-file=' .. tmp)
-  vim.cmd('redraw!')
-  local f = io.open(tmp, 'r')
-  if not f then return end
-  local path = f:read('*l')
-  f:close()
-  os.remove(tmp)
-  if path and path ~= '' then
-    vim.cmd('edit ' .. vim.fn.fnameescape(path))
+  local cwd = vim.fn.expand('%:p:h')
+  if cwd == '' or vim.fn.isdirectory(cwd) == 0 then
+    cwd = vim.fn.getcwd()
   end
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  local has_statusline = vim.o.laststatus > 0 and 1 or 0
+  local editor_h = vim.o.lines - vim.o.cmdheight - has_statusline
+  local height = math.floor(editor_h * 0.9)
+  local width = math.floor(vim.o.columns * 0.9)
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = 'editor',
+    width = width,
+    height = height,
+    row = math.floor((editor_h - height - 2) / 2),
+    col = math.floor((vim.o.columns - width - 2) / 2),
+    style = 'minimal',
+    border = 'rounded',
+  })
+
+  vim.fn.jobstart({ 'yazi', '--chooser-file=' .. tmp, cwd }, {
+    term = true,
+    on_exit = function()
+      if vim.api.nvim_win_is_valid(win) then
+        vim.api.nvim_win_close(win, true)
+      end
+      if vim.api.nvim_buf_is_valid(buf) then
+        vim.api.nvim_buf_delete(buf, { force = true })
+      end
+      local f = io.open(tmp, 'r')
+      if not f then return end
+      local path = f:read('*l')
+      f:close()
+      os.remove(tmp)
+      if path and path ~= '' then
+        vim.cmd('edit ' .. vim.fn.fnameescape(path))
+      end
+    end,
+  })
+
+  vim.cmd('startinsert')
 end
 
 -- Switch between C/C++ source and header file via clangd
