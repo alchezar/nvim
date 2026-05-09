@@ -43,6 +43,7 @@ vim.pack.add({
   'https://github.com/numToStr/Comment.nvim',
   'https://github.com/lewis6991/gitsigns.nvim',
   'https://github.com/lukas-reineke/virt-column.nvim',
+  'https://github.com/chentoast/marks.nvim',
 })
 
 -- Explicitly load all plugins so require() works in init.lua

@@ -45,21 +45,6 @@ vim.api.nvim_set_hl(0, 'CommandLine', {fg = colors.fg, bg = colors.bg})
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 
-
--- Unique settings for Neovide
-if vim.g.neovide then
-    -- Different background color if using Neovide
-	vim.api.nvim_set_hl(0, "Normal", { bg = colors.bg })
-	vim.api.nvim_set_hl(0, "NormalFloat", { bg = colors.bg })
-    -- Cursor takes the color of the character underneath (autocmd-driven, GUI/Neovide)
-    vim.opt.guicursor = "n-v-c-sm:block-Cursor,i-ci-ve:ver25-Cursor,r-cr-o:hor20-Cursor"
-    local update_cursor_color = require("utils").update_cursor_color
-    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "ModeChanged", "ColorScheme" }, {
-        callback = update_cursor_color,
-    })
-    update_cursor_color()
-end
-
 -- Default highlights. Use ":Inspect" command to find correct type.
 vim.api.nvim_set_hl(0, "Whitespace", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "Constructor", { fg = colors.red })

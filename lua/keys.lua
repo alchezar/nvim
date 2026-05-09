@@ -43,6 +43,10 @@ map('n', '<leader>f', ':NvimTreeFindFile<CR>', { desc = 'Find file in tree', sil
 -- Trouble
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })
 
+-- Git
+map('n', '<leader>gb', ':Gitsigns blame<CR>',
+  { desc = 'Open git blame for whole file (side panel)', silent = true })
+
 -- Startify dashboard
 map('n', 'gq', ':Startify<CR>', { desc = 'Open Startify', silent = true })
 

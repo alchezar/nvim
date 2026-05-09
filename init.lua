@@ -21,6 +21,9 @@ vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
 vim.opt.softtabstop = 4
 vim.opt.expandtab = true
+-- Case-insensitive search; uppercase in pattern -> case-sensitive (smartcase)
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
 -- Whitespace display: trailing dots always; full whitespace in visual mode
 vim.opt.list = true
 vim.opt.listchars = { trail = '·', tab = '  ' }
@@ -48,11 +51,6 @@ vim.api.nvim_set_keymap('n', '<C-j>', ":m .+1<Enter>", { noremap = true, silent 
 -- Move selected lines up/down
 vim.api.nvim_set_keymap('v', '<C-k>', ":m '<-2<CR>gv", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('v', '<C-j>', ":m '>+1<CR>gv", { noremap = true, silent = true })
--- Disable search highlight (mapped in keys.lua as <leader>n)
--- Map UA layout
-vim.cmd([[
-set langmap=йq,цw,уe,кr,еt,нy,гu,шi,щo,зp,х[,ї],фa,іs,вd,аf,пg,рh,оj,лk,дl,ж\\;,є',яz,чx,сc,мv,иb,тn,ьm,б\\,,ю.,ЙQ,ЦW,УE,КR,ЕT,НY,ГU,ШI,ЩO,ЗP,Х{,Ї},ФA,ІS,ВD,АF,ПG,РH,ОJ,ЛK,ДL,Ж:,Є\",ЯZ,ЧX,СC,МV,ИB,ТN,ЬM,Б<,Ю>
-]])
 
 -- Vim UI2
 require ('vim._core.ui2').enable({
@@ -86,25 +84,7 @@ require('Comment').setup()
 require('gitsigns').setup()
 require('todo-comments').setup()
 require('trouble').setup()
-require('nvim-tree').setup({
-  sync_root_with_cwd = true,
-  respect_buf_cwd = true,
-  update_focused_file = {
-    update_root = {
-    enable = true,
-      enable = true,
-      ignore_list = {},
-    },
-  },
-  root_dirs = {},
-  git = { enable = true },
-  renderer = {
-    highlight_git = 'name',
-    icons = {
-      show = { git = false },
-    },
-  },
-})
+require('file-tree')
 
 -- Auto-cd to project root based on common markers
 vim.api.nvim_create_autocmd('BufEnter', {
@@ -114,6 +94,8 @@ vim.api.nvim_create_autocmd('BufEnter', {
 })
 require('nvim-web-devicons').setup()
 require('virt-column').setup({ char = '▕', virtcolumn = '80' })
+require('bookmarks')
+
 -- EasyMotion (matches .ideavimrc binding: s = bidirectional 2-char search)
 vim.g.EasyMotion_smartcase = 1
 vim.keymap.set({ 'n', 'x', 'o' }, 's', '<Plug>(easymotion-s2)')
