@@ -105,4 +105,31 @@ function M.auto_cd_to_project_root(bufnr)
   end
 end
 
+-- Resolve the foreground color of the highlight at the cursor position
+local function cursor_color_at_pos()
+  local row = vim.api.nvim_win_get_cursor(0)[1] - 1
+  local col = vim.api.nvim_win_get_cursor(0)[2]
+  local items = vim.inspect_pos(0, row, col)
+  for _, list in ipairs({ items.semantic_tokens, items.treesitter, items.syntax, items.extmarks }) do
+    for i = #list, 1, -1 do
+      local entry = list[i]
+      local name = entry.opts and entry.opts.hl_group or entry.hl_group
+      if name then
+        local hl = vim.api.nvim_get_hl(0, { name = name, link = false })
+        if hl.fg then return string.format('#%06x', hl.fg) end
+      end
+    end
+  end
+  local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
+  return normal.fg and string.format('#%06x', normal.fg) or '#DCDCDC'
+end
+
+-- Update the Cursor highlight so the cursor takes the color of the char under it
+function M.update_cursor_color()
+  local fg = cursor_color_at_pos()
+  local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
+  local bg = normal.bg and string.format('#%06x', normal.bg) or '#262626'
+  vim.api.nvim_set_hl(0, 'Cursor', { bg = fg, fg = bg })
+end
+
 return M

@@ -1,10 +1,10 @@
--- Enabling true color terminal allows Neovim to utilize 24-bit RGB color values, 
+-- Enabling true color terminal allows Neovim to utilize 24-bit RGB color values,
 -- providing a more extensive and accurate range of colors in the termina.
 vim.opt.termguicolors = true
 -- Font settings. My own font with concinese name.
 -- Based on the Iosevka Font. https://typeof.net/Iosevka/
 vim.opt.guifont = "Iosevka Chill Nerd:h12"
--- Set color scheme. My own color theme with a concine name. 
+-- Set color scheme. My own color theme with a concine name.
 -- Based on the MonokaiPro(Spectrum) and OneDarkPro color themes.
 vim.cmd("colorscheme kinder_theme")
 -- Default clipboard
