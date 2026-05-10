@@ -29,6 +29,22 @@ vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 -- Visual selection background
 vim.api.nvim_set_hl(0, "Visual", { bg = "#0055C5" })
 
+-- Quickfix list: file path / line numbers in neutral gray.
+-- qfFileName, NvimTreeFolderName etc. all link to Directory (cyan by default),
+-- so override Directory once and everything downstream follows.
+vim.api.nvim_set_hl(0, "Directory",  { fg = colors.gray })
+vim.api.nvim_set_hl(0, "qfFileName", { fg = colors.gray })
+vim.api.nvim_set_hl(0, "qfLineNr",   { fg = colors.silver })
+-- Selected line in qf list: dim bg, no cyan fg (default links to Search)
+vim.api.nvim_set_hl(0, "QuickFixLine", { bg = colors.dark, bold = true })
+
+-- Telescope results: distinct colors for path / line:col / code preview
+vim.api.nvim_set_hl(0, "TelescopeResultsFileName", { fg = colors.gray })
+vim.api.nvim_set_hl(0, "TelescopeResultsLineNr",   { fg = colors.silver })
+vim.api.nvim_set_hl(0, "TelescopeResultsNormal",   { fg = colors.fg })
+vim.api.nvim_set_hl(0, "TelescopeResultsComment",  { fg = colors.silver })
+vim.api.nvim_set_hl(0, "TelescopeMatching",        { fg = colors.orange, bold = true })
+
 -- Default highlights. Use ":Inspect" command to find correct type.
 vim.api.nvim_set_hl(0, "Whitespace", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "Constructor", { fg = colors.red })

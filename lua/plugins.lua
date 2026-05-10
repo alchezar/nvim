@@ -57,6 +57,9 @@ vim.pack.add({
   'https://github.com/kristijanhusak/vim-dadbod-ui',
   'https://github.com/kristijanhusak/vim-dadbod-completion',
   'https://github.com/tpope/vim-dotenv',
+
+  -- Git blame side panel with date heatmap
+  'https://github.com/FabijanZulj/blame.nvim',
 })
 
 -- Explicitly load all plugins so require() works in init.lua

@@ -1,15 +1,16 @@
 local map = vim.keymap.set
 local utils = require('utils')
+local builtin = require('telescope.builtin')
 
 -- Leader key
 vim.g.mapleader = ' '
 
 -- LSP (matching .ideavimrc bindings)
-map('n', 'gd', vim.lsp.buf.definition, { desc = 'Go to declaration' })
-map('n', 'gD', vim.lsp.buf.type_definition, { desc = 'Go to type definition' })
-map('n', 'gu', vim.lsp.buf.references, { desc = 'Show usages' })
-map('n', 'gI', vim.lsp.buf.implementation, { desc = 'Quick implementations' })
-map('n', 'gi', vim.lsp.buf.implementation, { desc = 'Go to implementation' })
+map('n', 'gd', builtin.lsp_definitions, { desc = 'Go to definition (Telescope)' })
+map('n', 'gD', builtin.lsp_type_definitions, { desc = 'Go to type definition (Telescope)' })
+map('n', 'gu', builtin.lsp_references, { desc = 'Show usages (Telescope)' })
+map('n', 'gI', vim.lsp.buf.implementation, { desc = 'Quick implementations (jump to single)' })
+map('n', 'gi', builtin.lsp_implementations, { desc = 'Show implementations (Telescope)' })
 map('n', 'gh', utils.hover, { desc = 'Show hover info' })
 map('n', 'gH', vim.lsp.buf.incoming_calls, { desc = 'Call hierarchy' })
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
@@ -20,7 +21,6 @@ map('n', ']d', vim.diagnostic.goto_next, { desc = 'Next diagnostic' })
 map('n', 'go', utils.switch_source_header, { desc = 'Switch C/C++ source/header' })
 
 -- Telescope
-local builtin = require('telescope.builtin')
 map('n', '<Tab>', '<C-^>', { desc = 'Switch to alternate file' })
 map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })
 map('n', '<D-e>', builtin.buffers, { desc = 'Open buffers' })
@@ -54,7 +54,7 @@ map('n', '<leader>f', ':NvimTreeFindFile<CR>', { desc = 'Find file in tree', sil
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })
 
 -- Git
-map('n', '<leader>gb', ':Gitsigns blame<CR>', { desc = 'Open git blame for whole file (side panel)', silent = true })
+map('n', '<leader>gb', ':BlameToggle<CR>', { desc = 'Toggle git blame side panel (date heat-map)', silent = true })
 map('n', '<leader>gp', ':Gitsigns preview_hunk<CR>', { desc = 'Preview hunk diff (popup)', silent = true })
 
 -- Database (vim-dadbod-ui)
