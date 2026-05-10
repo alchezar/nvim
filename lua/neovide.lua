@@ -11,6 +11,7 @@ vim.g.neovide_hide_mouse_when_typing = true
 -- Font settings. My own font with concinese name.
 -- Based on the Iosevka Font. https://typeof.net/Iosevka/
 vim.opt.guifont = "Iosevka Chill Nerd:h17"
+vim.opt.linespace = -4;
 -- Set color scheme. My own color theme with a concine name.
 -- Based on the MonokaiPro(Spectrum) and OneDarkPro color themes.
 vim.cmd("colorscheme kinder_theme")

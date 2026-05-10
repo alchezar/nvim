@@ -1,5 +1,16 @@
 -- Install parsers manually after first launch:
 --   :TSInstall rust toml lua typescript tsx javascript json
+
+-- Preload parsers used purely as INJECTION targets (i.e. no buffer ever has
+-- their filetype, so the FileType autocmd below never fires for them).
+-- Without this, opening a non-rust file first (e.g. lua) means the rust tree
+-- is built before the sql parser is registered -> sqlx::query! injection
+-- silently produces no SQL tree and falls back to plain @string.rust on the
+-- initial highlight pass.
+for _, lang in ipairs({ 'sql' }) do
+  pcall(vim.treesitter.language.add, lang)
+end
+
 vim.api.nvim_create_autocmd('FileType', {
   callback = function(args)
     pcall(vim.treesitter.start, args.buf)

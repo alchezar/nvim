@@ -51,6 +51,12 @@ vim.pack.add({
 
   -- Cargo.toml: inline crate version info
   'https://github.com/Saecki/crates.nvim',
+
+  -- Database UI (dadbod)
+  'https://github.com/tpope/vim-dadbod',
+  'https://github.com/kristijanhusak/vim-dadbod-ui',
+  'https://github.com/kristijanhusak/vim-dadbod-completion',
+  'https://github.com/tpope/vim-dotenv',
 })
 
 -- Explicitly load all plugins so require() works in init.lua

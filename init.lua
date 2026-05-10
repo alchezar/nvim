@@ -78,7 +78,7 @@ require("plugins")
 
 -- Plugin configs
 require("lsp")
-require("completion")
+require("completion_setup")
 require("treesitter")
 require("debugging")
 require("formatting")
@@ -103,6 +103,7 @@ require('virt-column').setup({ char = '▕', virtcolumn = '80,100' })
 require('bookmarks')
 require('markdown')
 require('scrollbar_setup')
+require('dadbod')
 require('crates').setup({ popup = { border = 'rounded' } })
 -- In Cargo.toml, override `gh` to show the crate popup instead of LSP hover.
 vim.api.nvim_create_autocmd('BufRead', {

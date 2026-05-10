@@ -57,6 +57,12 @@ map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics'
 map('n', '<leader>gb', ':Gitsigns blame<CR>', { desc = 'Open git blame for whole file (side panel)', silent = true })
 map('n', '<leader>gp', ':Gitsigns preview_hunk<CR>', { desc = 'Preview hunk diff (popup)', silent = true })
 
+-- Database (vim-dadbod-ui)
+map('n', '<leader>du', ':DBUIToggle<CR>',       { desc = 'Toggle DB UI sidebar', silent = true })
+map('n', '<leader>df', ':DBUIFindBuffer<CR>',   { desc = 'Find DB buffer',       silent = true })
+map('n', '<leader>dr', ':DBUIRenameBuffer<CR>', { desc = 'Rename DB buffer',     silent = true })
+map('n', '<leader>dq', ':DBUILastQueryInfo<CR>',{ desc = 'Last query info',      silent = true })
+
 -- Startify dashboard
 map('n', 'gq', ':Startify<CR>', { desc = 'Open Startify', silent = true })
 -- Format current buffer (Opt+Shift+F)
