@@ -48,6 +48,9 @@ vim.pack.add({
 
   -- Markdown
   'https://github.com/MeanderingProgrammer/render-markdown.nvim',
+
+  -- Cargo.toml: inline crate version info
+  'https://github.com/Saecki/crates.nvim',
 })
 
 -- Explicitly load all plugins so require() works in init.lua

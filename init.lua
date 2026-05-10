@@ -14,8 +14,14 @@ vim.opt.number = true
 vim.opt.relativenumber = true
 -- Rounded border for all floating windows
 vim.o.winborder = 'rounded'
--- Column guide at 80 characters
-vim.opt.colorcolumn = "80"
+-- Column guides at 80 and 100 characters
+vim.opt.colorcolumn = "80,100"
+-- Wrap width for `gq` / `Q` formatting (comments and prose)
+-- Force 80 even when bundled ftplugins (e.g. rust.vim sets 100) override it.
+vim.opt.textwidth = 80
+vim.api.nvim_create_autocmd('FileType', {
+  callback = function() vim.opt_local.textwidth = 80 end,
+})
 -- Tabs / indent settings
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4
@@ -93,10 +99,19 @@ vim.api.nvim_create_autocmd('BufEnter', {
   end,
 })
 require('nvim-web-devicons').setup()
-require('virt-column').setup({ char = '▕', virtcolumn = '80' })
+require('virt-column').setup({ char = '▕', virtcolumn = '80,100' })
 require('bookmarks')
 require('markdown')
 require('scrollbar_setup')
+require('crates').setup({ popup = { border = 'rounded' } })
+-- In Cargo.toml, override `gh` to show the crate popup instead of LSP hover.
+vim.api.nvim_create_autocmd('BufRead', {
+  pattern = 'Cargo.toml',
+  callback = function(args)
+    vim.keymap.set('n', 'gh', require('crates').show_popup,
+      { buffer = args.buf, desc = 'Show crate popup' })
+  end,
+})
 
 -- EasyMotion (matches .ideavimrc binding: s = bidirectional 2-char search)
 vim.g.EasyMotion_smartcase = 1

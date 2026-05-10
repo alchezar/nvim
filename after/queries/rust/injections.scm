@@ -14,6 +14,7 @@
    "query" "query_as" "query_scalar"
    "query_unchecked" "query_as_unchecked" "query_scalar_unchecked")
  (#set! injection.language "sql")
+ (#set! injection.priority 110)
  (#offset! @injection.content 0 1 0 -1))
 
 ; Same but for raw strings: sqlx::query!(r#"SELECT ..."#)
@@ -26,7 +27,8 @@
  (#any-of? @_macro
    "query" "query_as" "query_scalar"
    "query_unchecked" "query_as_unchecked" "query_scalar_unchecked")
- (#set! injection.language "sql"))
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
 
 ; Bare query!() / query_as!() when imported via `use sqlx::query;`
 ((macro_invocation
@@ -36,6 +38,7 @@
    "query" "query_as" "query_scalar"
    "query_unchecked" "query_as_unchecked" "query_scalar_unchecked")
  (#set! injection.language "sql")
+ (#set! injection.priority 110)
  (#offset! @injection.content 0 1 0 -1))
 
 ((macro_invocation
@@ -44,5 +47,6 @@
  (#any-of? @_macro
    "query" "query_as" "query_scalar"
    "query_unchecked" "query_as_unchecked" "query_scalar_unchecked")
- (#set! injection.language "sql"))
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
 

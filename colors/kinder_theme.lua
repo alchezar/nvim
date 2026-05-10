@@ -26,6 +26,9 @@ vim.api.nvim_set_hl(0, 'CommandLine', {fg = colors.fg, bg = colors.bg})
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 
+-- Visual selection background
+vim.api.nvim_set_hl(0, "Visual", { bg = "#0055C5" })
+
 -- Default highlights. Use ":Inspect" command to find correct type.
 vim.api.nvim_set_hl(0, "Whitespace", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "Constructor", { fg = colors.red })

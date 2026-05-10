@@ -51,6 +51,18 @@ vim.lsp.config('eslint', {
 })
 vim.lsp.enable('eslint')
 
+-- TOML (Cargo.toml, pyproject.toml, etc.)
+-- Requires `taplo` CLI: `brew install taplo` or `cargo install taplo-cli --locked --features lsp`
+vim.lsp.config('taplo', {
+  settings = {
+    evenBetterToml = {
+      schema = { enabled = true, catalogs = { 'https://www.schemastore.org/api/json/catalog.json' } },
+      formatter = { alignEntries = false, alignComments = true, reorderKeys = false },
+    },
+  },
+})
+vim.lsp.enable('taplo')
+
 -- C / C++
 vim.lsp.config('clangd', {
   cmd = {
