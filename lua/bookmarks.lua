@@ -6,6 +6,12 @@
 --   <leader>m list all numbered bookmarks
 --   <leader>M list all letter marks
 
+local theme = require('theme_colors')
+
+-- Sign column highlight for marks/bookmarks - yellow instead of default gray.
+-- Only the sign glyph is colored; the line number keeps its default color.
+vim.api.nvim_set_hl(0, 'MarkSignHL', { fg = theme.yellow })
+
 require('marks').setup({
   default_mappings = true,
   signs = true,
@@ -38,7 +44,18 @@ vim.keymap.set('n', '<M-m>', function()
   marks.delete_line()      -- letter marks (a-z, A-Z)
 end, { desc = 'Delete any mark/bookmark on current line' })
 
-vim.keymap.set('n', '<leader>m', ':BookmarksListAll<CR>',
-  { desc = 'List all numbered bookmarks (0-9)', silent = true })
-vim.keymap.set('n', '<leader>M', ':MarksListAll<CR>',
-  { desc = 'List all letter marks (a-z, A-Z)', silent = true })
+-- marks.nvim populates the *location list* (not quickfix) and auto-opens it.
+-- Close the loclist window, then surface the entries via telescope.loclist so
+-- the entry_maker in lua/telescope_setup.lua colors path / line:col / text.
+local function in_telescope(populate_cmd, title)
+  return function()
+    vim.cmd(populate_cmd)
+    pcall(vim.cmd, 'lclose')
+    require('telescope.builtin').loclist({ prompt_title = title })
+  end
+end
+
+vim.keymap.set('n', '<leader>m', in_telescope('BookmarksListAll', 'Bookmarks (0-9)'),
+  { desc = 'List all numbered bookmarks (Telescope)', silent = true })
+vim.keymap.set('n', '<leader>M', in_telescope('MarksListAll', 'Marks (a-z, A-Z)'),
+  { desc = 'List all letter marks (Telescope)', silent = true })

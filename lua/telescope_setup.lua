@@ -53,5 +53,7 @@ require('telescope').setup({
     lsp_implementations = { entry_maker = lsp_entry_maker() },
     lsp_definitions     = { entry_maker = lsp_entry_maker() },
     lsp_type_definitions= { entry_maker = lsp_entry_maker() },
+    quickfix            = { entry_maker = lsp_entry_maker() },
+    loclist             = { entry_maker = lsp_entry_maker() },
   },
 })

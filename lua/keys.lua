@@ -14,6 +14,7 @@ map('n', 'gi', builtin.lsp_implementations, { desc = 'Show implementations (Tele
 map('n', 'gh', utils.hover, { desc = 'Show hover info' })
 map('n', 'gH', vim.lsp.buf.incoming_calls, { desc = 'Call hierarchy' })
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
+map('n', '<leader>rR', utils.restart_rust_analyzer, { desc = 'Restart rust-analyzer' })
 map('n', '<leader>ca', vim.lsp.buf.code_action, { desc = 'Code action' })
 map('n', '<leader>o', vim.lsp.buf.document_symbol, { desc = 'File structure' })
 map('n', '[d', vim.diagnostic.goto_prev, { desc = 'Previous diagnostic' })

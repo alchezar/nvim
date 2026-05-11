@@ -128,6 +128,19 @@ function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end
 
+-- Stop all rust-analyzer clients, force rustaceanvim to respawn it on the
+-- current buffer, and clear any stale diagnostics from the previous session.
+function M.restart_rust_analyzer()
+  for _, c in ipairs(vim.lsp.get_clients({ name = 'rust-analyzer' })) do
+    vim.lsp.stop_client(c.id)
+  end
+  vim.notify('rust-analyzer restarting...')
+  if vim.bo.filetype == 'rust' then
+    vim.schedule(function() vim.cmd('edit') end)
+  end
+  vim.diagnostic.reset()
+end
+
 -- Open file path from system clipboard, supports `path`, `path:line`, `path:line:col`
 function M.open_clipboard_path()
   local raw = vim.trim(vim.fn.getreg('+'))
