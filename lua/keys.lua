@@ -29,6 +29,8 @@ map('n', '<leader>ff', builtin.find_files, { desc = 'Find files (fuzzy)' })
 map('n', '<leader>fg', builtin.live_grep, { desc = 'Live grep' })
 map('n', '<leader>fb', builtin.buffers, { desc = 'Buffers' })
 map('n', '<leader>fh', builtin.help_tags, { desc = 'Help tags' })
+map('n', '<leader>fk', builtin.keymaps,   { desc = 'Search keymaps' })
+map('n', '<leader>?',  builtin.keymaps,   { desc = 'Search keymaps (cheatsheet)' })
 map('n', '<leader>fp', utils.open_clipboard_path, { desc = 'Open file path from clipboard' })
 map('n', '<leader>fa', function()
   builtin.find_files({ cwd = vim.env.HOME, hidden = true, no_ignore = true, prompt_title = 'Find files ($HOME)' })
@@ -56,6 +58,9 @@ map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics'
 -- Git
 map('n', '<leader>gb', ':BlameToggle<CR>', { desc = 'Toggle git blame side panel (date heat-map)', silent = true })
 map('n', '<leader>gp', ':Gitsigns preview_hunk<CR>', { desc = 'Preview hunk diff (popup)', silent = true })
+map('n', '<leader>gm', ':DiffviewOpen<CR>',          { desc = 'Open diffview (3-way merge / diff)', silent = true })
+map('n', '<leader>gM', ':DiffviewClose<CR>',         { desc = 'Close diffview',                    silent = true })
+map('n', '<leader>gh', ':DiffviewFileHistory %<CR>', { desc = 'File history (current file)',       silent = true })
 
 -- Database (vim-dadbod-ui)
 map('n', '<leader>du', ':DBUIToggle<CR>',       { desc = 'Toggle DB UI sidebar', silent = true })

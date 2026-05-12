@@ -106,6 +106,7 @@ require('markdown')
 require('file_position_bar')
 require('dadbod')
 require('blame_setup')
+require('diffview_setup')
 require('startify_setup')
 require('crates').setup({ popup = { border = 'rounded' } })
 -- In Cargo.toml, override `gh` to show the crate popup instead of LSP hover.

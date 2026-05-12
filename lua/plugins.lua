@@ -60,6 +60,9 @@ vim.pack.add({
 
   -- Git blame side panel with date heatmap
   'https://github.com/FabijanZulj/blame.nvim',
+
+  -- Diff / 3-way merge conflict resolution
+  'https://github.com/sindrets/diffview.nvim',
 })
 
 -- Explicitly load all plugins so require() works in init.lua
