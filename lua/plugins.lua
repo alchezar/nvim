@@ -22,6 +22,7 @@ vim.pack.add({
   'https://github.com/mfussenegger/nvim-dap',
   'https://github.com/rcarriga/nvim-dap-ui',
   'https://github.com/nvim-neotest/nvim-nio',
+  'https://github.com/mfussenegger/nvim-dap-python',
 
   -- Navigation
   'https://github.com/nvim-lua/plenary.nvim',

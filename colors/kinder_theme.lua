@@ -392,6 +392,86 @@ for _, lang in ipairs({ "sql" }) do
 	end
 end
 
+-- Python highlights (Treesitter + LSP semantic tokens from pyright)
+local function python_treesitter_highlights(lang)
+	return {
+		["@keyword." .. lang]                  = { fg = colors.red },
+		["@keyword.import." .. lang]           = { fg = colors.red },
+		["@keyword.return." .. lang]           = { fg = colors.red },
+		["@keyword.operator." .. lang]         = { fg = colors.red },
+		["@keyword.function." .. lang]         = { fg = colors.red },
+		["@keyword.coroutine." .. lang]        = { fg = colors.red },
+		["@keyword.modifier." .. lang]         = { fg = colors.red },
+		["@keyword.conditional." .. lang]      = { fg = colors.red },
+		["@keyword.repeat." .. lang]           = { fg = colors.red },
+		["@keyword.exception." .. lang]        = { fg = colors.red },
+		["@function." .. lang]                 = { fg = colors.green },
+		["@function.call." .. lang]            = { fg = colors.green },
+		["@function.method." .. lang]          = { fg = colors.green },
+		["@function.method.call." .. lang]     = { fg = colors.green },
+		["@function.builtin." .. lang]         = { fg = colors.green },
+		["@constructor." .. lang]              = { fg = colors.green },
+		["@type." .. lang]                     = { fg = colors.blue },
+		["@type.builtin." .. lang]             = { fg = colors.cyan },
+		["@variable." .. lang]                 = { fg = colors.gray },
+		["@variable.parameter." .. lang]       = { fg = colors.orange },
+		["@variable.member." .. lang]          = { fg = colors.white },
+		["@variable.builtin." .. lang]         = { fg = colors.white },
+		["@property." .. lang]                 = { fg = colors.white },
+		["@string." .. lang]                   = { fg = colors.yellow },
+		["@string.escape." .. lang]            = { fg = colors.purple },
+		["@string.special." .. lang]           = { fg = colors.purple },
+		["@string.regexp." .. lang]            = { fg = colors.purple },
+		["@string.documentation." .. lang]     = { fg = colors.silver },
+		["@number." .. lang]                   = { fg = colors.purple },
+		["@boolean." .. lang]                  = { fg = colors.purple },
+		["@constant." .. lang]                 = { fg = colors.lime },
+		["@constant.builtin." .. lang]         = { fg = colors.pink },
+		["@operator." .. lang]                 = { fg = colors.red },
+		["@punctuation.bracket." .. lang]      = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang]    = { fg = colors.gray },
+		["@punctuation.special." .. lang]      = { fg = colors.red },
+		["@comment." .. lang]                  = { fg = colors.silver },
+		["@module." .. lang]                   = { fg = colors.silver },
+		["@attribute." .. lang]                = { fg = colors.cyan },
+	}
+end
+
+local function python_lsp_highlights(lang)
+	return {
+		["@lsp.type.class." .. lang]                       = { fg = colors.blue },
+		["@lsp.type.parameter." .. lang]                   = { fg = colors.orange },
+		["@lsp.type.property." .. lang]                    = { fg = colors.white },
+		["@lsp.type.method." .. lang]                      = { fg = colors.green },
+		["@lsp.type.function." .. lang]                    = { fg = colors.green },
+		["@lsp.type.variable." .. lang]                    = { fg = colors.gray },
+		["@lsp.type.namespace." .. lang]                   = { fg = colors.cyan },
+		["@lsp.type.decorator." .. lang]                   = { fg = colors.cyan },
+		["@lsp.type.keyword." .. lang]                     = { fg = colors.red },
+		["@lsp.type.string." .. lang]                      = { fg = colors.yellow },
+		["@lsp.type.number." .. lang]                      = { fg = colors.purple },
+		["@lsp.typemod.variable.readonly." .. lang]        = { fg = colors.lime },
+		-- Built-in globals: classes/functions cyan, modules lime
+		["@lsp.typemod.class.defaultLibrary." .. lang]     = { fg = colors.cyan },
+		["@lsp.typemod.function.defaultLibrary." .. lang]  = { fg = colors.cyan },
+		["@lsp.typemod.method.defaultLibrary." .. lang]    = { fg = colors.cyan },
+		["@lsp.typemod.variable.defaultLibrary." .. lang]  = { fg = colors.lime },
+		["@lsp.typemod.namespace.defaultLibrary." .. lang] = { fg = colors.lime },
+	}
+end
+
+for _, lang in ipairs({ "python" }) do
+	for group, color in pairs(python_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+for _, lang in ipairs({ "python" }) do
+	for group, color in pairs(python_lsp_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
 -- LSP diagnostics: red errors, orange warnings, green hints
 vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
 vim.api.nvim_set_hl(0, "DiagnosticWarn",  { fg = colors.orange })

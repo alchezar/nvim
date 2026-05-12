@@ -13,6 +13,7 @@ require('conform').setup({
     yaml            = { 'prettier' },
     cpp             = { 'clang_format' },
     c               = { 'clang_format' },
+    python          = { 'ruff_organize_imports', 'ruff_format' },
   },
   format_on_save = {
     timeout_ms = 1000,

@@ -1,5 +1,5 @@
 -- Install parsers manually after first launch:
---   :TSInstall rust toml lua typescript tsx javascript json
+--   :TSInstall rust toml lua typescript tsx javascript json python
 
 -- Preload parsers used purely as INJECTION targets (i.e. no buffer ever has
 -- their filetype, so the FileType autocmd below never fires for them).

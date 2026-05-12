@@ -53,3 +53,15 @@ dap.configurations.cpp = {
 }
 
 dap.configurations.c = dap.configurations.cpp
+
+-- Python: debugpy lives in a dedicated venv so it's available regardless of
+-- which interpreter the project uses. Setup:
+--   python3 -m venv ~/.virtualenvs/debugpy
+--   ~/.virtualenvs/debugpy/bin/pip install debugpy
+-- For each project, $VIRTUAL_ENV (or python interpreter via `:Py`) is respected
+-- at runtime - this path is only where debugpy itself is imported from.
+local debugpy_python = vim.fn.expand('~/.virtualenvs/debugpy/bin/python')
+local ok_py, dap_python = pcall(require, 'dap-python')
+if ok_py and vim.fn.executable(debugpy_python) == 1 then
+  dap_python.setup(debugpy_python)
+end
