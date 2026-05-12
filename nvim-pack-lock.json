@@ -44,6 +44,10 @@
       "rev": "4516612fe98ff56ae0415a259ff6361a89419b0a",
       "src": "https://github.com/sindrets/diffview.nvim"
     },
+    "fishbone.nvim": {
+      "rev": "11329f74845b025aab68564b11feb73586e5dc4d",
+      "src": "https://github.com/alchezar/fishbone.nvim"
+    },
     "gitsigns.nvim": {
       "rev": "944ef13cc8d8fe8b846c91f36041c8dfb85ca000",
       "src": "https://github.com/lewis6991/gitsigns.nvim"

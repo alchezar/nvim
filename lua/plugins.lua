@@ -45,6 +45,7 @@ vim.pack.add({
   'https://github.com/lewis6991/gitsigns.nvim',
   'https://github.com/lukas-reineke/virt-column.nvim',
   'https://github.com/chentoast/marks.nvim',
+  'https://github.com/alchezar/fishbone.nvim',
 
   -- Markdown
   'https://github.com/MeanderingProgrammer/render-markdown.nvim',
