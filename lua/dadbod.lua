@@ -33,17 +33,64 @@ local function pick_database_url()
   return vim.env.DATABASE_URL
 end
 
-vim.api.nvim_create_autocmd({ 'VimEnter', 'DirChanged' }, {
-  callback = function()
-    -- Load .env from cwd if present (tpope/vim-dotenv).
-    local env_file = vim.fn.getcwd() .. '/.env'
-    if vim.fn.filereadable(env_file) == 1 then
-      pcall(vim.cmd, 'Dotenv ' .. vim.fn.fnameescape(env_file))
+-- Load DATABASE_URL from cwd/.env and populate g:dbs. Exposed so the keymap
+-- can call this synchronously *before* DBUI opens - otherwise g:dbs may still
+-- be nil when DBUI first reads it (e.g. when <leader>du is pressed on the
+-- Startify dashboard, before VimEnter fires), and the drawer caches an empty
+-- connection list for the rest of the session.
+local function load_dbs()
+  local env_file = vim.fn.getcwd() .. '/.env'
+  if vim.fn.filereadable(env_file) == 1 then
+    pcall(vim.cmd, 'Dotenv ' .. vim.fn.fnameescape(env_file))
+  end
+  local url = pick_database_url()
+  if url and url ~= '' then
+    vim.g.dbs = { project = normalise(url) }
+  end
+end
+
+vim.api.nvim_create_autocmd('DirChanged', { callback = load_dbs })
+vim.api.nvim_create_user_command('DBUIOpen', function()
+  load_dbs()
+  vim.cmd('DBUIToggle')
+end, { desc = 'Reload .env and toggle DBUI drawer' })
+
+-- Show query results (filetype=dbout) in a centered floating window instead of
+-- the bottom split dadbod opens by default. Floating gives much more vertical
+-- room for wide result tables and keeps the layout clean (similar to yazi).
+local function is_floating(win)
+  return vim.api.nvim_win_get_config(win).relative ~= ''
+end
+
+local function open_dbout_floating(buf)
+  local width  = math.floor(vim.o.columns * 0.9)
+  local height = math.floor(vim.o.lines   * 0.85)
+  vim.api.nvim_open_win(buf, true, {
+    relative    = 'editor',
+    width       = width,
+    height      = height,
+    row         = math.floor((vim.o.lines   - height) / 2) - 1,
+    col         = math.floor((vim.o.columns - width)  / 2),
+    border      = 'rounded',
+    title       = ' Query result (q / <Esc> to close) ',
+    title_pos   = 'center',
+    style       = 'minimal',
+  })
+  vim.keymap.set('n', 'q',     '<cmd>close<CR>', { buffer = buf, silent = true, nowait = true })
+  vim.keymap.set('n', '<Esc>', '<cmd>close<CR>', { buffer = buf, silent = true, nowait = true })
+end
+
+vim.api.nvim_create_autocmd('BufWinEnter', {
+  callback = function(args)
+    if vim.bo[args.buf].filetype ~= 'dbout' then return end
+    -- Already in a floating window (e.g. user re-entered) - do nothing.
+    if is_floating(vim.api.nvim_get_current_win()) then return end
+    -- Close every non-floating window currently showing this dbout buffer,
+    -- then re-show it floating.
+    for _, w in ipairs(vim.fn.win_findbuf(args.buf)) do
+      if not is_floating(w) then pcall(vim.api.nvim_win_close, w, false) end
     end
-    local url = pick_database_url()
-    if url and url ~= '' then
-      vim.g.dbs = { project = normalise(url) }
-    end
+    open_dbout_floating(args.buf)
   end,
 })
 

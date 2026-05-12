@@ -123,6 +123,96 @@ function M.hover()
   end, bufnr)
 end
 
+-- Go to the trait method that the current symbol implements.
+-- Strategy: walk backward from the cursor to the enclosing `impl <Trait> for
+-- <Type>` line, extract `<Trait>`, then locate `trait <Trait>` (first in the
+-- current file, then via LSP workspace symbols), and finally scan forward in
+-- that file for `fn <method_name>`. This avoids the corner cases of LSP
+-- definition/declaration (inherent impls with the same method name shadowing
+-- the trait method, #[async_trait] macros resolving to ~/.cargo/registry, ...).
+function M.go_to_interface()
+  local method_name = vim.fn.expand('<cword>')
+  if method_name == '' then
+    vim.notify('No word under cursor', vim.log.levels.WARN)
+    return
+  end
+  local save_pos = vim.api.nvim_win_get_cursor(0)
+
+  -- 1. Find the nearest `impl ... for ...` line above the cursor. Skip inherent
+  -- impls (no `for`) - keep walking up.
+  local impl_text
+  for l = save_pos[1], 1, -1 do
+    local text = vim.fn.getline(l)
+    if text:match('^%s*impl[%s<].-%sfor%s') then
+      impl_text = text
+      break
+    end
+  end
+  if not impl_text then
+    vim.notify('Not inside an `impl Trait for ...` block', vim.log.levels.WARN)
+    return
+  end
+
+  -- 2. Extract trait name from "impl [<gens>] [path::]Trait[<gens>] for ..."
+  local before_for = impl_text:match('^%s*impl%s+(.-)%s+for%s')
+  if not before_for then
+    vim.notify('Could not parse impl line: ' .. impl_text, vim.log.levels.WARN)
+    return
+  end
+  before_for = before_for:gsub('^<[^>]+>%s+', '')         -- strip `impl<G>`
+  local trait_name = before_for:match('([%w_]+)')          -- first ident after gens
+  if not trait_name then
+    vim.notify('Could not extract trait name from: ' .. impl_text, vim.log.levels.WARN)
+    return
+  end
+
+  -- Jump to `fn <method_name>` within a buffer, starting from `start_line`.
+  local function jump_to_method_in_buffer(start_line)
+    vim.api.nvim_win_set_cursor(0, { start_line, 0 })
+    vim.fn.search('\\<fn\\s\\+' .. vim.fn.escape(method_name, '\\/') .. '\\>', 'cW')
+  end
+
+  -- 3. Try the current file first - cheap and covers the common case where
+  -- trait and impl live together.
+  vim.api.nvim_win_set_cursor(0, { 1, 0 })
+  local trait_line = vim.fn.search('\\v<trait>\\s+' .. trait_name .. '>', 'cW')
+  if trait_line > 0 then
+    jump_to_method_in_buffer(trait_line)
+    return
+  end
+
+  -- 4. Fall back to LSP workspace symbols (trait defined in another file).
+  vim.api.nvim_win_set_cursor(0, save_pos)
+  local clients = vim.lsp.get_clients({ bufnr = 0, method = 'workspace/symbol' })
+  if #clients == 0 then
+    vim.notify('trait `' .. trait_name .. '` not in current file; no workspace symbol LSP',
+      vim.log.levels.WARN)
+    return
+  end
+  clients[1]:request('workspace/symbol', { query = trait_name }, function(err, result)
+    if err or not result or vim.tbl_isempty(result) then
+      vim.notify('trait `' .. trait_name .. '` not found', vim.log.levels.WARN)
+      return
+    end
+    -- Prefer an exact name match of kind Interface (11) or Class (5).
+    local target
+    for _, sym in ipairs(result) do
+      if sym.name == trait_name and (sym.kind == 11 or sym.kind == 5) then
+        target = sym
+        break
+      end
+    end
+    target = target or result[1]
+    local loc = target.location
+    if not loc then
+      vim.notify('Workspace symbol had no location', vim.log.levels.WARN)
+      return
+    end
+    vim.cmd('edit ' .. vim.fn.fnameescape(vim.uri_to_fname(loc.uri)))
+    jump_to_method_in_buffer(loc.range.start.line + 1)
+  end, 0)
+end
+
 -- Format current buffer via conform.nvim
 function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })

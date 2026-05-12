@@ -10,6 +10,7 @@ map('n', 'gd', builtin.lsp_definitions, { desc = 'Go to definition (Telescope)' 
 map('n', 'gD', builtin.lsp_type_definitions, { desc = 'Go to type definition (Telescope)' })
 map('n', 'gu', builtin.lsp_references, { desc = 'Show usages (Telescope)' })
 map('n', 'gi', builtin.lsp_implementations, { desc = 'Show implementations (Telescope)' })
+map('n', 'gI', utils.go_to_interface,       { desc = 'Go to trait/interface method (parent of impl)' })
 map('n', 'gh', utils.hover, { desc = 'Show hover info' })
 map('n', 'gH', vim.lsp.buf.incoming_calls, { desc = 'Call hierarchy' })
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
@@ -63,7 +64,7 @@ map('n', '<leader>gM', ':DiffviewClose<CR>',         { desc = 'Close diffview', 
 map('n', '<leader>gh', ':DiffviewFileHistory %<CR>', { desc = 'File history (current file)',       silent = true })
 
 -- Database (vim-dadbod-ui)
-map('n', '<leader>du', ':DBUIToggle<CR>',       { desc = 'Toggle DB UI sidebar', silent = true })
+map('n', '<leader>du', ':DBUIOpen<CR>',         { desc = 'Toggle DB UI sidebar (reload .env)', silent = true })
 map('n', '<leader>df', ':DBUIFindBuffer<CR>',   { desc = 'Find DB buffer',       silent = true })
 map('n', '<leader>dr', ':DBUIRenameBuffer<CR>', { desc = 'Rename DB buffer',     silent = true })
 map('n', '<leader>dq', ':DBUILastQueryInfo<CR>',{ desc = 'Last query info',      silent = true })
