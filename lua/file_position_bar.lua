@@ -77,6 +77,17 @@ setup_hl()
 -- Diagnostic severity (1..4) -> bottom-layer name
 local DIAG_BOT = { 'error', 'warn', 'info', 'hint' }
 
+-- Geometry snapshot captured on each render(), used by on_click() to map a
+-- mouse click on the bar back to a buffer line. Refreshed each redraw, so it
+-- always reflects the bar the user is actually looking at.
+local last = { left_w = 0, bar_width = 0, total_lines = 1 }
+
+-- True between a press that landed on the bar and the matching release.
+-- While set, drag events steer the cursor regardless of mouse Y, and X is
+-- clamped to bar bounds - so the user can wander above or below the bar
+-- without losing the drag.
+local dragging = false
+
 local function diag_counts(diags)
   local c = { 0, 0, 0, 0 }
   for _, d in ipairs(diags) do c[d.severity] = c[d.severity] + 1 end
@@ -191,8 +202,12 @@ function M.render()
 
   local bar_width = vim.o.columns - #left_plain - #right_plain
   if bar_width < 6 then
+    last.bar_width = 0
     return left_segment .. '%=' .. right_segment
   end
+  last.left_w = #left_plain
+  last.bar_width = bar_width
+  last.total_lines = total_lines
 
   local function lnum_to_col(lnum)
     local col = math.floor(((lnum - 1) / math.max(1, total_lines - 1)) * (bar_width - 1)) + 1
@@ -266,8 +281,95 @@ function M.render()
     end
     parts[#parts+1] = '%#' .. hl .. '#' .. ch
   end
-  return left_segment .. table.concat(parts) .. right_segment
+  local bar_segment = '%@FilePositionBarClick@'
+    .. table.concat(parts) .. '%X'
+  return left_segment .. bar_segment .. right_segment
 end
+
+-- Map a mouse position to a buffer line and jump there. `add_jump` controls
+-- whether to push a jumplist entry: true for initial click (so <C-o> works),
+-- false for drag updates (otherwise every drag tick spams the jumplist).
+-- `clamp` clips the horizontal position to bar bounds; useful for drag so
+-- mouse Y can roam freely and X past the edges sticks at the extreme.
+local function jump_from_mouse(mp, add_jump, clamp)
+  if last.bar_width <= 0 then return false end
+  local col_in_bar = mp.screencol - last.left_w
+  if clamp then
+    if col_in_bar < 1 then col_in_bar = 1 end
+    if col_in_bar > last.bar_width then col_in_bar = last.bar_width end
+  elseif col_in_bar < 1 or col_in_bar > last.bar_width then
+    return false
+  end
+  local total = math.max(1, last.total_lines)
+  local denom = math.max(1, last.bar_width - 1)
+  local lnum = math.floor((col_in_bar - 1) / denom * (total - 1) + 0.5) + 1
+  if lnum < 1 then lnum = 1 end
+  if lnum > total then lnum = total end
+  if add_jump then vim.cmd("normal! m'") end
+  vim.api.nvim_win_set_cursor(0, { lnum, 0 })
+  return true
+end
+
+-- Statusline click handler. Called by Neovim when the user clicks anywhere in
+-- the bar region (via `%@FilePositionBarClick@` in the rendered statusline).
+function M.on_click(_, _, button, _)
+  if button ~= 'l' then return end
+  if jump_from_mouse(vim.fn.getmousepos(), true, false) then
+    dragging = true
+  end
+end
+
+-- The `%@FuncName@` format in 'statusline' expects a plain (vimscript)
+-- function name; wrap the Lua callback so it can be referenced by name.
+-- Works in terminal Neovim; Neovide ignores statusline click handlers, so a
+-- keymap fallback below maps <LeftMouse> on top of it.
+vim.cmd([[
+  function! FilePositionBarClick(minwid, clicks, button, mods) abort
+    call v:lua.require('file_position_bar').on_click(
+      \ a:minwid, a:clicks, a:button, a:mods)
+  endfunction
+]])
+
+-- Neovide doesn't route clicks to %@...@ statusline regions. Catch
+-- <LeftMouse> ourselves and dispatch when the click lands on the bar row
+-- (detected by screenrow, since Neovide reports a non-zero winid there).
+if vim.g.neovide then
+  vim.keymap.set({ 'n', 'i', 'v' }, '<LeftMouse>', function()
+    local mp = vim.fn.getmousepos()
+    if mp.screenrow == vim.o.lines - vim.o.cmdheight
+       and last.bar_width > 0 then
+      local col_in_bar = mp.screencol - last.left_w
+      if col_in_bar >= 1 and col_in_bar <= last.bar_width then
+        dragging = true
+        vim.schedule(function() jump_from_mouse(mp, true, false) end)
+        return ''
+      end
+    end
+    dragging = false
+    return '<LeftMouse>'
+  end, { expr = true })
+end
+
+-- Drag and release: work in both terminal and Neovide. `%@..@` regions
+-- don't receive these events, so a keymap is the only path. Once a drag
+-- starts on the bar, every drag tick repositions the cursor regardless of
+-- mouse Y; X is clamped to bar bounds.
+vim.keymap.set({ 'n', 'i', 'v' }, '<LeftDrag>', function()
+  if dragging then
+    local mp = vim.fn.getmousepos()
+    vim.schedule(function() jump_from_mouse(mp, false, true) end)
+    return ''
+  end
+  return '<LeftDrag>'
+end, { expr = true })
+
+vim.keymap.set({ 'n', 'i', 'v' }, '<LeftRelease>', function()
+  if dragging then
+    dragging = false
+    return ''
+  end
+  return '<LeftRelease>'
+end, { expr = true })
 
 local group = vim.api.nvim_create_augroup('FilePositionBar', { clear = true })
 vim.api.nvim_create_autocmd(
