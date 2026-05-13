@@ -100,7 +100,7 @@ vim.api.nvim_create_autocmd('BufEnter', {
   end,
 })
 require('nvim-web-devicons').setup()
-require('virt-column').setup({ char = '▕', virtcolumn = '80,100' })
+require('virt-column').setup({ char = '▕', virtcolumn = '80,100', exclude = { filetypes = { 'startify' } } })
 require('bookmarks')
 require('markdown')
 require('fishbone_setup')

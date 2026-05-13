@@ -222,7 +222,7 @@ end
 -- current buffer, and clear any stale diagnostics from the previous session.
 function M.restart_rust_analyzer()
   for _, c in ipairs(vim.lsp.get_clients({ name = 'rust-analyzer' })) do
-    vim.lsp.stop_client(c.id)
+    c:stop()
   end
   vim.notify('rust-analyzer restarting...')
   if vim.bo.filetype == 'rust' then

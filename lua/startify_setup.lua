@@ -30,19 +30,64 @@ function _G.startify_projects()
   return entries
 end
 
--- Startify's `type` field accepts a Funcref, not a `v:lua...` string. Wrap the
--- lua function in a vimscript shim so it can be referenced via `function(...)`.
+-- Startify's `type` field accepts a Funcref, not a `v:lua...` string.
 vim.cmd([[
   function! g:StartifyProjects() abort
     return luaeval('_G.startify_projects()')
   endfunction
-  let g:startify_lists = [
-    \ { 'type': function('g:StartifyProjects'), 'header': ['   Projects']     },
-    \ { 'type': 'files',                        'header': ['   Recent files'] },
-    \ { 'type': 'sessions',                     'header': ['   Sessions']     },
-    \ { 'type': 'commands',                     'header': ['   Commands']     },
-    \ ]
 ]])
 
 -- Hide empty sections
 vim.g.startify_enable_special = 0
+
+vim.api.nvim_create_autocmd('User', {
+  pattern  = 'StartifyReady',
+  callback = function()
+    vim.wo.colorcolumn = ''
+    vim.wo.wrap        = false
+  end,
+})
+
+local content_width = 85
+
+local function apply_layout(win_w)
+  local pad_n = math.max(4, math.floor((win_w - content_width) / 2))
+  local pad   = string.rep(' ', pad_n)
+
+  vim.g.startify_pad_str      = pad
+  vim.g.startify_padding_left = pad_n
+  vim.g.startify_custom_header =
+    "map(startify#fortune#cowsay(), 'g:startify_pad_str . v:val')"
+  vim.g.startify_files_number = 100 - #load_projects()
+
+  vim.cmd(string.format([[
+    let g:startify_lists = [
+      \ { 'type': function('g:StartifyProjects'), 'header': ['%s   Projects']     },
+      \ { 'type': 'files',                        'header': ['%s   Recent files'] },
+      \ { 'type': 'sessions',                     'header': ['%s   Sessions']     },
+      \ { 'type': 'commands',                     'header': ['%s   Commands']     },
+      \ ]
+  ]], pad, pad, pad, pad))
+
+  return pad_n
+end
+
+vim.api.nvim_create_autocmd('VimEnter', {
+  once     = true,
+  callback = function() apply_layout(vim.o.columns) end,
+})
+
+-- On window resize, update s:leftpad/s:fixed_column via the patch function,
+-- then re-render so all three layers (cow, headers, items) use the new width.
+vim.api.nvim_create_autocmd('WinResized', {
+  callback = function()
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'startify' then
+        local pad_n = apply_layout(vim.api.nvim_win_get_width(win))
+        vim.fn['startify#set_padding'](pad_n)
+        vim.api.nvim_win_call(win, function() vim.cmd('Startify') end)
+        break
+      end
+    end
+  end,
+})
