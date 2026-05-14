@@ -45,7 +45,7 @@
       "src": "https://github.com/sindrets/diffview.nvim"
     },
     "fishbone.nvim": {
-      "rev": "89b5972b19b82ac256f1b56279670be82336b625",
+      "rev": "4e3053d01580853e1769264be167931910e33a2b",
       "src": "https://github.com/alchezar/fishbone.nvim"
     },
     "gitsigns.nvim": {
@@ -77,7 +77,7 @@
       "src": "https://github.com/rcarriga/nvim-dap-ui"
     },
     "nvim-lspconfig": {
-      "rev": "75e49cfa588a89ca667d767c0afef3ceac205faa",
+      "rev": "4d9647d7b14dd2756578761f8cc2cf80f671b926",
       "src": "https://github.com/neovim/nvim-lspconfig"
     },
     "nvim-nio": {
@@ -109,11 +109,11 @@
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "2499b3cc494b3f8e07c0a6cb0ae1d24fa372a487",
+      "rev": "4798c7b584331d3c764369332a29a76d1c2d90f9",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "telescope.nvim": {
-      "rev": "f04ab730b8f9c6bf3f54a206d0dcddfd70c52d59",
+      "rev": "aa4ad82068176e9610034eedcf945289e90e5b0a",
       "src": "https://github.com/nvim-telescope/telescope.nvim"
     },
     "todo-comments.nvim": {

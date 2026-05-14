@@ -24,7 +24,9 @@ map('n', 'go', utils.switch_source_header, { desc = 'Switch C/C++ source/header'
 -- Telescope
 map('n', '<Tab>', '<C-^>', { desc = 'Switch to alternate file' })
 map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })
-map('n', '<D-e>', builtin.buffers, { desc = 'Open buffers' })
+map('n', '<D-e>', function()
+  builtin.buffers({ sort_mru = true, ignore_current_buffer = true })
+end, { desc = 'Open buffers (MRU)' })
 map('n', '<C-p>', builtin.find_files, { desc = 'Find files' })
 map('n', '<leader>ff', builtin.find_files, { desc = 'Find files (fuzzy)' })
 map('n', '<leader>fg', builtin.live_grep, { desc = 'Live grep' })
@@ -57,8 +59,14 @@ map('n', '<leader>f', ':NvimTreeFindFile<CR>', { desc = 'Find file in tree', sil
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })
 
 -- Git
+map('n', '<leader>gs', builtin.git_status, { desc = 'Git status (changed files)' })
+map('n', '<D-S-g>',    builtin.git_status, { desc = 'Git status (changed files)' })
 map('n', '<leader>gb', ':BlameToggle<CR>', { desc = 'Toggle git blame side panel (date heat-map)', silent = true })
 map('n', '<leader>gp', ':Gitsigns preview_hunk<CR>', { desc = 'Preview hunk diff (popup)', silent = true })
+map('n', '<leader>gr', function()
+  require('gitsigns').reset_hunk()
+  vim.cmd('noautocmd write')
+end, { desc = 'Reset hunk under cursor and save (no autoformat)' })
 map('n', '<leader>gm', ':DiffviewOpen<CR>',          { desc = 'Open diffview (3-way merge / diff)', silent = true })
 map('n', '<leader>gM', ':DiffviewClose<CR>',         { desc = 'Close diffview',                    silent = true })
 map('n', '<leader>gh', ':DiffviewFileHistory %<CR>', { desc = 'File history (current file)',       silent = true })

@@ -213,6 +213,24 @@ function M.go_to_interface()
   end, 0)
 end
 
+-- Apply `tab_spaces` from the nearest rustfmt.toml to the given buffer.
+function M.apply_rustfmt_indent(bufnr)
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  if path == '' then return end
+  local found = vim.fs.find('rustfmt.toml', { upward = true, path = vim.fs.dirname(path) })[1]
+  if not found then return end
+  for line in io.lines(found) do
+    local n = line:match('^%s*tab_spaces%s*=%s*(%d+)')
+    if n then
+      local sw = tonumber(n)
+      vim.bo[bufnr].shiftwidth  = sw
+      vim.bo[bufnr].softtabstop = sw
+      vim.bo[bufnr].tabstop     = sw
+      return
+    end
+  end
+end
+
 -- Format current buffer via conform.nvim
 function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })

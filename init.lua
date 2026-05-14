@@ -36,10 +36,20 @@ vim.opt.listchars = { trail = '·', tab = '  ' }
 vim.api.nvim_create_autocmd('ModeChanged', {
     callback = function()
         if vim.v.event.new_mode:match('^[vV\22]') then
-            vim.opt.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = '│···' }
+            local sw = vim.bo.shiftwidth
+            if sw <= 0 then sw = vim.bo.tabstop end
+            local lead = '│' .. string.rep('·', math.max(sw - 1, 0))
+            vim.opt.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = lead }
         else
             vim.opt.listchars = { trail = '·', tab = '  ' }
         end
+    end,
+})
+-- Apply tab_spaces from rustfmt.toml to *.rs buffers
+vim.api.nvim_create_autocmd('FileType', {
+    pattern = 'rust',
+    callback = function(args)
+        require('utils').apply_rustfmt_indent(args.buf)
     end,
 })
 -- Visual lines move (for lines longer than terminal width)
