@@ -116,6 +116,7 @@ require("completion_setup")
 require("treesitter")
 require("debugging")
 require("formatting")
+require("autosave")
 require("keys")
 
 -- Plugin setup
