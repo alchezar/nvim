@@ -34,23 +34,23 @@ vim.opt.smartcase = true
 vim.opt.list = true
 vim.opt.listchars = { trail = '·', tab = '  ' }
 vim.api.nvim_create_autocmd('ModeChanged', {
-    callback = function()
-        if vim.v.event.new_mode:match('^[vV\22]') then
-            local sw = vim.bo.shiftwidth
-            if sw <= 0 then sw = vim.bo.tabstop end
-            local lead = '│' .. string.rep('·', math.max(sw - 1, 0))
-            vim.opt.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = lead }
-        else
-            vim.opt.listchars = { trail = '·', tab = '  ' }
-        end
-    end,
+  callback = function()
+    if vim.v.event.new_mode:match('^[vV\22]') then
+      local sw = vim.bo.shiftwidth
+      if sw <= 0 then sw = vim.bo.tabstop end
+      local lead = '│' .. string.rep('·', math.max(sw - 1, 0))
+      vim.opt.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = lead }
+    else
+      vim.opt.listchars = { trail = '·', tab = '  ' }
+    end
+  end,
 })
 -- Apply tab_spaces from rustfmt.toml to *.rs buffers
 vim.api.nvim_create_autocmd('FileType', {
-    pattern = 'rust',
-    callback = function(args)
-        require('utils').apply_rustfmt_indent(args.buf)
-    end,
+  pattern = 'rust',
+  callback = function(args)
+    require('utils').apply_rustfmt_indent(args.buf)
+  end,
 })
 -- Visual lines move (for lines longer than terminal width)
 vim.keymap.set('n', 'j', 'gj')
@@ -70,18 +70,41 @@ vim.api.nvim_set_keymap('v', '<C-j>', ":m '>+1<CR>gv", { noremap = true, silent 
 
 -- Vim UI2
 require ('vim._core.ui2').enable({
-	enable = true,
-	msg = {
-		target = "cmd",
-		pager = { height = 0.5 },
-		dialog = { height = 0.5 },
-		cmd = { height = 0.5 },
-		msg = { height = 0.5, timeout = 4500 },
-	},
+  enable = true,
+  msg = {
+    target = "cmd",
+    pager = { height = 0.5 },
+    dialog = { height = 0.5 },
+    cmd = { height = 0.5 },
+    msg = { height = 0.5, timeout = 4500 },
+  },
 })
 
 -- Neovide related settings
 require("neovide")
+
+-- Multi-cursor (vim-visual-multi) - must be set before plugins load
+vim.g.VM_maps = {
+  ['Add Cursor Down']    = '<D-M-Down>',
+  ['Add Cursor Up']      = '<D-M-Up>',
+  ['Find Under']         = '<D-d>',
+  ['Find Subword Under'] = '<D-d>',
+  ['Switch Mode']        = 'v',
+}
+vim.g.VM_silent_exit = 1
+vim.g.VM_set_statusline = 0
+vim.g.VM_show_warnings = 0
+
+-- vim-visual-multi cursor colors: white block cursors, theme-matched selection
+local function apply_vm_hl()
+  local theme = require('theme_colors')
+  vim.api.nvim_set_hl(0, 'VM_Mono',   { fg = theme.bg, bg = theme.white })
+  vim.api.nvim_set_hl(0, 'VM_Cursor', { fg = theme.bg, bg = theme.white })
+  vim.api.nvim_set_hl(0, 'VM_Insert', { fg = theme.bg, bg = theme.white })
+  vim.api.nvim_set_hl(0, 'VM_Extend', { bg = theme.dark })
+end
+vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_vm_hl })
+apply_vm_hl()
 
 -- Plugins
 require("plugins")

@@ -1,5 +1,5 @@
 if not vim.g.neovide then
-    return
+  return
 end
 
 vim.g.neovide_window_blurred = true
@@ -20,22 +20,22 @@ vim.cmd("colorscheme kinder_theme")
 --  - Solid background (terminal nvim stays transparent)
 --  - Block cursor takes the color of the character underneath
 local function apply_neovide_theme()
-    local bg = "#262626"
-    vim.api.nvim_set_hl(0, "Normal", { bg = bg })
-    vim.api.nvim_set_hl(0, "NormalFloat", { bg = bg })
+  local bg = "#262626"
+  vim.api.nvim_set_hl(0, "Normal", { bg = bg })
+  vim.api.nvim_set_hl(0, "NormalFloat", { bg = bg })
 end
 
 local update_cursor_color = require("utils").update_cursor_color
 vim.opt.guicursor = "n-v-c-sm:block-Cursor,i-ci-ve:ver25-Cursor,r-cr-o:hor20-Cursor"
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "ModeChanged" }, {
-    callback = update_cursor_color,
+  callback = update_cursor_color,
 })
 
 vim.api.nvim_create_autocmd({ "ColorScheme" }, {
-    callback = function()
-        apply_neovide_theme()
-        update_cursor_color()
-    end,
+  callback = function()
+    apply_neovide_theme()
+    update_cursor_color()
+  end,
 })
 apply_neovide_theme()
 update_cursor_color()

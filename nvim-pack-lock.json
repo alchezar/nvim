@@ -156,6 +156,10 @@
       "rev": "b3cfab2a6302b3b39f53d9fd2cd997e1127d7878",
       "src": "https://github.com/easymotion/vim-easymotion"
     },
+    "vim-sleuth": {
+      "rev": "be69bff86754b1aa5adcbb527d7fcd1635a84080",
+      "src": "https://github.com/tpope/vim-sleuth"
+    },
     "vim-startify": {
       "rev": "4e089dffdad46f3f5593f34362d530e8fe823dcf",
       "src": "https://github.com/mhinz/vim-startify"
@@ -163,6 +167,10 @@
     "vim-surround": {
       "rev": "3d188ed2113431cf8dac77be61b842acb64433d9",
       "src": "https://github.com/tpope/vim-surround"
+    },
+    "vim-visual-multi": {
+      "rev": "a6975e7c1ee157615bbc80fc25e4392f71c344d4",
+      "src": "https://github.com/mg979/vim-visual-multi"
     },
     "virt-column.nvim": {
       "rev": "b87e3e0864211a32724a2ebf3be37e24e9e2fa99",

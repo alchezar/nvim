@@ -1,44 +1,29 @@
 vim.pack.add({
-  -- Start screen
-  'https://github.com/mhinz/vim-startify',
-
-  -- LSP
-  'https://github.com/neovim/nvim-lspconfig',
+  'https://github.com/mhinz/vim-startify',                                   -- Start screen
+  'https://github.com/neovim/nvim-lspconfig',                                -- LSP
   'https://github.com/mrcjkb/rustaceanvim',
-
-  -- Completion
-  'https://github.com/hrsh7th/nvim-cmp',
+  'https://github.com/hrsh7th/nvim-cmp',                                     -- Completion
   'https://github.com/hrsh7th/cmp-nvim-lsp',
   'https://github.com/hrsh7th/cmp-buffer',
   'https://github.com/hrsh7th/cmp-path',
   'https://github.com/hrsh7th/cmp-nvim-lsp-signature-help',
   'https://github.com/L3MON4D3/LuaSnip',
   'https://github.com/saadparwaiz1/cmp_luasnip',
-
-  -- Treesitter
-  'https://github.com/nvim-treesitter/nvim-treesitter',
-
-  -- Debug
-  'https://github.com/mfussenegger/nvim-dap',
+  'https://github.com/nvim-treesitter/nvim-treesitter',                      -- Treesitter
+  'https://github.com/mfussenegger/nvim-dap',                                -- Debug
   'https://github.com/rcarriga/nvim-dap-ui',
   'https://github.com/nvim-neotest/nvim-nio',
   'https://github.com/mfussenegger/nvim-dap-python',
-
-  -- Navigation
-  'https://github.com/nvim-lua/plenary.nvim',
+  'https://github.com/nvim-lua/plenary.nvim',                                -- Navigation
   'https://github.com/nvim-telescope/telescope.nvim',
   'https://github.com/easymotion/vim-easymotion',
   'https://github.com/tpope/vim-surround',
-
-  -- File explorer
-  'https://github.com/nvim-tree/nvim-web-devicons',
+  'https://github.com/tpope/vim-sleuth',
+  'https://github.com/mg979/vim-visual-multi',
+  'https://github.com/nvim-tree/nvim-web-devicons',                          -- File explorer
   'https://github.com/nvim-tree/nvim-tree.lua',
-
-  -- Formatting
-  'https://github.com/stevearc/conform.nvim',
-
-  -- UI / utilities
-  'https://github.com/folke/trouble.nvim',
+  'https://github.com/stevearc/conform.nvim',                                -- Formatting
+  'https://github.com/folke/trouble.nvim',                                   -- UI / utilities
   'https://github.com/folke/todo-comments.nvim',
   'https://github.com/windwp/nvim-autopairs',
   'https://github.com/numToStr/Comment.nvim',
@@ -46,30 +31,16 @@ vim.pack.add({
   'https://github.com/lukas-reineke/virt-column.nvim',
   'https://github.com/chentoast/marks.nvim',
   'https://github.com/alchezar/fishbone.nvim',
-
-  -- Markdown
-  'https://github.com/MeanderingProgrammer/render-markdown.nvim',
-
-  -- Cargo.toml: inline crate version info
-  'https://github.com/Saecki/crates.nvim',
-
-  -- Database UI (dadbod)
-  'https://github.com/tpope/vim-dadbod',
+  'https://github.com/MeanderingProgrammer/render-markdown.nvim',            -- Markdown
+  'https://github.com/Saecki/crates.nvim',                                   -- Cargo.toml: inline crate version info
+  'https://github.com/tpope/vim-dadbod',                                     -- Database UI (dadbod)
   'https://github.com/kristijanhusak/vim-dadbod-ui',
   'https://github.com/kristijanhusak/vim-dadbod-completion',
   'https://github.com/tpope/vim-dotenv',
-
-  -- Git blame side panel with date heatmap
-  'https://github.com/FabijanZulj/blame.nvim',
-
-  -- Diff / 3-way merge conflict resolution
-  'https://github.com/sindrets/diffview.nvim',
-
-  -- Hex view for binary files (images, .bin, etc.) — auto-detects on BufRead
-  'https://github.com/RaafatTurki/hex.nvim',
-
-  -- Lazygit integration (floating terminal)
-  'https://github.com/kdheepak/lazygit.nvim',
+  'https://github.com/FabijanZulj/blame.nvim',                               -- Git blame side panel with date heatmap
+  'https://github.com/sindrets/diffview.nvim',                               -- Diff / 3-way merge conflict resolution
+  'https://github.com/RaafatTurki/hex.nvim',                                 -- Hex view for binary files (images, .bin, etc.)
+  'https://github.com/kdheepak/lazygit.nvim',                                -- Lazygit integration (floating terminal)
 })
 
 -- Explicitly load all plugins so require() works in init.lua
