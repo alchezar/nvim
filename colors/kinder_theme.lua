@@ -209,6 +209,7 @@ local function rust_treesitter_highlights(lang)
 		["@function." .. lang]               = { fg = colors.green },
 		["@function.call." .. lang]          = { fg = colors.green },
 		["@macro." .. lang]                  = { fg = colors.brown },
+		["@function.macro." .. lang]         = { fg = colors.teal },
 		["@type." .. lang]                   = { fg = colors.blue },
 		["@type.builtin." .. lang]           = { fg = colors.cyan },
 		["@field." .. lang]                  = { fg = colors.gray },

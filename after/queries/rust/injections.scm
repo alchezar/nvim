@@ -1,6 +1,6 @@
 ; extends
 
-; ---------------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; sqlx::query!("SELECT ..."), sqlx::query_as!(), sqlx::query_scalar!() etc.
 ; Captures the string contents and parses them as SQL.
 ; offset(0, 1, 0, -1) strips the surrounding quotes from "...".
@@ -51,7 +51,7 @@
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
-; ---------------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Function-call forms (no `!`): sqlx::query_scalar::<_, Uuid>(r"SELECT ...")
 ; The turbofish content is unconstrained - any type args match.
 
@@ -111,7 +111,7 @@
  (#set! injection.priority 110)
  (#offset! @injection.content 0 1 0 -1))
 
-; ---------------------------------------------------------------------------
+; ------------------------------------------------------------------------------
 ; Bare imports: `use sqlx::query_scalar;`  ->  query_scalar(...)
 
 ; query_scalar::<...>(r"...")

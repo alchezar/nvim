@@ -64,6 +64,12 @@ vim.pack.add({
 
   -- Diff / 3-way merge conflict resolution
   'https://github.com/sindrets/diffview.nvim',
+
+  -- Hex view for binary files (images, .bin, etc.) — auto-detects on BufRead
+  'https://github.com/RaafatTurki/hex.nvim',
+
+  -- Lazygit integration (floating terminal)
+  'https://github.com/kdheepak/lazygit.nvim',
 })
 
 -- Explicitly load all plugins so require() works in init.lua

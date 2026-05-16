@@ -31,6 +31,7 @@ require('nvim-tree').setup({
     highlight_git = 'name',
     highlight_diagnostics = 'name',
     icons = {
+      padding = '  ',
       show = { git = false },
       glyphs = {
         folder = {
