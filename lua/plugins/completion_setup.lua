@@ -1,6 +1,6 @@
 local cmp = require('cmp')
 local luasnip = require('luasnip')
-local kinds = require('plugins.lsp_kinds')
+local lsp_icons = require('config.lsp_icons')
 
 cmp.setup({
   snippet = {
@@ -11,7 +11,7 @@ cmp.setup({
   formatting = {
     fields = { 'abbr', 'kind', 'menu' },
     format = function(_, vim_item)
-      local icon = kinds.icons[vim_item.kind] or ''
+      local icon = lsp_icons.icons[vim_item.kind] or ''
       vim_item.kind = icon .. vim_item.kind
       return vim_item
     end,

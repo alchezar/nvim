@@ -44,7 +44,7 @@ local function lsp_entry_maker(_)
   end
 end
 
-local kind_highlights = require('plugins.lsp_kinds').telescope_highlights()
+local kind_highlights = require('config.lsp_icons').symbol_highlights()
 
 require('telescope').setup({
   defaults = {

@@ -18,4 +18,5 @@ return {
   brown   = "#71504D",
   lime    = "#CDEF58",
   teal    = "#20999D",
+  black   = "#181818"
 }

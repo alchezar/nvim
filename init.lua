@@ -23,6 +23,8 @@ vim.opt.smartcase = true
 -- Whitespace display: trailing dots always; full whitespace in visual mode
 vim.opt.list = true
 vim.opt.listchars = { trail = '·', tab = '  ' }
+-- Blank out vertical split separators (between editor splits, nvim-tree, dbui).
+vim.opt.fillchars:append({ vert = ' ' })
 vim.api.nvim_create_autocmd('ModeChanged', {
   callback = function()
     if vim.v.event.new_mode:match('^[vV\22]') then
@@ -125,7 +127,7 @@ vim.api.nvim_create_autocmd('BufEnter', {
   end,
 })
 require('nvim-web-devicons').setup()
-require('virt-column').setup({ char = '▕', virtcolumn = '80,100', exclude = { filetypes = { 'startify' } } })
+require('virt-column').setup({ char = '▕', virtcolumn = '80,100', highlight = 'VirtColumn', exclude = { filetypes = { 'startify' } } })
 require('plugins.bookmarks')
 require('plugins.markdown')
 require('plugins.fishbone_setup')

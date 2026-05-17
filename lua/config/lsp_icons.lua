@@ -55,7 +55,7 @@ end
 -- Telescope's default map keys by `Method`, `Class`, etc.; since we patched
 -- those to `<icon> Method`, the default lookup misses. Re-add the same
 -- TelescopeResults* highlights under the prefixed keys.
-function M.telescope_highlights()
+function M.symbol_highlights()
   local base = {
     Class    = 'TelescopeResultsClass',
     Constant = 'TelescopeResultsConstant',
