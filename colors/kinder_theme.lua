@@ -9,7 +9,7 @@ if vim.fn.exists("syntax_on") then
 end
 
 -- Color palette is shared with other configs (see lua/theme_colors.lua)
-local colors = require('theme_colors')
+local colors = require('config.theme_colors')
 
 local function highlight(group, color)
 	local style = color.style and 'gui=' .. color.style or 'gui=NONE'

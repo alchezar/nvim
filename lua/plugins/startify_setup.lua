@@ -1,9 +1,9 @@
 -- vim-startify dashboard config
 
--- Project paths live in lua/projects.lua (gitignored). Fall back to an empty
--- list if the file is missing (e.g. fresh clone on a new machine).
+-- Project paths live in lua/config/projects.lua (gitignored). Fall back to an
+-- empty list if the file is missing (e.g. fresh clone on a new machine).
 local function load_projects()
-  local ok, projects = pcall(require, 'projects')
+  local ok, projects = pcall(require, 'config.projects')
   return ok and projects or {}
 end
 

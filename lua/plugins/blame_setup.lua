@@ -2,7 +2,7 @@
 -- Older commits are red, newer commits are green (smooth HSL gradient).
 -- Open via <leader>gb (mapped in keys.lua, replaces :Gitsigns blame).
 
-local theme = require('theme_colors')
+local theme = require('config.theme_colors')
 
 local function hex_to_rgb(hex)
   hex = hex:gsub('#', '')

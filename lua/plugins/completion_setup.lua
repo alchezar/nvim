@@ -1,6 +1,6 @@
 local cmp = require('cmp')
 local luasnip = require('luasnip')
-local kinds = require('lsp_kinds')
+local kinds = require('plugins.lsp_kinds')
 
 cmp.setup({
   snippet = {

@@ -11,7 +11,7 @@
 --   <leader>c0             - delete the conflict region
 --   :DiffviewClose         - close (after :w on the working file)
 
-local theme = require('theme_colors')
+local theme = require('config.theme_colors')
 
 require('diffview').setup({
   use_icons = true,

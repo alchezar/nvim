@@ -6,7 +6,7 @@
 --   <leader>m list all numbered bookmarks
 --   <leader>M list all letter marks
 
-local theme = require('theme_colors')
+local theme = require('config.theme_colors')
 
 -- Sign column highlight for marks/bookmarks - yellow instead of default gray.
 -- Only the sign glyph is colored; the line number keeps its default color.

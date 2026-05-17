@@ -6,7 +6,7 @@ if dev then
   vim.opt.runtimepath:prepend('/Users/kinder/Documents/misc/nvim/fishbone.nvim')
 end
 
-local theme = require('theme_colors')
+local theme = require('config.theme_colors')
 
 require('fishbone').setup({
   colors = {

@@ -39,7 +39,7 @@ vim.api.nvim_create_autocmd('ModeChanged', {
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'rust',
   callback = function(args)
-    require('utils').apply_rustfmt_indent(args.buf)
+    require('config.utils').apply_rustfmt_indent(args.buf)
   end,
 })
 -- Visual lines move (for lines longer than terminal width)
@@ -71,7 +71,7 @@ require ('vim._core.ui2').enable({
 })
 
 -- Neovide related settings
-require("neovide")
+require("config.neovide")
 
 -- Multi-cursor (vim-visual-multi) - must be set before plugins load
 vim.g.VM_maps = {
@@ -87,7 +87,7 @@ vim.g.VM_show_warnings = 0
 
 -- vim-visual-multi cursor colors: white block cursors, theme-matched selection
 local function apply_vm_hl()
-  local theme = require('theme_colors')
+  local theme = require('config.theme_colors')
   vim.api.nvim_set_hl(0, 'VM_Mono',   { fg = theme.bg, bg = theme.white })
   vim.api.nvim_set_hl(0, 'VM_Cursor', { fg = theme.bg, bg = theme.white })
   vim.api.nvim_set_hl(0, 'VM_Insert', { fg = theme.bg, bg = theme.white })
@@ -97,18 +97,18 @@ vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_vm_hl })
 apply_vm_hl()
 
 -- Plugins
-require("plugins")
+require("config.plugins")
 
 -- Plugin configs
-require("telescope_setup")
-require("lsp")
-require("completion_setup")
-require("treesitter")
-require("debugging")
-require("formatting")
-require("autosave")
-require("translate_setup")
-require("keys")
+require("config.keys")
+require("config.autosave")
+require("plugins.telescope_setup")
+require("plugins.lsp")
+require("plugins.completion_setup")
+require("plugins.treesitter")
+require("plugins.debugging")
+require("plugins.formatting")
+require("plugins.translate_setup")
 
 -- Plugin setup
 require('nvim-autopairs').setup()
@@ -116,23 +116,23 @@ require('Comment').setup()
 require('gitsigns').setup()
 require('todo-comments').setup()
 require('trouble').setup()
-require('file-tree')
+require('plugins.file-tree')
 
 -- Auto-cd to project root based on common markers
 vim.api.nvim_create_autocmd('BufEnter', {
   callback = function(args)
-    require('utils').auto_cd_to_project_root(args.buf)
+    require('config.utils').auto_cd_to_project_root(args.buf)
   end,
 })
 require('nvim-web-devicons').setup()
 require('virt-column').setup({ char = '▕', virtcolumn = '80,100', exclude = { filetypes = { 'startify' } } })
-require('bookmarks')
-require('markdown')
-require('fishbone_setup')
-require('dadbod')
-require('blame_setup')
-require('diffview_setup')
-require('startify_setup')
+require('plugins.bookmarks')
+require('plugins.markdown')
+require('plugins.fishbone_setup')
+require('plugins.dadbod')
+require('plugins.blame_setup')
+require('plugins.diffview_setup')
+require('plugins.startify_setup')
 require('crates').setup({ popup = { border = 'rounded' } })
 require('hex').setup()
 

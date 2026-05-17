@@ -47,7 +47,7 @@ require('nvim-tree').setup({
 
 -- Tree highlight overrides: dim gitignored items, neutral gray for folders.
 local function apply_tree_hl()
-  local theme = require('theme_colors')
+  local theme = require('config.theme_colors')
   -- Gitignored stays a darker gray
   vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL',   { fg = theme.dark })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFolderIgnoredHL', { fg = theme.dark })

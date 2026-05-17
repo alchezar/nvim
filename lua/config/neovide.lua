@@ -25,7 +25,7 @@ local function apply_neovide_theme()
   vim.api.nvim_set_hl(0, "NormalFloat", { bg = bg })
 end
 
-local update_cursor_color = require("utils").update_cursor_color
+local update_cursor_color = require("config.utils").update_cursor_color
 vim.opt.guicursor = "n-v-c-sm:block-Cursor,i-ci-ve:ver25-Cursor,r-cr-o:hor20-Cursor"
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "ModeChanged" }, {
   callback = update_cursor_color,

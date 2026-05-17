@@ -1,5 +1,5 @@
 local map = vim.keymap.set
-local utils = require('utils')
+local utils = require('config.utils')
 local builtin = require('telescope.builtin')
 
 -- Leader key
@@ -105,7 +105,7 @@ map('n', '<leader>i', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })
 
 -- Translate selected text (Cmd+Ctrl+U: -> Ukrainian, Cmd+Ctrl+Shift+U: -> English)
 -- Wrapper keeps cursor at end of selection so the popup doesn't cover the source.
-local translate = require('translate_setup')
+local translate = require('plugins.translate_setup')
 map('x', '<D-C-u>',   function() translate.translate_selection('UK') end, { desc = 'Translate selection to Ukrainian' })
 map('x', '<D-C-S-u>', function() translate.translate_selection('EN') end, { desc = 'Translate selection to English' })
 

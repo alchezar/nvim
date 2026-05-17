@@ -1,6 +1,6 @@
 -- render-markdown: heading colors mapped to kinder_theme palette
 
-local theme = require('theme_colors')
+local theme = require('config.theme_colors')
 local levels = { 'H1', 'H2', 'H3', 'H4', 'H5', 'H6' }
 local colors = { theme.red, theme.orange, theme.yellow, theme.green, theme.blue, theme.purple }
 
