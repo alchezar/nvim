@@ -89,7 +89,7 @@
       "src": "https://github.com/rcarriga/nvim-dap-ui"
     },
     "nvim-lspconfig": {
-      "rev": "8f7e64066e2641d5e7d494962a9c7051e3d38dd5",
+      "rev": "f9349d4d99e7d66403ae8bf4fbd357b154dca7a7",
       "src": "https://github.com/neovim/nvim-lspconfig"
     },
     "nvim-nio": {
@@ -121,7 +121,7 @@
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "c01bec32bfb3b917debd380eb114234b3c4c96c7",
+      "rev": "58f4131afa7a94329345043f2e9f7807ed74bea3",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "telescope.nvim": {
@@ -131,6 +131,10 @@
     "todo-comments.nvim": {
       "rev": "31e3c38ce9b29781e4422fc0322eb0a21f4e8668",
       "src": "https://github.com/folke/todo-comments.nvim"
+    },
+    "translate.nvim": {
+      "rev": "1a841e56407ba02e919ed9af573dbe531404aebb",
+      "src": "https://github.com/uga-rosa/translate.nvim"
     },
     "trouble.nvim": {
       "rev": "bd67efe408d4816e25e8491cc5ad4088e708a69a",

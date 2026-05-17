@@ -1,22 +1,12 @@
--- Enabling true color terminal allows Neovim to utilize 24-bit RGB color values,
--- providing a more extensive and accurate range of colors in the termina.
 vim.opt.termguicolors = true
--- Font settings. My own font with concinese name.
--- Based on the Iosevka Font. https://typeof.net/Iosevka/
 vim.opt.guifont = "Iosevka Chill Nerd:h12"
--- Set color scheme. My own color theme with a concine name.
--- Based on the MonokaiPro(Spectrum) and OneDarkPro color themes.
 vim.cmd("colorscheme kinder_theme")
--- Default clipboard
 vim.opt.clipboard = "unnamedplus"
+vim.o.winborder = 'rounded'
+vim.opt.colorcolumn = "80,100"
 -- Relative line numbers
 vim.opt.number = true
 vim.opt.relativenumber = true
--- Rounded border for all floating windows
-vim.o.winborder = 'rounded'
--- Column guides at 80 and 100 characters
-vim.opt.colorcolumn = "80,100"
--- Wrap width for `gq` / `Q` formatting (comments and prose)
 -- Force 80 even when bundled ftplugins (e.g. rust.vim sets 100) override it.
 vim.opt.textwidth = 80
 vim.api.nvim_create_autocmd('FileType', {
@@ -117,6 +107,7 @@ require("treesitter")
 require("debugging")
 require("formatting")
 require("autosave")
+require("translate_setup")
 require("keys")
 
 -- Plugin setup
@@ -144,6 +135,7 @@ require('diffview_setup')
 require('startify_setup')
 require('crates').setup({ popup = { border = 'rounded' } })
 require('hex').setup()
+
 -- In Cargo.toml, override `gh` to show the crate popup instead of LSP hover.
 vim.api.nvim_create_autocmd('BufRead', {
   pattern = 'Cargo.toml',

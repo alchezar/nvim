@@ -20,6 +20,7 @@ vim.pack.add({
   'https://github.com/tpope/vim-surround',
   'https://github.com/tpope/vim-sleuth',
   'https://github.com/mg979/vim-visual-multi',
+  'https://github.com/uga-rosa/translate.nvim',
   'https://github.com/nvim-tree/nvim-web-devicons',                          -- File explorer
   'https://github.com/nvim-tree/nvim-tree.lua',
   'https://github.com/stevearc/conform.nvim',                                -- Formatting
