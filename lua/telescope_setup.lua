@@ -44,16 +44,21 @@ local function lsp_entry_maker(_)
   end
 end
 
+local kind_highlights = require('lsp_kinds').telescope_highlights()
+
 require('telescope').setup({
   defaults = {
     path_display = { 'truncate' },
   },
   pickers = {
-    lsp_references      = { entry_maker = lsp_entry_maker() },
-    lsp_implementations = { entry_maker = lsp_entry_maker() },
-    lsp_definitions     = { entry_maker = lsp_entry_maker() },
-    lsp_type_definitions= { entry_maker = lsp_entry_maker() },
-    quickfix            = { entry_maker = lsp_entry_maker() },
-    loclist             = { entry_maker = lsp_entry_maker() },
+    lsp_references                = { entry_maker = lsp_entry_maker() },
+    lsp_implementations           = { entry_maker = lsp_entry_maker() },
+    lsp_definitions               = { entry_maker = lsp_entry_maker() },
+    lsp_type_definitions          = { entry_maker = lsp_entry_maker() },
+    quickfix                      = { entry_maker = lsp_entry_maker() },
+    loclist                       = { entry_maker = lsp_entry_maker() },
+    lsp_document_symbols          = { symbol_highlights = kind_highlights },
+    lsp_workspace_symbols         = { symbol_highlights = kind_highlights },
+    lsp_dynamic_workspace_symbols = { symbol_highlights = kind_highlights },
   },
 })

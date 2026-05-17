@@ -1,10 +1,19 @@
 local cmp = require('cmp')
 local luasnip = require('luasnip')
+local kinds = require('lsp_kinds')
 
 cmp.setup({
   snippet = {
     expand = function(args)
       luasnip.lsp_expand(args.body)
+    end,
+  },
+  formatting = {
+    fields = { 'abbr', 'kind', 'menu' },
+    format = function(_, vim_item)
+      local icon = kinds.icons[vim_item.kind] or ''
+      vim_item.kind = icon .. vim_item.kind
+      return vim_item
     end,
   },
   mapping = cmp.mapping.preset.insert({
