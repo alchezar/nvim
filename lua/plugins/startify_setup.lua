@@ -43,8 +43,7 @@ vim.g.startify_enable_special = 0
 vim.api.nvim_create_autocmd('User', {
   pattern  = 'StartifyReady',
   callback = function()
-    vim.wo.colorcolumn = ''
-    vim.wo.wrap        = false
+    vim.wo.wrap = false
   end,
 })
 

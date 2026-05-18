@@ -3,7 +3,6 @@ vim.opt.guifont = "Iosevka Chill Nerd:h12"
 vim.cmd("colorscheme kinder_theme")
 vim.opt.clipboard = "unnamedplus"
 vim.o.winborder = 'rounded'
-vim.opt.colorcolumn = "80,100"
 -- Relative line numbers
 vim.opt.number = true
 vim.opt.relativenumber = true
@@ -27,7 +26,8 @@ vim.opt.listchars = { trail = '·', tab = '  ' }
 vim.opt.fillchars:append({ vert = ' ' })
 vim.api.nvim_create_autocmd('ModeChanged', {
   callback = function()
-    if vim.v.event.new_mode:match('^[vV\22]') then
+    local in_visual = vim.v.event.new_mode:match('^[vV\22]') ~= nil
+    if in_visual then
       local sw = vim.bo.shiftwidth
       if sw <= 0 then sw = vim.bo.tabstop end
       local lead = '│' .. string.rep('·', math.max(sw - 1, 0))
@@ -35,6 +35,8 @@ vim.api.nvim_create_autocmd('ModeChanged', {
     else
       vim.opt.listchars = { trail = '·', tab = '  ' }
     end
+    local ok, vc = pcall(require, 'virt-column')
+    if ok then vc.update({ enabled = in_visual }) end
   end,
 })
 -- Apply tab_spaces from rustfmt.toml to *.rs buffers
@@ -127,7 +129,7 @@ vim.api.nvim_create_autocmd('BufEnter', {
   end,
 })
 require('nvim-web-devicons').setup()
-require('virt-column').setup({ char = '▕', virtcolumn = '80,100', highlight = 'VirtColumn', exclude = { filetypes = { 'startify' } } })
+require('virt-column').setup({ enabled = false, char = '▕', virtcolumn = '80,100', highlight = 'VirtColumn' })
 require('plugins.bookmarks')
 require('plugins.markdown')
 require('plugins.fishbone_setup')
