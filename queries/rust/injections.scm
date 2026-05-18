@@ -1,4 +1,46 @@
-; extends
+; This file REPLACES (not extends) the upstream rust/injections.scm.
+; Reason: upstream added a generic catch-all that re-injects every macro's
+; token_tree as rust with `injection.include-children`, which re-applies
+; @string.rust on top of our SQL captures inside `sqlx::query!()` and beats
+; them on display. We keep upstream's other useful injections (comment, regex,
+; slint/html/json/xml detected via macro name) but drop the catch-all.
+
+; ------------------------------------------------------------------------------
+; Comments
+[(line_comment) (block_comment)] @injection.content
+  (#set! injection.language "comment")
+
+; ------------------------------------------------------------------------------
+; Macros whose name == the language (slint!, html!, json!, xml!)
+((macro_invocation
+   macro: [
+     (scoped_identifier name: (_) @injection.language)
+     (identifier) @injection.language
+   ]
+   (token_tree) @injection.content)
+ (#any-of? @injection.language "slint" "html" "json" "xml")
+ (#offset! @injection.content 0 1 0 -1)
+ (#set! injection.include-children))
+
+; ------------------------------------------------------------------------------
+; Regex::new / RegexBuilder::new / RegexSet::new / RegexSetBuilder::new
+((call_expression
+   function: (scoped_identifier
+     path: (identifier) @_regex
+     name: (identifier) @_new)
+   arguments: (arguments (raw_string_literal (string_content) @injection.content)))
+ (#any-of? @_regex "Regex" "RegexBuilder")
+ (#eq? @_new "new")
+ (#set! injection.language "regex"))
+
+((call_expression
+   function: (scoped_identifier
+     path: (identifier) @_regex
+     name: (identifier) @_new)
+   arguments: (arguments (array_expression (raw_string_literal (string_content) @injection.content))))
+ (#any-of? @_regex "RegexSet" "RegexSetBuilder")
+ (#eq? @_new "new")
+ (#set! injection.language "regex"))
 
 ; ------------------------------------------------------------------------------
 ; sqlx::query!("SELECT ..."), sqlx::query_as!(), sqlx::query_scalar!() etc.
