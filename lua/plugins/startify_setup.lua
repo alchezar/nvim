@@ -50,9 +50,13 @@ vim.api.nvim_create_autocmd('User', {
 
 local content_width = 85
 
-local function apply_layout(win_w)
-  local pad_n = math.max(4, math.floor((win_w - content_width) / 2))
-  local pad   = string.rep(' ', pad_n)
+-- Center against the full editor width (vim.o.columns), then subtract the
+-- startify window's left column so content lands at the same screen position
+-- whether the file tree is open or not.
+local function apply_layout(win_col)
+  local total_w = vim.o.columns
+  local pad_n   = math.max(4, math.floor((total_w - content_width) / 2) - (win_col or 0))
+  local pad     = string.rep(' ', pad_n)
 
   vim.g.startify_pad_str      = pad
   vim.g.startify_padding_left = pad_n
@@ -74,7 +78,7 @@ end
 
 vim.api.nvim_create_autocmd('VimEnter', {
   once     = true,
-  callback = function() apply_layout(vim.o.columns) end,
+  callback = function() apply_layout(0) end,
 })
 
 -- On window resize, update s:leftpad/s:fixed_column via the patch function,
@@ -83,7 +87,8 @@ vim.api.nvim_create_autocmd('WinResized', {
   callback = function()
     for _, win in ipairs(vim.api.nvim_list_wins()) do
       if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'startify' then
-        local pad_n = apply_layout(vim.api.nvim_win_get_width(win))
+        local win_col = vim.api.nvim_win_get_position(win)[2]
+        local pad_n   = apply_layout(win_col)
         vim.fn['startify#set_padding'](pad_n)
         vim.api.nvim_win_call(win, function() vim.cmd('Startify') end)
         break
