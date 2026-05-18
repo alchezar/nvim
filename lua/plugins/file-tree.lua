@@ -68,13 +68,29 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_tree_hl })
 apply_tree_hl()
 
--- Enable cursorline only inside the tree window.
-local function tree_cursorline()
-  if vim.bo.filetype == 'NvimTree' then
-    vim.wo.cursorline = true
+-- Enable cursorline only inside the tree window. Use both events: FileType
+-- catches first-open (BufWinEnter fires before filetype is set), and
+-- BufWinEnter handles re-opens. Targeting the specific window showing the
+-- buffer avoids relying on `vim.wo` of whichever window happens to be
+-- current when the event fires.
+local function enable_tree_cursorline(bufnr)
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    if vim.api.nvim_win_get_buf(win) == bufnr then
+      vim.wo[win].cursorline = true
+    end
   end
 end
-vim.api.nvim_create_autocmd({ 'BufWinEnter', 'WinEnter', 'BufEnter' }, {
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'NvimTree',
+  callback = function(args)
+    vim.schedule(function() enable_tree_cursorline(args.buf) end)
+  end,
+})
+vim.api.nvim_create_autocmd('BufWinEnter', {
   pattern = 'NvimTree_*',
-  callback = tree_cursorline,
+  callback = function(args)
+    if vim.bo[args.buf].filetype == 'NvimTree' then
+      enable_tree_cursorline(args.buf)
+    end
+  end,
 })

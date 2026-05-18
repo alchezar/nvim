@@ -260,6 +260,7 @@ local function rust_lsp_highlights(lang)
 		["@lsp.type.const." .. lang]                   = { fg = colors.lime },
 		["@lsp.typemod.variable.declaration." .. lang] = { fg = colors.gray },
 		["@lsp.typemod.property.declaration." .. lang] = { fg = colors.white },
+		["@lsp.typemod.property.public." .. lang]      = { fg = colors.white },
 	}
 end
 
