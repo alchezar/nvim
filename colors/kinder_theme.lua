@@ -72,6 +72,8 @@ vim.api.nvim_set_hl(0, "FloatBorder", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "FloatTitle", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "LspHoverSeparator", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "@tag.delimiter", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "MarkSignHL", { fg = colors.yellow })
 
 -- C / C++ highlights (Treesitter + LSP semantic tokens from clangd)
 local function cpp_treesitter_highlights(lang)

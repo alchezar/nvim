@@ -147,20 +147,30 @@ function M.hover()
     return
   end
 
-  local client = clients[1]
-  local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
-  client:request('textDocument/hover', params, function(err, result)
-    local lines = {}
-    vim.list_extend(lines, prefix)
-    if not err and result and result.contents then
-      local hover = vim.lsp.util.convert_input_to_markdown_lines(result.contents)
-      if #hover > 0 then
-        if #lines > 0 then table.insert(lines, '---') end
-        vim.list_extend(lines, hover)
+  -- Query every hover-capable client; first non-empty wins. Needed for hybrid
+  -- Vue (vue_ls owns template, ts_ls owns <script>) - vue_ls returns null in
+  -- script regions and would shadow ts_ls if we just took clients[1].
+  local remaining = #clients
+  local hover_lines = nil
+  for _, client in ipairs(clients) do
+    local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+    client:request('textDocument/hover', params, function(err, result)
+      if not hover_lines and not err and result and result.contents then
+        local h = vim.lsp.util.convert_input_to_markdown_lines(result.contents)
+        if #h > 0 then hover_lines = h end
       end
-    end
-    show(lines)
-  end, bufnr)
+      remaining = remaining - 1
+      if remaining == 0 then
+        local lines = {}
+        vim.list_extend(lines, prefix)
+        if hover_lines then
+          if #lines > 0 then table.insert(lines, '---') end
+          vim.list_extend(lines, hover_lines)
+        end
+        show(lines)
+      end
+    end, bufnr)
+  end
 end
 
 -- Go to the trait method that the current symbol implements.
@@ -278,15 +288,20 @@ end
 
 -- Stop all rust-analyzer clients, force rustaceanvim to respawn it on the
 -- current buffer, and clear any stale diagnostics from the previous session.
-function M.restart_rust_analyzer()
-  for _, c in ipairs(vim.lsp.get_clients({ name = 'rust-analyzer' })) do
+function M.restart_buf_lsp()
+  local clients = vim.lsp.get_clients({ bufnr = 0 })
+  if #clients == 0 then
+    vim.notify('No LSP clients attached to this buffer', vim.log.levels.WARN)
+    return
+  end
+  local names = {}
+  for _, c in ipairs(clients) do
+    table.insert(names, c.name)
     c:stop()
   end
-  vim.notify('rust-analyzer restarting...')
-  if vim.bo.filetype == 'rust' then
-    vim.schedule(function() vim.cmd('edit') end)
-  end
+  vim.notify('Restarting LSP: ' .. table.concat(names, ', '))
   vim.diagnostic.reset()
+  vim.schedule(function() vim.cmd('edit') end)
 end
 
 -- Open file path from system clipboard, supports `path`, `path:line`, `path:line:col`

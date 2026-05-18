@@ -26,7 +26,7 @@ vim.lsp.config('*', {
   capabilities = require('cmp_nvim_lsp').default_capabilities(),
 })
 
--- TypeScript / JavaScript
+-- TypeScript / JavaScript / Vue (ts_ls owns TS inside <script> via @vue/typescript-plugin)
 local ts_inlay_hints = {
   includeInlayParameterNameHints = 'all',
   includeInlayFunctionParameterTypeHints = true,
@@ -36,6 +36,16 @@ local ts_inlay_hints = {
   includeInlayEnumMemberValueHints = true,
 }
 vim.lsp.config('ts_ls', {
+  init_options = {
+    plugins = {
+      {
+        name = '@vue/typescript-plugin',
+        location = '/opt/homebrew/lib/node_modules/@vue/typescript-plugin',
+        languages = { 'javascript', 'typescript', 'vue' },
+      },
+    },
+  },
+  filetypes = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact', 'vue' },
   settings = {
     typescript = { inlayHints = ts_inlay_hints },
     javascript = { inlayHints = ts_inlay_hints },
@@ -43,9 +53,26 @@ vim.lsp.config('ts_ls', {
 })
 vim.lsp.enable('ts_ls')
 
--- ESLint
+-- Vue 3 LSP (Volar). Hybrid mode: ts_ls handles TS, vue_ls handles template/style.
+vim.lsp.config('vue_ls', {})
+vim.lsp.enable('vue_ls')
+
+-- ESLint. Only start when an actual ESLint config exists; otherwise the server
+-- spams `textDocument/diagnostic failed: Could not find config file`.
 vim.lsp.config('eslint', {
+  root_dir = function(bufnr, on_dir)
+    local fname = vim.api.nvim_buf_get_name(bufnr)
+    local root = vim.fs.root(fname, {
+      '.eslintrc', '.eslintrc.js', '.eslintrc.cjs', '.eslintrc.mjs',
+      '.eslintrc.json', '.eslintrc.yaml', '.eslintrc.yml',
+      'eslint.config.js', 'eslint.config.cjs', 'eslint.config.mjs',
+      'eslint.config.ts',
+    })
+    if root then on_dir(root) end
+  end,
   settings = {
+    useFlatConfig = true,
+    experimental = { useFlatConfig = true },
     workingDirectories = { mode = 'auto' },
   },
 })
@@ -132,12 +159,19 @@ vim.lsp.enable('basedpyright')
 vim.lsp.config('ruff', {})
 vim.lsp.enable('ruff')
 
--- Let basedpyright own hover; ruff's hover is sparser and would shadow it
 vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
     local client = vim.lsp.get_client_by_id(args.data.client_id)
-    if client and client.name == 'ruff' then
+    if not client then return end
+    -- Let basedpyright own hover; ruff's hover is sparser and would shadow it
+    if client.name == 'ruff' then
       client.server_capabilities.hoverProvider = false
+    end
+    -- Hybrid Vue: ts_ls returns inlay hints with positions from the *virtual*
+    -- TS document (template/style stripped), which don't map back to the .vue
+    -- source -> nvim_buf_set_extmark errors out with "Invalid 'col'".
+    if vim.bo[args.buf].filetype == 'vue' and (client.name == 'ts_ls' or client.name == 'vue_ls') then
+      client.server_capabilities.inlayHintProvider = false
     end
   end,
 })

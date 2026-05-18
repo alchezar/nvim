@@ -4,6 +4,7 @@ require('conform').setup({
     typescriptreact = { 'prettier' },
     javascript      = { 'prettier' },
     javascriptreact = { 'prettier' },
+    vue             = { 'prettier' },
     json            = { 'prettier' },
     jsonc           = { 'prettier' },
     css             = { 'prettier' },

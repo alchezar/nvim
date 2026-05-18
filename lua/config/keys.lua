@@ -14,7 +14,7 @@ map('n', 'gI', utils.go_to_interface,       { desc = 'Go to trait/interface meth
 map('n', 'gh', utils.hover, { desc = 'Show hover info' })
 map('n', 'gH', vim.lsp.buf.incoming_calls, { desc = 'Call hierarchy' })
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
-map('n', '<leader>rR', utils.restart_rust_analyzer, { desc = 'Restart rust-analyzer' })
+map('n', '<leader>rl', utils.restart_buf_lsp, { desc = 'Reload LSP for current buffer' })
 map({ 'n', 'x' }, '<leader>ca', vim.lsp.buf.code_action, { desc = 'Code action' })
 map({ 'n', 'x' }, '<D-.>',      vim.lsp.buf.code_action, { desc = 'Code action (Cmd+.)' })
 map({ 'n', 'x' }, '<C-.>',      vim.lsp.buf.code_action, { desc = 'Code action (Ctrl+.)' })
@@ -88,6 +88,8 @@ map({ 'n', 'v' }, '<M-S-f>', utils.format, { desc = 'Format buffer' })
 map({ 'n', 'x' }, 'Q', 'gq', { desc = 'Format text (wrap at textwidth)' })
 -- Disable search highlight
 map('n', '<leader>n', ':noh<CR>', { desc = 'Clear search highlight', silent = true })
+-- Show :messages output
+map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })
 -- Toggle line wrap
 map('n', '<M-z>', '<Cmd>set wrap!<CR>', { desc = 'Toggle line wrap' })
 -- Insert new line above/below without entering insert mode

@@ -6,12 +6,6 @@
 --   <leader>m list all numbered bookmarks
 --   <leader>M list all letter marks
 
-local theme = require('config.theme_colors')
-
--- Sign column highlight for marks/bookmarks - yellow instead of default gray.
--- Only the sign glyph is colored; the line number keeps its default color.
-vim.api.nvim_set_hl(0, 'MarkSignHL', { fg = theme.yellow })
-
 require('marks').setup({
   default_mappings = true,
   signs = true,
