@@ -243,6 +243,7 @@ local function rust_lsp_highlights(lang)
 		["@lsp.type.builtinAttribute." .. lang]        = { fg = colors.dark },
 		["@lsp.type.deriveHelper." .. lang]            = { fg = colors.dark },
 		["@lsp.mode.attribute." .. lang]               = { fg = colors.dark },
+		["@lsp.typemod.generic.attribute." .. lang]    = { fg = colors.dark },
 		["@lsp.type.namespace." .. lang]               = { fg = colors.dark },
 		["@lsp.type.macro." .. lang]                   = { fg = colors.brown, bold = true },
 		["@lsp.type.interface." .. lang]               = { fg = colors.teal },

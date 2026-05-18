@@ -4,7 +4,7 @@
 require('nvim-tree').setup({
   sync_root_with_cwd = true,
   respect_buf_cwd = true,
-  view = { width = 40 },
+  view = { width = 40, cursorline = false },
   update_focused_file = {
     enable = true,
     update_root = {
@@ -62,6 +62,19 @@ local function apply_tree_hl()
   vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderIcon',  { fg = theme.gray })
   vim.api.nvim_set_hl(0, 'NvimTreeRootFolder',        { fg = theme.gray, bold = true })
   vim.api.nvim_set_hl(0, 'NvimTreeSymlinkFolderName', { fg = theme.gray, italic = true })
+  -- Subtle cursor line in the tree only (NvimTreeCursorLine is mapped via winhl)
+  vim.api.nvim_set_hl(0, 'NvimTreeCursorLine', { bg = theme.black })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_tree_hl })
 apply_tree_hl()
+
+-- Enable cursorline only inside the tree window.
+local function tree_cursorline()
+  if vim.bo.filetype == 'NvimTree' then
+    vim.wo.cursorline = true
+  end
+end
+vim.api.nvim_create_autocmd({ 'BufWinEnter', 'WinEnter', 'BufEnter' }, {
+  pattern = 'NvimTree_*',
+  callback = tree_cursorline,
+})
