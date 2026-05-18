@@ -9,6 +9,7 @@ vim.pack.add({
   'https://github.com/hrsh7th/cmp-nvim-lsp-signature-help',
   'https://github.com/L3MON4D3/LuaSnip',
   'https://github.com/saadparwaiz1/cmp_luasnip',
+  'https://github.com/hrsh7th/cmp-cmdline',                                  -- Cmdline completion
   'https://github.com/nvim-treesitter/nvim-treesitter',                      -- Treesitter
   'https://github.com/mfussenegger/nvim-dap',                                -- Debug
   'https://github.com/rcarriga/nvim-dap-ui',
