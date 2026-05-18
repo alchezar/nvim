@@ -62,6 +62,56 @@ local function gradient(from_hex, to_hex, n)
   return out
 end
 
+-- blame.nvim forces `cursorline = true` on both its panel and the synced
+-- editor window. Since cursorline is otherwise unused outside the tree
+-- (which has its own winhl-mapped `NvimTreeCursorLine`), recoloring the
+-- global `CursorLine` group affects only the blame-driven cursorline.
+local function apply_blame_hl()
+  vim.api.nvim_set_hl(0, 'CursorLine', { bg = theme.black })
+end
+vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_blame_hl })
+apply_blame_hl()
+
+-- Override blame.nvim's hash highlighter: its built-in `pick_spread_indices`
+-- insets both ends of the palette, so the oldest commit lands on index ~4
+-- (washed-out pink that reads as white on a dim background) and, when there
+-- are more than 2*N+1 unique commits, index 0 -> nil fg -> literal white.
+-- This version maps oldest -> palette[1] and newest -> palette[#palette].
+local hl_module = require('blame.highlights')
+hl_module.create_highlights_per_hash = function(parsed_lines, config)
+  local hash_time_map = {}
+  for _, value in ipairs(parsed_lines) do
+    if not hash_time_map[value.hash] then
+      hash_time_map[value.hash] = value.author_time or 0
+    end
+  end
+  local sorted_hashes = {}
+  for hash, _ in pairs(hash_time_map) do
+    sorted_hashes[#sorted_hashes + 1] = hash
+  end
+  table.sort(sorted_hashes, function(a, b)
+    return hash_time_map[a] < hash_time_map[b]
+  end)
+
+  local palette = config.colors or {}
+  local n_colors = #palette
+  local n_commits = #sorted_hashes
+  for i, full_hash in ipairs(sorted_hashes) do
+    local short = string.sub(full_hash, 1, 7)
+    local color
+    if n_colors > 0 then
+      local idx
+      if n_commits == 1 then
+        idx = math.ceil(n_colors / 2)
+      else
+        idx = math.floor((n_colors - 1) * (i - 1) / (n_commits - 1) + 0.5) + 1
+      end
+      color = palette[math.max(1, math.min(n_colors, idx))]
+    end
+    vim.api.nvim_set_hl(0, short, { fg = color, ctermfg = math.random(0, 255) })
+  end
+end
+
 require('blame').setup({
   date_format = '%Y-%m-%d',
   merge_consecutive = false,
@@ -79,4 +129,55 @@ require('blame').setup({
     show_commit = '<CR>',
     close       = { '<Esc>', 'q' },
   },
+})
+
+-- Pin `&scroll` (step for <C-d>/<C-u>) so both windows jump by the same
+-- buffer-line count regardless of effective height differences.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'blame',
+  callback = function()
+    -- Deferred: blame.nvim sets `scrollbind` on the editor window AFTER the
+    -- FileType event fires, so the editor wouldn't be detectable yet.
+    vim.schedule(function()
+      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+        if vim.wo[win].scrollbind then
+          vim.wo[win].scroll = 25
+        end
+      end
+    end)
+  end,
+})
+
+-- Suppress LSP code-lens virtual lines on the bound editor buffer while
+-- blame is open. Neovim core bug (issue #29751): native `scrollbind`
+-- compares buffer toplines, but `<C-d>` accounts for `virt_lines` filler
+-- on the active side - the blame side has none, so the two windows drift
+-- by ~1 buffer line per code-lens passed. PR #29766 mitigated this for
+-- some paths, but in nvim 0.12 LSP codelens renders as `virt_lines` and
+-- the drift returns. Clearing codelens for the duration of the blame
+-- session keeps both sides in lockstep.
+local blame_aug = vim.api.nvim_create_augroup('BlameCodelensSuppress', { clear = true })
+vim.api.nvim_create_autocmd('User', {
+  group = blame_aug,
+  pattern = 'BlameViewOpened',
+  callback = function()
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype ~= 'blame' then
+        pcall(vim.lsp.codelens.enable, false, { bufnr = buf })
+      end
+    end
+  end,
+})
+vim.api.nvim_create_autocmd('BufWipeout', {
+  group = blame_aug,
+  callback = function(args)
+    if vim.bo[args.buf].filetype ~= 'blame' then return end
+    vim.schedule(function()
+      for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype ~= 'blame' then
+          pcall(vim.lsp.codelens.enable, true, { bufnr = buf })
+        end
+      end
+    end)
+  end,
 })
