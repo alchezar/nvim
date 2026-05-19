@@ -286,22 +286,38 @@ function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end
 
--- Stop all rust-analyzer clients, force rustaceanvim to respawn it on the
--- current buffer, and clear any stale diagnostics from the previous session.
+-- Stop all LSP clients on the current buffer, wait for them to fully exit,
+-- then re-fire the FileType autocmd so rustaceanvim/lspconfig re-attach.
 function M.restart_buf_lsp()
-  local clients = vim.lsp.get_clients({ bufnr = 0 })
+  local bufnr = vim.api.nvim_get_current_buf()
+  local clients = vim.lsp.get_clients({ bufnr = bufnr })
   if #clients == 0 then
     vim.notify('No LSP clients attached to this buffer', vim.log.levels.WARN)
     return
   end
-  local names = {}
+  local names, ids = {}, {}
   for _, c in ipairs(clients) do
     table.insert(names, c.name)
+    table.insert(ids, c.id)
     c:stop()
   end
   vim.notify('Restarting LSP: ' .. table.concat(names, ', '))
-  vim.diagnostic.reset()
-  vim.schedule(function() vim.cmd('edit') end)
+  vim.diagnostic.reset(nil, bufnr)
+
+  local function wait_and_reattach(attempt)
+    for _, id in ipairs(ids) do
+      if vim.lsp.get_client_by_id(id) then
+        if attempt < 30 then
+          vim.defer_fn(function() wait_and_reattach(attempt + 1) end, 100)
+        else
+          vim.notify('Timed out waiting for LSP to stop', vim.log.levels.WARN)
+        end
+        return
+      end
+    end
+    vim.api.nvim_exec_autocmds('FileType', { buffer = bufnr, modeline = false })
+  end
+  wait_and_reattach(0)
 end
 
 -- Open file path from system clipboard, supports `path`, `path:line`, `path:line:col`
@@ -368,6 +384,24 @@ function M.update_cursor_color()
   local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
   local bg = normal.bg and string.format('#%06x', normal.bg) or '#262626'
   vim.api.nvim_set_hl(0, 'Cursor', { bg = fg, fg = bg })
+end
+
+-- Toggle focus between the current window and a floating window.
+-- From a normal window: jumps to the first focusable float.
+-- From a float: jumps back to the previous window.
+function M.focus_floating()
+  if vim.api.nvim_win_get_config(0).relative ~= '' then
+    vim.cmd('wincmd p')
+    return
+  end
+  for _, win in ipairs(vim.api.nvim_list_wins()) do
+    local cfg = vim.api.nvim_win_get_config(win)
+    if cfg.relative ~= '' and cfg.focusable ~= false then
+      vim.api.nvim_set_current_win(win)
+      return
+    end
+  end
+  vim.notify('No floating window', vim.log.levels.INFO)
 end
 
 return M

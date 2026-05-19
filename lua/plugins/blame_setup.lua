@@ -72,6 +72,23 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_blame_hl })
 apply_blame_hl()
 
+-- blame.nvim tries to restore the editor window's original options on close,
+-- but that path is skipped when the user quits blame in unusual ways (e.g.
+-- `:q` on the blame split, original window already closed). Belt-and-suspenders:
+-- on `BlameViewClosed`, force `cursorline = false` on every regular window,
+-- leaving NvimTree alone since it owns its own cursorline.
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'BlameViewClosed',
+  callback = function()
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      local buf = vim.api.nvim_win_get_buf(win)
+      if vim.bo[buf].filetype ~= 'NvimTree' then
+        vim.wo[win].cursorline = false
+      end
+    end
+  end,
+})
+
 -- Override blame.nvim's hash highlighter: its built-in `pick_spread_indices`
 -- insets both ends of the palette, so the oldest commit lands on index ~4
 -- (washed-out pink that reads as white on a dim background) and, when there

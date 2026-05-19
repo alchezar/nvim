@@ -94,6 +94,14 @@ vim.api.nvim_create_autocmd('BufWinEnter', {
   end,
 })
 
+-- dadbod-ui draws the drawer with `repeat(" ", shiftwidth() * level)`, so the
+-- per-level indent equals the buffer's `shiftwidth`. Default is 4 spaces, which
+-- wastes horizontal space in a 40-column drawer. Drop it to 2.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'dbui',
+  callback = function() vim.bo.shiftwidth = 2 end,
+})
+
 -- Auto-attach completion source for SQL-ish buffers managed by dadbod-ui.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = { 'sql', 'mysql', 'plsql' },

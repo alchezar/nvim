@@ -105,6 +105,9 @@ map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })
 map('n', '<D-C-]>', utils.toggle_inlay_hints,   { desc = 'Toggle inlay hints' })
 map('n', '<leader>i', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })
 
+-- Focus floating window (toggle: jump to float, press again to jump back)
+map('n', '<leader>wf', utils.focus_floating, { desc = 'Focus floating window (toggle)' })
+
 -- Translate selected text (Cmd+Ctrl+U: -> Ukrainian, Cmd+Ctrl+Shift+U: -> English)
 -- Wrapper keeps cursor at end of selection so the popup doesn't cover the source.
 local translate = require('plugins.translate_setup')
