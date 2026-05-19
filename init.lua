@@ -133,7 +133,7 @@ require('virt-column').setup({ enabled = false, char = '▕', virtcolumn = '80,1
 require('plugins.bookmarks')
 require('plugins.markdown')
 require('plugins.fishbone_setup')
-require('plugins.dadbod')
+require('plugins.dbee')
 require('plugins.blame_setup')
 require('plugins.diffview_setup')
 require('plugins.startify_setup')

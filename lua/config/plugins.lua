@@ -35,9 +35,9 @@ vim.pack.add({
   'https://github.com/alchezar/fishbone.nvim',
   'https://github.com/MeanderingProgrammer/render-markdown.nvim',            -- Markdown
   'https://github.com/Saecki/crates.nvim',                                   -- Cargo.toml: inline crate version info
-  'https://github.com/tpope/vim-dadbod',                                     -- Database UI (dadbod)
-  'https://github.com/kristijanhusak/vim-dadbod-ui',
-  'https://github.com/kristijanhusak/vim-dadbod-completion',
+  'https://github.com/MunifTanjim/nui.nvim',                                 -- Database UI (nvim-dbee)
+  'https://github.com/kndndrj/nvim-dbee',
+  'https://github.com/MattiasMTS/cmp-dbee',
   'https://github.com/tpope/vim-dotenv',
   'https://github.com/FabijanZulj/blame.nvim',                               -- Git blame side panel with date heatmap
   'https://github.com/sindrets/diffview.nvim',                               -- Diff / 3-way merge conflict resolution

@@ -20,6 +20,10 @@
       "rev": "d126061b624e0af6c3a556428712dd4d4194ec6d",
       "src": "https://github.com/hrsh7th/cmp-cmdline"
     },
+    "cmp-dbee": {
+      "rev": "1650f67b9bf43c029fc37570665ca895a33cdf5a",
+      "src": "https://github.com/MattiasMTS/cmp-dbee"
+    },
     "cmp-nvim-lsp": {
       "rev": "cbc7b02bb99fae35cb42f514762b89b5126651ef",
       "src": "https://github.com/hrsh7th/cmp-nvim-lsp"
@@ -99,6 +103,10 @@
     "nvim-dap-ui": {
       "rev": "1a66cabaa4a4da0be107d5eda6d57242f0fe7e49",
       "src": "https://github.com/rcarriga/nvim-dap-ui"
+    },
+    "nvim-dbee": {
+      "rev": "dda517694889a5d238d7aa407403984da9f80cc0",
+      "src": "https://github.com/kndndrj/nvim-dbee"
     },
     "nvim-lspconfig": {
       "rev": "f9349d4d99e7d66403ae8bf4fbd357b154dca7a7",

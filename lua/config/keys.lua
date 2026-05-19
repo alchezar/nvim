@@ -74,11 +74,12 @@ map('n', '<leader>gM', ':DiffviewClose<CR>',         { desc = 'Close diffview', 
 map('n', '<leader>gh', ':DiffviewFileHistory %<CR>', { desc = 'File history (current file)',       silent = true })
 map('n', '<leader>gl', utils.open_lazygit,           { desc = 'Open lazygit (floating)',           silent = true })
 
--- Database (vim-dadbod-ui)
-map('n', '<leader>du', ':DBUIOpen<CR>',         { desc = 'Toggle DB UI sidebar (reload .env)', silent = true })
-map('n', '<leader>df', ':DBUIFindBuffer<CR>',   { desc = 'Find DB buffer',       silent = true })
-map('n', '<leader>dr', ':DBUIRenameBuffer<CR>', { desc = 'Rename DB buffer',     silent = true })
-map('n', '<leader>dq', ':DBUILastQueryInfo<CR>',{ desc = 'Last query info',      silent = true })
+-- Database (nvim-dbee). DBUIOpen is the wrapper that reloads .env first.
+map('n',          '<leader>du', ':DBUIOpen<CR>',                                       { desc = 'Toggle Dbee UI (reload .env)', silent = true })
+map('n',          '<leader>de', function() require('plugins.dbee').show_editor() end,  { desc = 'Dbee: show editor float',     silent = true })
+map({ 'n', 'x' }, '<leader>dr', utils.dbee_run,                                        { desc = 'Dbee: run selection / under cursor', silent = true })
+map('n',          '<leader>df', function() require('dbee').api.ui.drawer_show() end,   { desc = 'Dbee: focus drawer',          silent = true })
+map('n',          '<leader>dq', function() require('plugins.dbee').show_call_log() end,{ desc = 'Dbee: show call log',         silent = true })
 
 -- Startify dashboard
 map('n', 'gq', ':Startify<CR>', { desc = 'Open Startify', silent = true })

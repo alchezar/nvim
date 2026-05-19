@@ -386,6 +386,26 @@ function M.update_cursor_color()
   vim.api.nvim_set_hl(0, 'Cursor', { bg = fg, fg = bg })
 end
 
+-- Run the SQL query in the current dbee editor buffer. From visual mode runs
+-- the selection; otherwise runs the statement under the cursor. dbee exposes
+-- these as named actions on the editor UI, not as standalone functions.
+-- The actions silently no-op when no current connection is set (default state
+-- right after opening Dbee); warn explicitly so we never get a mystery hang.
+function M.dbee_run()
+  local api = require('dbee').api
+  if not api.core.get_current_connection() then
+    vim.notify('Dbee: no active connection. Press <CR> on a connection node in the drawer.',
+      vim.log.levels.WARN)
+    return
+  end
+  local mode = vim.fn.mode()
+  local action = (mode == 'v' or mode == 'V' or mode == '\22')
+    and 'run_selection' or 'run_under_cursor'
+  api.ui.editor_do_action(action)
+  -- The result float starts hidden; un-hide it after kicking off the query.
+  pcall(function() require('plugins.dbee').show_result() end)
+end
+
 -- Toggle focus between the current window and a floating window.
 -- From a normal window: jumps to the first focusable float.
 -- From a float: jumps back to the previous window.
