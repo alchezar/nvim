@@ -99,7 +99,8 @@ map('n', '<C-Enter>', 'moo<Esc>kw', { desc = 'New line below' })
 -- Keep register on paste
 map('n', '<leader>p', '"_dP', { desc = 'Paste without overwriting register' })
 -- Search selected text
-map('v', '*', 'y/<C-R>"<CR>', { desc = 'Search selected text' })
+map('x', '*', function() utils.search_visual(true) end, { desc = 'Search selected text forward' })
+map('x', '#', function() utils.search_visual(false) end, { desc = 'Search selected text backward' })
 -- Open yazi file manager
 map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })
 -- Toggle inlay hints

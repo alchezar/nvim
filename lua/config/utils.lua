@@ -424,4 +424,14 @@ function M.focus_floating()
   vim.notify('No floating window', vim.log.levels.INFO)
 end
 
+-- Search selected text literally (\V + escape backslash and slash),
+-- so regex metacharacters in the selection are matched as-is.
+function M.search_visual(forward)
+  vim.cmd('normal! "vy')
+  local text = vim.fn.getreg('v')
+  if text == '' then return end
+  vim.fn.setreg('/', [[\V]] .. vim.fn.escape(text, [[\/]]))
+  vim.cmd('normal! ' .. (forward and 'n' or 'N'))
+end
+
 return M
