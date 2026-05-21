@@ -247,7 +247,9 @@ function FloatLayout:open()
 
   self:_setup_editor_float()
   self:_setup_result_float()
-  self:_setup_log_float()
+  -- Call log float is created lazily on <leader>dq. Binding call_log_show()
+  -- here would let dbee un-hide the float on every new log entry (same
+  -- behaviour described above for *_show), which spams the screen.
 
   vim.api.nvim_set_current_win(self.origin_win)
 end
