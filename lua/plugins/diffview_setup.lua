@@ -18,11 +18,10 @@ require('diffview').setup({
   enhanced_diff_hl = true,
   view = {
     default      = { layout = 'diff2_horizontal' },
-    -- 3-pane merge: OURS | THEIRS on top, working file below. BASE omitted -
-    -- common ancestor rarely adds signal when you already see both sides.
+    -- 3-pane merge: OURS | THEIRS on top, working below; BASE omitted.
     merge_tool   = {
       layout = 'diff3_mixed',
-      disable_diagnostics = true,  -- LSP would flag conflict markers as errors
+      disable_diagnostics = true,
       winbar_info = true,
     },
     file_history = { layout = 'diff2_horizontal' },
@@ -33,14 +32,13 @@ require('diffview').setup({
   },
 })
 
--- Diff colors used inside the diff/merge panels. Subtle bg tints so the
--- foreground syntax highlighting still reads clearly.
+-- Subtle bg tints so syntax fg still reads clearly inside diffs.
 vim.api.nvim_set_hl(0, 'DiffAdd',    { bg = '#1f3a2a' })
 vim.api.nvim_set_hl(0, 'DiffDelete', { bg = '#3a1f1f', fg = theme.silver })
 vim.api.nvim_set_hl(0, 'DiffChange', { bg = '#2a2f3a' })
 vim.api.nvim_set_hl(0, 'DiffText',   { bg = '#3a3520', fg = theme.orange, bold = true })
 
--- Diffview file panel (left sidebar listing changed/unmerged files)
+-- Diffview file panel.
 vim.api.nvim_set_hl(0, 'DiffviewFilePanelTitle',    { fg = theme.cyan,   bold = true })
 vim.api.nvim_set_hl(0, 'DiffviewFilePanelCounter',  { fg = theme.orange })
 vim.api.nvim_set_hl(0, 'DiffviewFilePanelFileName', { fg = theme.gray })

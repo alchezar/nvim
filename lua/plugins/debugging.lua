@@ -3,14 +3,12 @@ local dapui = require('dapui')
 
 dapui.setup()
 
--- Auto open/close DAP UI
+-- Auto open/close DAP UI.
 dap.listeners.after.event_initialized['dapui_config'] = function() dapui.open() end
 dap.listeners.before.event_terminated['dapui_config'] = function() dapui.close() end
 dap.listeners.before.event_exited['dapui_config'] = function() dapui.close() end
 
--- CodeLLDB adapter
--- Install: download from https://github.com/vadimcn/codelldb/releases
--- Extract to ~/.local/share/codelldb/
+-- CodeLLDB. Install: github.com/vadimcn/codelldb/releases -> ~/.local/share/codelldb/.
 local codelldb_path = vim.fn.expand('~/.local/share/codelldb/extension/adapter/codelldb')
 
 dap.adapters.codelldb = {
@@ -54,12 +52,8 @@ dap.configurations.cpp = {
 
 dap.configurations.c = dap.configurations.cpp
 
--- Python: debugpy lives in a dedicated venv so it's available regardless of
--- which interpreter the project uses. Setup:
---   python3 -m venv ~/.virtualenvs/debugpy
---   ~/.virtualenvs/debugpy/bin/pip install debugpy
--- For each project, $VIRTUAL_ENV (or python interpreter via `:Py`) is respected
--- at runtime - this path is only where debugpy itself is imported from.
+-- debugpy lives in its own venv so it works regardless of the project interpreter.
+-- Setup: python3 -m venv ~/.virtualenvs/debugpy && pip install debugpy.
 local debugpy_python = vim.fn.expand('~/.virtualenvs/debugpy/bin/python')
 local ok_py, dap_python = pcall(require, 'dap-python')
 if ok_py and vim.fn.executable(debugpy_python) == 1 then

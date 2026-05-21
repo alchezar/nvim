@@ -1,16 +1,12 @@
--- vim-startify dashboard config
+-- vim-startify dashboard. Project paths come from lua/config/projects.lua (gitignored).
 
--- Project paths live in lua/config/projects.lua (gitignored). Fall back to an
--- empty list if the file is missing (e.g. fresh clone on a new machine).
 local function load_projects()
   local ok, projects = pcall(require, 'config.projects')
   return ok and projects or {}
 end
 
--- Custom list entry per project: `tcd` to the path, then re-open Startify so
--- the Recent files / Sessions sections refresh against the new cwd. Going via
--- a per-entry `cmd` avoids Startify's change_to_dir / change_to_vcs_root logic,
--- which mis-cd'd from the current buffer's git root instead of the bookmark.
+-- Per-project entry: `tcd <path> | Startify` so Recent/Sessions refresh against the new cwd.
+-- Avoids Startify's change_to_dir/vcs_root which cd'd from the buffer's git root, not the bookmark.
 function _G.startify_projects()
   local entries = {}
   for _, item in ipairs(load_projects()) do
@@ -30,14 +26,14 @@ function _G.startify_projects()
   return entries
 end
 
--- Startify's `type` field accepts a Funcref, not a `v:lua...` string.
+-- Startify's `type` field needs a Funcref, not a `v:lua...` string.
 vim.cmd([[
   function! g:StartifyProjects() abort
     return luaeval('_G.startify_projects()')
   endfunction
 ]])
 
--- Hide empty sections
+-- Hide empty sections.
 vim.g.startify_enable_special = 0
 
 vim.api.nvim_create_autocmd('User', {
@@ -49,9 +45,8 @@ vim.api.nvim_create_autocmd('User', {
 
 local content_width = 85
 
--- Center against the full editor width (vim.o.columns), then subtract the
--- startify window's left column so content lands at the same screen position
--- whether the file tree is open or not.
+-- Center against full editor width, then subtract the window's left col so
+-- the layout lands at the same screen position with or without the file tree.
 local function apply_layout(win_col)
   local total_w = vim.o.columns
   local pad_n   = math.max(4, math.floor((total_w - content_width) / 2) - (win_col or 0))
@@ -80,8 +75,7 @@ vim.api.nvim_create_autocmd('VimEnter', {
   callback = function() apply_layout(0) end,
 })
 
--- On window resize, update s:leftpad/s:fixed_column via the patch function,
--- then re-render so all three layers (cow, headers, items) use the new width.
+-- On resize: update padding via the patch function and re-render cow/headers/items.
 vim.api.nvim_create_autocmd('WinResized', {
   callback = function()
     for _, win in ipairs(vim.api.nvim_list_wins()) do

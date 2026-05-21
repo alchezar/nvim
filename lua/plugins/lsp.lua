@@ -1,4 +1,4 @@
--- Rustaceanvim config (auto-configures rust-analyzer)
+-- Rustaceanvim auto-configures rust-analyzer.
 vim.g.rustaceanvim = {
   server = {
     settings = {
@@ -21,12 +21,12 @@ vim.g.rustaceanvim = {
   },
 }
 
--- Default capabilities for all LSP servers (extends core with cmp_nvim_lsp)
+-- Default capabilities for all servers (cmp_nvim_lsp).
 vim.lsp.config('*', {
   capabilities = require('cmp_nvim_lsp').default_capabilities(),
 })
 
--- TypeScript / JavaScript / Vue (ts_ls owns TS inside <script> via @vue/typescript-plugin)
+-- TS / JS / Vue: ts_ls owns <script> via @vue/typescript-plugin.
 local ts_inlay_hints = {
   includeInlayParameterNameHints = 'all',
   includeInlayFunctionParameterTypeHints = true,
@@ -53,12 +53,11 @@ vim.lsp.config('ts_ls', {
 })
 vim.lsp.enable('ts_ls')
 
--- Vue 3 LSP (Volar). Hybrid mode: ts_ls handles TS, vue_ls handles template/style.
+-- Volar in hybrid mode: ts_ls -> TS, vue_ls -> template/style.
 vim.lsp.config('vue_ls', {})
 vim.lsp.enable('vue_ls')
 
--- ESLint. Only start when an actual ESLint config exists; otherwise the server
--- spams `textDocument/diagnostic failed: Could not find config file`.
+-- ESLint: only attach when a config exists; otherwise the server spams diagnostic errors.
 vim.lsp.config('eslint', {
   root_dir = function(bufnr, on_dir)
     local fname = vim.api.nvim_buf_get_name(bufnr)
@@ -78,8 +77,7 @@ vim.lsp.config('eslint', {
 })
 vim.lsp.enable('eslint')
 
--- TOML (Cargo.toml, pyproject.toml, etc.)
--- Requires `taplo` CLI: `brew install taplo` or `cargo install taplo-cli --locked --features lsp`
+-- TOML via `taplo` CLI (brew install taplo).
 vim.lsp.config('taplo', {
   settings = {
     evenBetterToml = {
@@ -90,13 +88,8 @@ vim.lsp.config('taplo', {
 })
 vim.lsp.enable('taplo')
 
--- Python: basedpyright (types + completion) + ruff (lint + organize imports)
--- Install:
---   npm install -g basedpyright (or `pip install basedpyright`)
---   pip install ruff            (provides `ruff server` LSP)
-
--- basedpyright doesn't auto-discover project virtualenvs. Resolve a python in this
--- priority: active $VIRTUAL_ENV -> .venv/venv in workspace root -> nil (system).
+-- Python: basedpyright (types) + ruff (lint/imports).
+-- Resolve interpreter: $VIRTUAL_ENV -> .venv/venv in root -> system.
 local function find_project_python(root)
   local venv = os.getenv('VIRTUAL_ENV')
   if venv and vim.fn.executable(venv .. '/bin/python') == 1 then
@@ -112,9 +105,7 @@ local function find_project_python(root)
 end
 
 vim.lsp.config('basedpyright', {
-  -- Prefer Python project markers over the outer .git; otherwise a monorepo
-  -- with nested venvs (repo_root/.git + sub/proj/.venv) anchors basedpyright at
-  -- the repo root and misses the venv.
+  -- Prefer Python project markers over outer .git; otherwise monorepos with nested venvs miss the venv.
   root_dir = function(bufnr, on_dir)
     local fname = vim.api.nvim_buf_get_name(bufnr)
     local root = vim.fs.root(fname, {
@@ -125,7 +116,7 @@ vim.lsp.config('basedpyright', {
   end,
   settings = {
     basedpyright = {
-      -- Let ruff own import organization
+      -- ruff owns import organization.
       disableOrganizeImports = true,
     },
     python = {
@@ -163,20 +154,18 @@ vim.api.nvim_create_autocmd('LspAttach', {
   callback = function(args)
     local client = vim.lsp.get_client_by_id(args.data.client_id)
     if not client then return end
-    -- Let basedpyright own hover; ruff's hover is sparser and would shadow it
+    -- basedpyright owns hover; ruff's would shadow it.
     if client.name == 'ruff' then
       client.server_capabilities.hoverProvider = false
     end
-    -- Hybrid Vue: ts_ls returns inlay hints with positions from the *virtual*
-    -- TS document (template/style stripped), which don't map back to the .vue
-    -- source -> nvim_buf_set_extmark errors out with "Invalid 'col'".
+    -- Hybrid Vue: ts_ls inlay hints use virtual-doc positions that don't map to .vue -> "Invalid 'col'".
     if vim.bo[args.buf].filetype == 'vue' and (client.name == 'ts_ls' or client.name == 'vue_ls') then
       client.server_capabilities.inlayHintProvider = false
     end
   end,
 })
 
--- C / C++
+-- C / C++.
 vim.lsp.config('clangd', {
   cmd = {
     'clangd',
@@ -190,10 +179,9 @@ vim.lsp.config('clangd', {
 })
 vim.lsp.enable('clangd')
 
--- Enable code lenses
 vim.lsp.codelens.enable(true)
 
--- Highlight separator lines in hover/float windows
+-- Highlight separators in hover/float windows.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'markdown',
   callback = function(args)
@@ -204,7 +192,6 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
--- Diagnostic signs
 vim.diagnostic.config({
   virtual_text = true,
   signs = true,

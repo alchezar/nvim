@@ -1,10 +1,7 @@
--- Telescope setup with custom entry maker for LSP pickers.
--- Splits each result row into [filename, line:col, code] segments so the theme
--- highlights (TelescopeResultsFileName / LineNr / Normal) can color them
--- independently. Default gen_from_quickfix concatenates everything into one
--- string, which is why the same highlight applied to the whole row.
+-- Telescope LSP pickers with a custom entry_maker that splits rows into
+-- [filename | line:col | code] so theme highlights can color each segment.
 
--- Make the absolute filename relative to cwd; if outside cwd, use ~/-form.
+-- Path relative to cwd; outside cwd falls back to `~`-form.
 local function relpath(filename)
   local cwd = vim.fn.getcwd()
   if filename:sub(1, #cwd + 1) == cwd .. '/' then
@@ -13,16 +10,15 @@ local function relpath(filename)
   return vim.fn.fnamemodify(filename, ':~')
 end
 
-local SEP = '  '  -- two spaces between segments
+local SEP = '  '
 
 local function lsp_entry_maker(_)
   return function(item)
     if not item or not item.filename then return nil end
     local path     = relpath(item.filename)
     local line_col = item.lnum .. ':' .. item.col
-    local text     = (item.text or ''):gsub('^%s+', '')  -- trim leading ws
+    local text     = (item.text or ''):gsub('^%s+', '')
     local line     = path .. SEP .. line_col .. SEP .. text
-    -- Pre-compute byte offsets for highlight regions.
     local p1 = #path
     local p2 = p1 + #SEP + #line_col
     local p3 = p2 + #SEP + #text

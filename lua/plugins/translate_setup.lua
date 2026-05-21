@@ -1,7 +1,5 @@
--- translate.nvim: translate selected text via public Google Translate endpoint.
--- Custom `strip_comments` parser removes line-comment prefixes (-- // # etc.)
--- and block-comment markers (/* */, <!-- -->, --[[ ]], JSDoc *) before sending
--- to Google, so the translation is clean prose.
+-- translate.nvim via Google. Custom strip_comments parser removes line/block
+-- comment markers (-- // # /* */ <!-- --> --[[ ]] JSDoc *) before sending.
 
 local function strip_comments_cmd(lines, pos)
   local cs = vim.bo.commentstring
@@ -22,7 +20,7 @@ local function strip_comments_cmd(lines, pos)
     local removed_start, removed_end = 0, 0
 
     if prefix ~= '' then
-      -- Eat prefix, then any repetition of doc-marker chars (e.g. `///`, `//!`, `---`, `##`)
+      -- Eat prefix and any doc-marker repetition (///, //!, ---, ##).
       local _, e = l:find('^%s*' .. vim.pesc(prefix) .. '[/%-#!]*%s?')
       if e then removed_start = removed_start + e; l = l:sub(e + 1) end
     end
@@ -48,12 +46,10 @@ local function strip_comments_cmd(lines, pos)
   return lines
 end
 
--- Public helper: run :Translate on the current visual selection but keep the
--- cursor at the END of the selection (default vim behaviour moves it to start,
--- which makes the floating popup cover the original text).
+-- :Translate the visual selection; keep cursor at the END so the float doesn't cover the text.
 local M = {}
 function M.translate_selection(target)
-  vim.cmd('normal! \27')  -- <Esc> to leave visual and update '<,'> marks
+  vim.cmd('normal! \27')  -- <Esc> to update '<,'> marks
   local end_line = vim.fn.line("'>")
   vim.cmd(string.format("'<,'>Translate %s -output=floating", target))
   vim.api.nvim_win_set_cursor(0, { end_line, 0 })

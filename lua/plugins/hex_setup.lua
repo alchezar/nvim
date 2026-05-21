@@ -1,17 +1,9 @@
--- hex.nvim: open binary files in xxd view.
---
--- Defaults are too eager: `is_file_binary_post_read` flags anything that
--- isn't valid utf-8 as binary, which catches `.zsh_history` and other text
--- configs that contain stray escape sequences. Override both detectors:
---   * pre-read: trust an explicit extension list (images + object/exe);
---     for extensionless files, sniff magic bytes (ELF / Mach-O / PE).
---   * post-read: disabled. Encoding-based detection misfires on plain text
---     with non-utf-8 bytes (history files, latin-1 logs, etc.).
+-- hex.nvim: open binaries in xxd view.
+-- Defaults flag any non-utf-8 file as binary (catches .zsh_history etc.);
+-- pre-read uses an extension list + magic-byte sniff, post-read disabled.
 
 local binary_ext = {
-  -- images
   'png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'ico', 'tiff', 'heic',
-  -- compiled binaries / objects
   'out', 'bin', 'exe', 'dll', 'so', 'dylib', 'o', 'a',
 }
 
@@ -31,9 +23,7 @@ local function is_binary_pre_read()
   local ext = vim.fn.expand('%:e'):lower()
   if vim.tbl_contains(binary_ext, ext) then return true end
 
-  -- Extensionless files: peek at magic bytes. Dotfiles like `.zshrc`
-  -- have ext='zshrc' (Vim treats everything after the leading dot as
-  -- extension), so they never reach this branch.
+  -- Extensionless files: peek at magic bytes (dotfiles like .zshrc have ext='zshrc' in vim).
   if ext == '' then
     local f = io.open(vim.fn.expand('%:p'), 'rb')
     if not f then return false end
@@ -42,7 +32,7 @@ local function is_binary_pre_read()
     for _, sig in ipairs(exe_magic) do
       if head == sig then return true end
     end
-    if head:sub(1, 2) == 'MZ' then return true end  -- Windows PE
+    if head:sub(1, 2) == 'MZ' then return true end
   end
   return false
 end

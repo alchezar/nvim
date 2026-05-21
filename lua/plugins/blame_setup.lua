@@ -1,6 +1,4 @@
--- blame.nvim: side-panel git blame with date heat-map.
--- Older commits are red, newer commits are green (smooth HSL gradient).
--- Open via <leader>gb (mapped in keys.lua, replaces :Gitsigns blame).
+-- blame.nvim: side-panel git blame with red->green HSL date heat-map. Keymaps in keys.lua.
 
 local theme = require('config.theme_colors')
 
@@ -47,7 +45,7 @@ local function hsl_to_rgb(h, s, l)
          math.floor(hue2rgb(p, q, h - 1 / 3) * 255 + 0.5)
 end
 
--- Build N-step HSL gradient between two hex colors (oldest -> newest).
+-- N-step HSL gradient between two hex colors.
 local function gradient(from_hex, to_hex, n)
   local h1, s1, l1 = rgb_to_hsl(hex_to_rgb(from_hex))
   local h2, s2, l2 = rgb_to_hsl(hex_to_rgb(to_hex))
@@ -62,21 +60,16 @@ local function gradient(from_hex, to_hex, n)
   return out
 end
 
--- blame.nvim forces `cursorline = true` on both its panel and the synced
--- editor window. Since cursorline is otherwise unused outside the tree
--- (which has its own winhl-mapped `NvimTreeCursorLine`), recoloring the
--- global `CursorLine` group affects only the blame-driven cursorline.
+-- blame.nvim forces cursorline on both panes; tree has its own winhl group,
+-- so recoloring global CursorLine only affects the blame-driven cursorline.
 local function apply_blame_hl()
   vim.api.nvim_set_hl(0, 'CursorLine', { bg = theme.black })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_blame_hl })
 apply_blame_hl()
 
--- blame.nvim tries to restore the editor window's original options on close,
--- but that path is skipped when the user quits blame in unusual ways (e.g.
--- `:q` on the blame split, original window already closed). Belt-and-suspenders:
--- on `BlameViewClosed`, force `cursorline = false` on every regular window,
--- leaving NvimTree alone since it owns its own cursorline.
+-- Belt-and-suspenders: blame.nvim's restore path is skipped on edge-case exits
+-- (`:q` on the blame split, original window closed). Force cursorline off on close.
 vim.api.nvim_create_autocmd('User', {
   pattern = 'BlameViewClosed',
   callback = function()
@@ -89,11 +82,9 @@ vim.api.nvim_create_autocmd('User', {
   end,
 })
 
--- Override blame.nvim's hash highlighter: its built-in `pick_spread_indices`
--- insets both ends of the palette, so the oldest commit lands on index ~4
--- (washed-out pink that reads as white on a dim background) and, when there
--- are more than 2*N+1 unique commits, index 0 -> nil fg -> literal white.
--- This version maps oldest -> palette[1] and newest -> palette[#palette].
+-- Override blame.nvim's hash highlighter: built-in `pick_spread_indices` insets both
+-- palette ends, so oldest lands on washed-out pink and can fall off to nil/white.
+-- This maps oldest -> palette[1], newest -> palette[#palette].
 local hl_module = require('blame.highlights')
 hl_module.create_highlights_per_hash = function(parsed_lines, config)
   local hash_time_map = {}
@@ -133,10 +124,9 @@ require('blame').setup({
   date_format = '%Y-%m-%d',
   merge_consecutive = false,
   max_summary_width = 30,
-  -- Heat-map: index 0 = oldest, last index = newest (blame.nvim convention).
-  -- Smooth 20-step HSL gradient red -> yellow -> green.
+  -- Heat-map: index 0 = oldest, last = newest (blame.nvim convention).
   colors = gradient(theme.red, theme.green, 20),
-  blame_options = nil,  -- pass extra `git blame` flags here if needed
+  blame_options = nil,
   commit_detail_view = 'vsplit',
   format_fn = nil,
   mappings = {
@@ -148,13 +138,11 @@ require('blame').setup({
   },
 })
 
--- Pin `&scroll` (step for <C-d>/<C-u>) so both windows jump by the same
--- buffer-line count regardless of effective height differences.
+-- Pin `&scroll` so both panes step by the same buffer-line count regardless of height.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'blame',
   callback = function()
-    -- Deferred: blame.nvim sets `scrollbind` on the editor window AFTER the
-    -- FileType event fires, so the editor wouldn't be detectable yet.
+    -- Defer: blame.nvim sets `scrollbind` on the editor AFTER FileType fires.
     vim.schedule(function()
       for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
         if vim.wo[win].scrollbind then
@@ -165,14 +153,9 @@ vim.api.nvim_create_autocmd('FileType', {
   end,
 })
 
--- Suppress LSP code-lens virtual lines on the bound editor buffer while
--- blame is open. Neovim core bug (issue #29751): native `scrollbind`
--- compares buffer toplines, but `<C-d>` accounts for `virt_lines` filler
--- on the active side - the blame side has none, so the two windows drift
--- by ~1 buffer line per code-lens passed. PR #29766 mitigated this for
--- some paths, but in nvim 0.12 LSP codelens renders as `virt_lines` and
--- the drift returns. Clearing codelens for the duration of the blame
--- session keeps both sides in lockstep.
+-- Suppress LSP codelens while blame is open. Core bug #29751: scrollbind
+-- compares toplines but <C-d> accounts for virt_lines filler, so the panes
+-- drift by ~1 line per codelens. Clearing codelens keeps them in lockstep.
 local blame_aug = vim.api.nvim_create_augroup('BlameCodelensSuppress', { clear = true })
 vim.api.nvim_create_autocmd('User', {
   group = blame_aug,

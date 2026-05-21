@@ -1,9 +1,6 @@
--- nvim-tree: file explorer sidebar
--- Keymaps live in lua/keys.lua (<leader>e/E/f, <D-S-e>)
+-- nvim-tree: file explorer sidebar. Keymaps in lua/keys.lua.
 
--- Natural (humanized) comparator: splits names into text/number runs and
--- compares number chunks numerically, so `9` sorts before `10`. Without
--- this, nvim-tree falls back to lexicographic order (`10, 11, ..., 4, 9`).
+-- Natural sort: `9` before `10`, not lexicographic `10, 4, 9`.
 local function natural_lt(a, b)
   local ai, bi = 1, 1
   while ai <= #a and bi <= #b do
@@ -25,17 +22,14 @@ local function natural_lt(a, b)
   return #a < #b
 end
 
--- Custom sorter: directories first, then case-insensitive natural sort.
--- When `sort.sorter` is a function, nvim-tree delegates ordering entirely
--- to it (its built-in `folders_first` is bypassed), so handle that here.
+-- Custom sorter bypasses nvim-tree's `folders_first`, so handle it here.
 local function tree_sorter(nodes)
   table.sort(nodes, function(a, b)
     if a.type ~= b.type then
       if a.type == 'directory' then return true end
       if b.type == 'directory' then return false end
     end
-    -- Pin landmark files to the top of their directory (after subfolders):
-    -- `README.md` first (case-insensitive), then `mod.rs` (Rust module entry).
+    -- Landmarks pinned to top: README.md, then mod.rs.
     local a_readme = a.name:lower() == 'readme.md'
     local b_readme = b.name:lower() == 'readme.md'
     if a_readme and not b_readme then return true end
@@ -81,9 +75,9 @@ require('nvim-tree').setup({
       show = { git = false },
       glyphs = {
         folder = {
-          default    = '\u{F07B}',  -- nf-fa-folder (closed, filled) for non-empty
-          open       = '\u{F115}',  -- nf-fa-folder_open_o (matches yazi theme)
-          empty      = '\u{F114}',  -- nf-fa-folder_o (outline) for empty closed
+          default    = '\u{F07B}',
+          open       = '\u{F115}',
+          empty      = '\u{F114}',
           empty_open = '\u{F115}',
         },
       },
@@ -91,16 +85,12 @@ require('nvim-tree').setup({
   },
 })
 
--- Tree highlight overrides: dim gitignored items, neutral gray for folders.
 local function apply_tree_hl()
   local theme = require('config.theme_colors')
-  -- Gitignored stays a darker gray
   vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL',   { fg = theme.dark })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFolderIgnoredHL', { fg = theme.dark })
-  -- Modified (dirty) git files/folders -> blue (matches GitSignsChange)
   vim.api.nvim_set_hl(0, 'NvimTreeGitFileDirtyHL',     { fg = theme.blue })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFolderDirtyHL',   { fg = theme.blue })
-  -- Folders neutral gray (was theme blue by default)
   vim.api.nvim_set_hl(0, 'NvimTreeFolderName',        { fg = theme.gray })
   vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderName',  { fg = theme.gray, bold = true })
   vim.api.nvim_set_hl(0, 'NvimTreeEmptyFolderName',   { fg = theme.gray, italic = true })
@@ -108,16 +98,12 @@ local function apply_tree_hl()
   vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderIcon',  { fg = theme.gray })
   vim.api.nvim_set_hl(0, 'NvimTreeRootFolder',        { fg = theme.gray, bold = true })
   vim.api.nvim_set_hl(0, 'NvimTreeSymlinkFolderName', { fg = theme.gray, italic = true })
-  -- Subtle cursor line in the tree only (NvimTreeCursorLine is mapped via winhl)
   vim.api.nvim_set_hl(0, 'NvimTreeCursorLine', { bg = theme.black })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_tree_hl })
 apply_tree_hl()
 
--- Annotate `mod.rs` and `README.md` (case-insensitive) entries with their
--- parent directory name, e.g. `mod.rs  [transactions]`. Useful in deep
--- trees where several such entries would otherwise be indistinguishable.
--- Implemented via extmarks on the tree buffer, refreshed after every render.
+-- Annotate mod.rs / README.md (case-insensitive) with `[parent]` virtual text.
 local mod_ns = vim.api.nvim_create_namespace('nvim_tree_mod_rs_parent')
 vim.api.nvim_set_hl(0, 'NvimTreeModRsParent', { fg = require('config.theme_colors').gray })
 
@@ -137,9 +123,7 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
     local is_special = node and node.name
       and (node.name == 'mod.rs' or node.name:lower() == 'readme.md')
     if is_special and node.parent and node.parent.name and node.parent.nodes then
-      -- Only annotate when the entry sits below sibling subdirectories.
-      -- Without subdirs it's already the first entry, so the parent name
-      -- is obvious from the row directly above.
+      -- Skip when there are no sibling subdirs: parent is obvious from the row above.
       local has_subdir = false
       for _, sibling in ipairs(node.parent.nodes) do
         if sibling.type == 'directory' then
@@ -157,11 +141,7 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   end
 end)
 
--- Enable cursorline only inside the tree window. Use both events: FileType
--- catches first-open (BufWinEnter fires before filetype is set), and
--- BufWinEnter handles re-opens. Targeting the specific window showing the
--- buffer avoids relying on `vim.wo` of whichever window happens to be
--- current when the event fires.
+-- FileType catches first-open (BufWinEnter fires before filetype is set).
 local function enable_tree_cursorline(bufnr)
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if vim.api.nvim_win_get_buf(win) == bufnr then
@@ -184,11 +164,7 @@ vim.api.nvim_create_autocmd('BufWinEnter', {
   end,
 })
 
--- When nvim-tree opens a file via `o` (or any split-from-tree path), the new
--- editor window inherits `cursorline = true` from the NvimTree window since
--- `cursorline` is window-local and copied on :split. Strip it from regular
--- file windows. Skipped while a blame view is active in the tab - blame.nvim
--- legitimately needs cursorline on its synced editor window.
+-- Strip cursorline inherited from NvimTree on :split. Skip while blame is active.
 vim.api.nvim_create_autocmd('BufWinEnter', {
   callback = function(args)
     if vim.bo[args.buf].buftype ~= '' then return end

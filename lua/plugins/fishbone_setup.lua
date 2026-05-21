@@ -1,5 +1,4 @@
--- Set to `true` to load fishbone from the local dev clone instead of the
--- version installed by `vim.pack`. Restart Neovim after toggling.
+-- Toggle to load fishbone from the local dev clone instead of vim.pack; restart after.
 local dev = false
 
 if dev then

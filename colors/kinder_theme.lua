@@ -1,14 +1,12 @@
--- Set the name of the theme
+-- kinder_theme: palette and highlight groups. Palette lives in lua/config/theme_colors.lua.
 vim.g.colors_name = "kinder_theme"
 vim.o.background = 'dark'
 
--- Clear existing highlights
 vim.cmd("highlight clear")
 if vim.fn.exists("syntax_on") then
 	vim.cmd("syntax reset")
 end
 
--- Color palette is shared with other configs (see lua/theme_colors.lua)
 local colors = require('config.theme_colors')
 
 local function highlight(group, color)
@@ -18,34 +16,29 @@ local function highlight(group, color)
 	vim.cmd('highlight ' .. group .. ' ' .. style .. ' ' .. fg .. ' ' .. bg)
 end
 
--- Base color for the status line
 vim.api.nvim_set_hl(0, 'StatusLine', {fg = colors.fg, bg = colors.bg})
 vim.api.nvim_set_hl(0, 'CommandLine', {fg = colors.fg, bg = colors.bg})
 
--- Set background color to transparent
+-- Transparent background.
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 
--- Visual selection background
 vim.api.nvim_set_hl(0, "Visual", { bg = "#0055C5" })
 
--- Quickfix list: file path / line numbers in neutral gray.
--- qfFileName, NvimTreeFolderName etc. all link to Directory (cyan by default),
--- so override Directory once and everything downstream follows.
+-- qfFileName / NvimTreeFolderName link to Directory; override once and the rest follow.
 vim.api.nvim_set_hl(0, "Directory",  { fg = colors.gray })
 vim.api.nvim_set_hl(0, "qfFileName", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "qfLineNr",   { fg = colors.silver })
--- Selected line in qf list: dim bg, no cyan fg (default links to Search)
+-- QuickFixLine default links to Search; override to avoid cyan fg.
 vim.api.nvim_set_hl(0, "QuickFixLine", { bg = colors.dark, bold = true })
 
--- Telescope results: distinct colors for path / line:col / code preview
 vim.api.nvim_set_hl(0, "TelescopeResultsFileName", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "TelescopeResultsLineNr",   { fg = colors.silver })
 vim.api.nvim_set_hl(0, "TelescopeResultsNormal",   { fg = colors.fg })
 vim.api.nvim_set_hl(0, "TelescopeResultsComment",  { fg = colors.silver })
 vim.api.nvim_set_hl(0, "TelescopeMatching",        { fg = colors.orange, bold = true })
 
--- Default highlights. Use ":Inspect" command to find correct type.
+-- Defaults. Use `:Inspect` to find the group.
 vim.api.nvim_set_hl(0, "Whitespace", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "Constructor", { fg = colors.red })
 vim.api.nvim_set_hl(0, "Special", { fg = colors.red })
@@ -75,7 +68,7 @@ vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "@tag.delimiter", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "MarkSignHL", { fg = colors.yellow })
 
--- C / C++ highlights (Treesitter + LSP semantic tokens from clangd)
+-- C / C++ (treesitter + clangd LSP).
 local function cpp_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]                  = { fg = colors.red },
@@ -149,7 +142,6 @@ local function cpp_lsp_highlights(lang)
 		["@lsp.type.label." .. lang]         = { fg = colors.red },
 		["@lsp.type.modifier." .. lang]      = { fg = colors.red },
 		["@lsp.type.unknown." .. lang]       = { fg = colors.gray },
-		-- Modifiers
 		["@lsp.typemod.variable.readonly." .. lang]        = { fg = colors.lime },
 		["@lsp.typemod.variable.fileScope." .. lang]       = { fg = colors.gray },
 		["@lsp.typemod.variable.globalScope." .. lang]     = { fg = colors.lime },
@@ -173,21 +165,20 @@ for _, lang in ipairs({ "cpp", "c" }) do
 	end
 end
 
--- JSON highlights
+-- JSON
 vim.api.nvim_set_hl(0, "jsonBoolean", { fg = colors.red })
 vim.api.nvim_set_hl(0, "jsonEscape", { fg = colors.purple })
 vim.api.nvim_set_hl(0, "jsonKeyword", { fg = colors.green })
 vim.api.nvim_set_hl(0, "jsonString", { fg = colors.yellow })
 
--- YALM highlights
+-- YAML
 vim.api.nvim_set_hl(0, "yamlBool", { fg = colors.red })
 vim.api.nvim_set_hl(0, "yamlBlockMappingKey", { fg = colors.green })
 vim.api.nvim_set_hl(0, "yamlPlainScalar", { fg = colors.blue })
 vim.api.nvim_set_hl(0, "yamlFlowString", { fg = colors.yellow })
 vim.api.nvim_set_hl(0, "yamlInteger", { fg = colors.purple })
 
--- Rust highlights (Treesitter + LSP semantic tokens)
--- Vim regex syntax fallbacks (used when treesitter rust parser unavailable).
+-- RUST (treesitter + rust-analyzer LSP).
 local rust_legacy_highlights = {
 	rustStorage       = { fg = colors.red },
 	rustMacro         = { fg = colors.red },
@@ -276,7 +267,7 @@ for _, lang in ipairs({ "rust" }) do
 	end
 end
 
--- TypeScript / JavaScript / TSX highlights (Treesitter + LSP semantic tokens)
+-- TS / JS / TSX (treesitter + LSP).
 local function ts_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]                 = { fg = colors.red },
@@ -342,9 +333,7 @@ local function ts_lsp_highlights(lang)
 		["@lsp.type.number." .. lang]            = { fg = colors.purple },
 		["@lsp.type.decorator." .. lang]         = { fg = colors.brown },
 		["@lsp.type.builtinType." .. lang]       = { fg = colors.red },
-		-- Built-in globals carry the defaultLibrary modifier:
-		-- built-in classes / converters / global functions -> cyan;
-		-- built-in objects (console, Math, JSON, ...) -> lime.
+		-- defaultLibrary: classes/funcs -> cyan, objects (console, Math, JSON) -> lime.
 		["@lsp.typemod.class.defaultLibrary." .. lang]     = { fg = colors.cyan },
 		["@lsp.typemod.function.defaultLibrary." .. lang]  = { fg = colors.cyan },
 		["@lsp.typemod.method.defaultLibrary." .. lang]    = { fg = colors.cyan },
@@ -365,7 +354,7 @@ for _, lang in ipairs({ "typescript", "typescriptreact", "javascript", "javascri
 	end
 end
 
--- SQL highlights (used for sqlx::query! injections and standalone .sql files)
+-- SQL (sqlx::query! injections and standalone .sql).
 local function sql_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]                 = { fg = colors.red },
@@ -397,7 +386,7 @@ for _, lang in ipairs({ "sql" }) do
 	end
 end
 
--- Python highlights (Treesitter + LSP semantic tokens from pyright)
+-- PYTHON (treesitter + pyright LSP).
 local function python_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]                  = { fg = colors.red },
@@ -456,7 +445,7 @@ local function python_lsp_highlights(lang)
 		["@lsp.type.string." .. lang]                      = { fg = colors.yellow },
 		["@lsp.type.number." .. lang]                      = { fg = colors.purple },
 		["@lsp.typemod.variable.readonly." .. lang]        = { fg = colors.lime },
-		-- Built-in globals: classes/functions cyan, modules lime
+		-- defaultLibrary: classes/funcs -> cyan, modules -> lime.
 		["@lsp.typemod.class.defaultLibrary." .. lang]     = { fg = colors.cyan },
 		["@lsp.typemod.function.defaultLibrary." .. lang]  = { fg = colors.cyan },
 		["@lsp.typemod.method.defaultLibrary." .. lang]    = { fg = colors.cyan },
@@ -477,54 +466,54 @@ for _, lang in ipairs({ "python" }) do
 	end
 end
 
--- LSP diagnostics: red errors, orange warnings, green hints
+-- LSP diagnostics.
 vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
 vim.api.nvim_set_hl(0, "DiagnosticWarn",  { fg = colors.orange })
 vim.api.nvim_set_hl(0, "DiagnosticInfo",  { fg = colors.blue })
 vim.api.nvim_set_hl(0, "DiagnosticHint",  { fg = colors.gray })
 vim.api.nvim_set_hl(0, "DiagnosticOk",    { fg = colors.green })
 
--- Telescope borders: match yazi's darkgray
+-- Telescope borders match yazi's darkgray.
 vim.api.nvim_set_hl(0, "TelescopeBorder",        { fg = colors.dark })
 vim.api.nvim_set_hl(0, "TelescopePromptBorder",  { fg = colors.dark })
 vim.api.nvim_set_hl(0, "TelescopeResultsBorder", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "TelescopePreviewBorder", { fg = colors.dark })
 
--- nvim-tree folder colors: blue icons, gray names
+-- nvim-tree folders.
 vim.api.nvim_set_hl(0, "NvimTreeFolderName",       { fg = colors.gray })
 vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.gray, bold = true })
 vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName",  { fg = colors.gray })
 vim.api.nvim_set_hl(0, "NvimTreeFolderIcon",       { fg = colors.blue })
 vim.api.nvim_set_hl(0, "NvimTreeRootFolder",       { fg = colors.blue, bold = true })
 
--- nvim-tree git status colors on file names
-vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL",   { fg = colors.cyan })  -- modified, unstaged
-vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL",     { fg = colors.red })   -- untracked
-vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL",  { fg = colors.blue })  -- modified, staged
+-- nvim-tree git status on file names.
+vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL",   { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL",     { fg = colors.red })
+vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL",  { fg = colors.blue })
 vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL",  { fg = colors.cyan })
 vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL",    { fg = colors.red })
 vim.api.nvim_set_hl(0, "NvimTreeGitFolderStagedHL", { fg = colors.blue })
 
--- gitsigns: sign-column colors (also reused by nvim-scrollbar on the right edge)
+-- gitsigns sign column (also reused by nvim-scrollbar).
 vim.api.nvim_set_hl(0, "GitSignsAdd",    { fg = colors.green })
 vim.api.nvim_set_hl(0, "GitSignsChange", { fg = colors.blue })
 vim.api.nvim_set_hl(0, "GitSignsDelete", { fg = colors.red })
 
--- ANSI palette for built-in :terminal (used by yazi-in-nvim, etc.)
-vim.g.terminal_color_0  = colors.bg       -- black
+-- ANSI palette for :terminal (used by yazi-in-nvim, etc.).
+vim.g.terminal_color_0  = colors.bg
 vim.g.terminal_color_1  = colors.red
 vim.g.terminal_color_2  = colors.green
 vim.g.terminal_color_3  = colors.yellow
 vim.g.terminal_color_4  = colors.blue
-vim.g.terminal_color_5  = colors.purple   -- magenta
+vim.g.terminal_color_5  = colors.purple
 vim.g.terminal_color_6  = colors.cyan
-vim.g.terminal_color_7  = colors.fg       -- white
-vim.g.terminal_color_8  = colors.dark     -- bright black
-vim.g.terminal_color_9  = colors.pink     -- bright red
-vim.g.terminal_color_10 = colors.lime     -- bright green
-vim.g.terminal_color_11 = colors.orange   -- bright yellow
-vim.g.terminal_color_12 = colors.blue     -- bright blue
-vim.g.terminal_color_13 = colors.purple   -- bright magenta
-vim.g.terminal_color_14 = colors.emerald  -- bright cyan
-vim.g.terminal_color_15 = colors.white    -- bright white
+vim.g.terminal_color_7  = colors.fg
+vim.g.terminal_color_8  = colors.dark
+vim.g.terminal_color_9  = colors.pink
+vim.g.terminal_color_10 = colors.lime
+vim.g.terminal_color_11 = colors.orange
+vim.g.terminal_color_12 = colors.blue
+vim.g.terminal_color_13 = colors.purple
+vim.g.terminal_color_14 = colors.emerald
+vim.g.terminal_color_15 = colors.white
 

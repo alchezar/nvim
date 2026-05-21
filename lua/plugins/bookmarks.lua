@@ -34,13 +34,12 @@ end
 
 vim.keymap.set('n', '<M-m>', function()
   local marks = require('marks')
-  marks.delete_bookmark()  -- numbered bookmark groups (0-9)
-  marks.delete_line()      -- letter marks (a-z, A-Z)
+  marks.delete_bookmark()
+  marks.delete_line()
 end, { desc = 'Delete any mark/bookmark on current line' })
 
--- marks.nvim populates the *location list* (not quickfix) and auto-opens it.
--- Close the loclist window, then surface the entries via telescope.loclist so
--- the entry_maker in lua/telescope_setup.lua colors path / line:col / text.
+-- marks.nvim populates the loclist (not qf); close it and re-surface via
+-- telescope.loclist so telescope_setup's entry_maker colors the rows.
 local function in_telescope(populate_cmd, title)
   return function()
     vim.cmd(populate_cmd)

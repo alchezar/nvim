@@ -1,38 +1,24 @@
--- nvim-dbee setup
--- Drawer-style sidebar with connections, schemas, tables, AND columns shown
--- inline as tree leaves (column_name [type]) - this was the main reason to
--- migrate from vim-dadbod-ui, which only exposed columns via a separate buffer.
---
--- Connections come from a project-local .env DATABASE_URL via tpope/vim-dotenv,
--- exposed through a custom Source so connections refresh on DirChanged.
+-- nvim-dbee: drawer sidebar with inline columns; connections from project .env DATABASE_URL.
 
 local dbee = require('dbee')
 local sources = require('dbee.sources')
 local theme = require('config.theme_colors')
 
--- Dim the `[type]` suffix that dbee appends to column nodes (e.g. `id  [uuid]`),
--- so the column name reads as the primary identifier and the type as metadata.
+-- Dim the `[type]` suffix on column nodes so the name reads as primary.
 local function apply_drawer_highlights()
   vim.api.nvim_set_hl(0, 'DbeeColumnType', { fg = theme.silver })
 end
 apply_drawer_highlights()
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_drawer_highlights })
 
--- ---------------------------------------------------------------------------
--- Connection source: read DATABASE_URL from cwd/.env, expose as one "project"
--- connection. URL is normalised (URL-decoded, query string stripped) for the
--- same reason as before: sqlx-style URLs with ?mode=rwc break dadbod/sqlite3
--- CLIs. Re-fetches on DirChanged via dbee.api.core.source_reload.
--- ---------------------------------------------------------------------------
+-- Connection source: cwd/.env DATABASE_URL exposed as one "project" connection.
+-- Re-fetches on DirChanged via dbee.api.core.source_reload.
 local function url_decode(s)
   return (s:gsub('%%(%x%x)', function(h) return string.char(tonumber(h, 16)) end))
 end
 
--- dbee uses native Go drivers, so we no longer strip query params (which
--- was a dadbod-era workaround for the sqlite3 CLI rejecting sqlx flags).
--- Just URL-decode (handles %20 in macOS "Application Support" paths) and
--- default postgres URLs to sslmode=disable - lib/pq otherwise refuses local
--- servers that have SSL turned off.
+-- URL-decode (%20 in macOS paths) and default postgres to sslmode=disable
+-- so lib/pq accepts local servers with SSL off.
 local function normalise(url)
   url = url_decode(url)
   local scheme = (url:match('^([%w]+):') or ''):lower()
@@ -47,7 +33,7 @@ local function infer_type(url)
   if scheme == 'postgres' or scheme == 'postgresql' then return 'postgres' end
   if scheme == 'mysql'    or scheme == 'mariadb'    then return 'mysql'    end
   if scheme == 'sqlite'   or scheme == 'sqlite3'    then return 'sqlite'   end
-  return nil  -- unknown scheme - skip registration rather than feed dbee garbage
+  return nil
 end
 
 local function pick_database_url()
@@ -56,8 +42,7 @@ local function pick_database_url()
   return vim.env.DATABASE_URL
 end
 
--- Custom Source: re-reads g:dbs.project_url on every load() call, so a
--- subsequent source_reload() picks up the freshly-loaded .env values.
+-- Re-reads g:dbee_project_url on every load() so source_reload picks up .env changes.
 local ProjectEnvSource = { id = 'project_env' }
 ProjectEnvSource.__index = ProjectEnvSource
 
@@ -90,8 +75,7 @@ function ProjectEnvSource:load()
   }
 end
 
--- Load DATABASE_URL from cwd/.env into g:dbee_project_url and trigger a source
--- reload. Exposed so the keymap can call it *synchronously* before Dbee opens.
+-- Load .env into g:dbee_project_url and reload the source. Sync-callable from keymap.
 local function load_dbs()
   local env_file = vim.fn.getcwd() .. '/.env'
   if vim.fn.filereadable(env_file) == 1 then
@@ -99,23 +83,16 @@ local function load_dbs()
   end
   local url = pick_database_url()
   vim.g.dbee_project_url = url and url ~= '' and normalise(url) or nil
-  -- The Go backend is required for any handler-touching call. Skip reload
-  -- until the binary is installed so the user can fix it via :lua require('dbee').install()
-  -- without log spam on every DirChanged.
+  -- Skip reload until the Go backend is installed; otherwise DirChanged spams logs.
   if vim.fn.executable('dbee') == 1 then
-    -- source_reload expects the source's name() value, not the connection id.
+    -- source_reload takes the source's name(), not the connection id.
     pcall(function() require('dbee').api.core.source_reload('project') end)
   end
 end
 
 vim.api.nvim_create_autocmd('DirChanged', { callback = load_dbs })
 
--- ---------------------------------------------------------------------------
--- Custom layout: editor occupies the current window, drawer is a 40-wide
--- vsplit on the right (matches the old dadbod-ui position), and the query
--- result lives in a 90%x85% floating window (mirrors the dbout floater).
--- Call log gets a smaller float - it's rarely needed.
--- ---------------------------------------------------------------------------
+-- Layout: drawer = 40-col vsplit right; editor / result / call_log = floats.
 local function open_float(width_pct, height_pct, title)
   local width  = math.floor(vim.o.columns * width_pct)
   local height = math.floor(vim.o.lines   * height_pct)
@@ -150,8 +127,7 @@ local function set_hide(win, hide)
   end
 end
 
--- Bind q / <Esc> on the float's buffer to hide instead of close. Called
--- right after api_ui.*_show so the buffer is already dbee's content buf.
+-- q / <Esc> on a float hides instead of closing.
 local function bind_hide_keys(winid, hide_fn)
   if not (winid and vim.api.nvim_win_is_valid(winid)) then return end
   local buf = vim.api.nvim_win_get_buf(winid)
@@ -160,12 +136,8 @@ local function bind_hide_keys(winid, hide_fn)
   vim.keymap.set('n', '<Esc>', hide_fn, opts)
 end
 
--- Recreate the editor/result/log floats and re-bind dbee's UI to them.
--- Called on open() and from show_* if the user `:q`'d the window (which fully
--- destroys it, unlike q which just hides via nvim_win_set_config{hide=true}).
--- dbee's *_show() internally repositions/un-hides the window, ignoring the
--- `hide = true` we passed to nvim_open_win. Re-hide explicitly after the
--- call so the float starts invisible until the user (or dbee_run) asks for it.
+-- (Re)create floats and bind dbee UI. dbee's *_show un-hides ignoring our hide=true,
+-- so we re-hide explicitly after the call.
 function FloatLayout:_setup_editor_float()
   self.editor_win = open_float(0.7, 0.7, ' SQL editor (q / <Esc> to hide) ')
   require('dbee.api.ui').editor_show(self.editor_win)
@@ -187,18 +159,13 @@ function FloatLayout:_setup_log_float()
   bind_hide_keys(self.log_win, function() self:hide_call_log() end)
 end
 
--- Generic show/hide. Tracks the previously focused window per-float so hide
--- can return focus there - this lets the chain "code -> editor -> result"
--- unwind naturally with two presses of `q`.
+-- Tracks prev focused window per-float so hide returns focus there.
 local function show_float(self, key, setup_method)
   local cur = vim.api.nvim_get_current_win()
   if not (self[key] and vim.api.nvim_win_is_valid(self[key])) then
     setup_method(self)
   end
-  -- Never record the float as its own "previous window" - otherwise hide
-  -- would set focus back to the just-hidden float. Re-showing while already
-  -- focused on the float (auto-show listener firing on a second query) is
-  -- the common path here; keep the prior _prev so hide unwinds correctly.
+  -- Never record the float as its own _prev (auto-show on second query fires here).
   if cur ~= self[key] then self['_prev_' .. key] = cur end
   set_hide(self[key], false)
   vim.api.nvim_set_current_win(self[key])
@@ -211,8 +178,7 @@ local function hide_float(self, key)
     vim.api.nvim_set_current_win(prev)
     return
   end
-  -- Fallback chain: drawer (always visible when Dbee is open) -> origin
-  -- (the window the user was in before opening Dbee).
+  -- Fallback: drawer -> origin window.
   for _, w in ipairs({ self.drawer_win, self.origin_win }) do
     if w and vim.api.nvim_win_is_valid(w) then
       vim.api.nvim_set_current_win(w)
@@ -234,22 +200,15 @@ function FloatLayout:open()
   vim.cmd('botright 40vsplit')
   self.drawer_win = vim.api.nvim_get_current_win()
   require('dbee.api.ui').drawer_show(self.drawer_win)
-  -- The visual-mode ModeChanged autocmd in init.lua expands global listchars
-  -- to render every space as `·`. The drawer inherits `list = true` and thus
-  -- gets polluted with dots whenever the user enters visual mode in any other
-  -- window. Setting list=false on the drawer window is window-local, so the
-  -- expanded listchars become a no-op here.
+  -- Drawer-local list=false so the visual-mode listchars expansion (init.lua) doesn't dot-fill it.
   vim.wo[self.drawer_win].list = false
-  -- Highlight the trailing `[type]` on column nodes in muted silver.
   vim.api.nvim_buf_call(vim.api.nvim_win_get_buf(self.drawer_win), function()
     vim.cmd('syntax match DbeeColumnType /\\[[^\\]]*\\]$/')
   end)
 
   self:_setup_editor_float()
   self:_setup_result_float()
-  -- Call log float is created lazily on <leader>dq. Binding call_log_show()
-  -- here would let dbee un-hide the float on every new log entry (same
-  -- behaviour described above for *_show), which spams the screen.
+  -- Call log float is lazy on <leader>dq; binding it here would un-hide on every log entry.
 
   vim.api.nvim_set_current_win(self.origin_win)
 end
@@ -266,9 +225,6 @@ end
 
 function FloatLayout:reset() end
 
--- ---------------------------------------------------------------------------
--- Setup
--- ---------------------------------------------------------------------------
 load_dbs()
 
 local layout = FloatLayout:new()
@@ -283,24 +239,19 @@ dbee.setup({
   editor = { directory = vim.fn.stdpath('data') .. '/dbee/notes' },
 })
 
--- The drawer is a NuiTree (nui.nvim) whose indent comes from `shiftwidth`,
--- just like dadbod-ui. Keep it tight to fit a 40-col panel.
+-- NuiTree drawer indents by shiftwidth; keep tight to fit a 40-col panel.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'dbee',
   callback = function() vim.bo.shiftwidth = 2 end,
 })
 
--- ---------------------------------------------------------------------------
--- User commands (back-compat with old <leader>d* keymaps which call DBUI*)
--- ---------------------------------------------------------------------------
+-- Back-compat command for old <leader>d* keymaps that call DBUI*.
 vim.api.nvim_create_user_command('DBUIOpen', function()
   load_dbs()
   dbee.toggle()
 end, { desc = 'Reload .env and toggle Dbee UI' })
 
--- ---------------------------------------------------------------------------
--- Completion: cmp-dbee replaces vim-dadbod-completion for SQL buffers.
--- ---------------------------------------------------------------------------
+-- cmp-dbee completion for SQL buffers.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = { 'sql', 'mysql', 'plsql' },
   callback = function()
@@ -316,9 +267,7 @@ vim.api.nvim_create_autocmd('FileType', {
 
 pcall(function() require('cmp-dbee').setup() end)
 
--- Register ProjectEnvSource after setup so a failure (bad URL, dbee binary
--- rejecting the connection) is isolated and doesn't abort the rest of the
--- setup chain - the FileSource and UI remain functional.
+-- Register ProjectEnvSource after setup so a failure doesn't abort the rest.
 local ok, err = pcall(function() dbee.api.core.add_source(ProjectEnvSource:new()) end)
 if not ok then
   vim.schedule(function()
@@ -326,11 +275,7 @@ if not ok then
   end)
 end
 
--- Auto-show the result float whenever any query starts executing. This covers
--- the helper menu paths (drawer <CR> -> Columns/Indexes/...) which run queries
--- without going through our dbee_run wrapper. Idempotent with dbee_run's
--- explicit show_result() call - both end up pointing the user at the result.
--- Wrapped in pcall so a callback error never propagates out and breaks dbee.
+-- Auto-show result float on any query (covers drawer helper menus that bypass dbee_run).
 pcall(function()
   dbee.api.core.register_event_listener('call_state_changed', function(data)
     local ok = pcall(function()

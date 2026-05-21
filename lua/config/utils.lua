@@ -1,6 +1,6 @@
 local M = {}
 
--- Open yazi file manager in a floating terminal, edit the chosen file
+-- Float yazi; open the chosen file.
 function M.open_yazi()
   local tmp = vim.fn.tempname()
   local cwd = vim.fn.expand('%:p:h')
@@ -46,7 +46,7 @@ function M.open_yazi()
   vim.cmd('startinsert')
 end
 
--- Open lazygit in a floating terminal (custom geometry — shifted slightly up)
+-- Float lazygit. Geometry is shifted slightly up.
 function M.open_lazygit()
   local cwd = vim.fn.expand('%:p:h')
   if cwd == '' or vim.fn.isdirectory(cwd) == 0 then
@@ -86,7 +86,7 @@ function M.open_lazygit()
   vim.cmd('startinsert')
 end
 
--- Switch between C/C++ source and header file via clangd
+-- C/C++ source <-> header via clangd.
 function M.switch_source_header()
   local clients = vim.lsp.get_clients({ bufnr = 0, name = 'clangd' })
   if #clients == 0 then
@@ -108,12 +108,11 @@ function M.switch_source_header()
     end, 0)
 end
 
--- Toggle LSP inlay hints
 function M.toggle_inlay_hints()
   vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
 end
 
--- LSP hover with line diagnostics prepended (if any)
+-- Hover float with line diagnostics prepended.
 function M.hover()
   local bufnr = 0
   local lnum = vim.fn.line('.') - 1
@@ -147,9 +146,7 @@ function M.hover()
     return
   end
 
-  -- Query every hover-capable client; first non-empty wins. Needed for hybrid
-  -- Vue (vue_ls owns template, ts_ls owns <script>) - vue_ls returns null in
-  -- script regions and would shadow ts_ls if we just took clients[1].
+  -- Query all hover clients; first non-empty wins (hybrid Vue: vue_ls returns null in <script>).
   local remaining = #clients
   local hover_lines = nil
   for _, client in ipairs(clients) do
@@ -173,13 +170,8 @@ function M.hover()
   end
 end
 
--- Go to the trait method that the current symbol implements.
--- Strategy: walk backward from the cursor to the enclosing `impl <Trait> for
--- <Type>` line, extract `<Trait>`, then locate `trait <Trait>` (first in the
--- current file, then via LSP workspace symbols), and finally scan forward in
--- that file for `fn <method_name>`. This avoids the corner cases of LSP
--- definition/declaration (inherent impls with the same method name shadowing
--- the trait method, #[async_trait] macros resolving to ~/.cargo/registry, ...).
+-- Jump to the trait method backing the symbol under cursor.
+-- Plain LSP defn/decl misbehaves (inherent impls shadow, #[async_trait] -> ~/.cargo/registry).
 function M.go_to_interface()
   local method_name = vim.fn.expand('<cword>')
   if method_name == '' then
@@ -188,8 +180,7 @@ function M.go_to_interface()
   end
   local save_pos = vim.api.nvim_win_get_cursor(0)
 
-  -- 1. Find the nearest `impl ... for ...` line above the cursor. Skip inherent
-  -- impls (no `for`) - keep walking up.
+  -- Find nearest `impl ... for ...` above cursor; skip inherent impls (no `for`).
   local impl_text
   for l = save_pos[1], 1, -1 do
     local text = vim.fn.getline(l)
@@ -203,27 +194,25 @@ function M.go_to_interface()
     return
   end
 
-  -- 2. Extract trait name from "impl [<gens>] [path::]Trait[<gens>] for ..."
+  -- Extract trait name from "impl [<gens>] [path::]Trait[<gens>] for ...".
   local before_for = impl_text:match('^%s*impl%s+(.-)%s+for%s')
   if not before_for then
     vim.notify('Could not parse impl line: ' .. impl_text, vim.log.levels.WARN)
     return
   end
-  before_for = before_for:gsub('^<[^>]+>%s+', '')         -- strip `impl<G>`
-  local trait_name = before_for:match('([%w_]+)')          -- first ident after gens
+  before_for = before_for:gsub('^<[^>]+>%s+', '')
+  local trait_name = before_for:match('([%w_]+)')
   if not trait_name then
     vim.notify('Could not extract trait name from: ' .. impl_text, vim.log.levels.WARN)
     return
   end
 
-  -- Jump to `fn <method_name>` within a buffer, starting from `start_line`.
   local function jump_to_method_in_buffer(start_line)
     vim.api.nvim_win_set_cursor(0, { start_line, 0 })
     vim.fn.search('\\<fn\\s\\+' .. vim.fn.escape(method_name, '\\/') .. '\\>', 'cW')
   end
 
-  -- 3. Try the current file first - cheap and covers the common case where
-  -- trait and impl live together.
+  -- Try current file first (common case: trait and impl colocated).
   vim.api.nvim_win_set_cursor(0, { 1, 0 })
   local trait_line = vim.fn.search('\\v<trait>\\s+' .. trait_name .. '>', 'cW')
   if trait_line > 0 then
@@ -231,7 +220,7 @@ function M.go_to_interface()
     return
   end
 
-  -- 4. Fall back to LSP workspace symbols (trait defined in another file).
+  -- Fall back to LSP workspace symbols (trait in another file).
   vim.api.nvim_win_set_cursor(0, save_pos)
   local clients = vim.lsp.get_clients({ bufnr = 0, method = 'workspace/symbol' })
   if #clients == 0 then
@@ -244,7 +233,7 @@ function M.go_to_interface()
       vim.notify('trait `' .. trait_name .. '` not found', vim.log.levels.WARN)
       return
     end
-    -- Prefer an exact name match of kind Interface (11) or Class (5).
+    -- Prefer exact name match of kind Interface (11) or Class (5).
     local target
     for _, sym in ipairs(result) do
       if sym.name == trait_name and (sym.kind == 11 or sym.kind == 5) then
@@ -263,7 +252,7 @@ function M.go_to_interface()
   end, 0)
 end
 
--- Apply `tab_spaces` from the nearest rustfmt.toml to the given buffer.
+-- Apply `tab_spaces` from the nearest rustfmt.toml.
 function M.apply_rustfmt_indent(bufnr)
   local path = vim.api.nvim_buf_get_name(bufnr)
   if path == '' then return end
@@ -281,13 +270,11 @@ function M.apply_rustfmt_indent(bufnr)
   end
 end
 
--- Format current buffer via conform.nvim
 function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end
 
--- Stop all LSP clients on the current buffer, wait for them to fully exit,
--- then re-fire the FileType autocmd so rustaceanvim/lspconfig re-attach.
+-- Stop all LSP clients on the buffer, wait for full exit, then re-fire FileType to re-attach.
 function M.restart_buf_lsp()
   local bufnr = vim.api.nvim_get_current_buf()
   local clients = vim.lsp.get_clients({ bufnr = bufnr })
@@ -320,7 +307,7 @@ function M.restart_buf_lsp()
   wait_and_reattach(0)
 end
 
--- Open file path from system clipboard, supports `path`, `path:line`, `path:line:col`
+-- Open a path from clipboard. Accepts `path`, `path:line`, `path:line:col`.
 function M.open_clipboard_path()
   local raw = vim.trim(vim.fn.getreg('+'))
   local file, line, col = raw:match('^(.-):(%d+):(%d+)$')
@@ -337,7 +324,7 @@ function M.open_clipboard_path()
   end
 end
 
--- Project root markers used to auto-cd into the project of the current buffer
+-- Markers used by auto_cd_to_project_root.
 M.project_root_markers = {
   '.git',
   'CMakeLists.txt',
@@ -349,7 +336,6 @@ M.project_root_markers = {
   'compile_commands.json',
 }
 
--- Auto-cd to the detected project root when entering a buffer
 function M.auto_cd_to_project_root(bufnr)
   local path = vim.api.nvim_buf_get_name(bufnr)
   if path == '' or vim.bo[bufnr].buftype ~= '' then return end
@@ -359,7 +345,7 @@ function M.auto_cd_to_project_root(bufnr)
   end
 end
 
--- Resolve the foreground color of the highlight at the cursor position
+-- Resolve fg of the highlight under cursor.
 local function cursor_color_at_pos()
   local row = vim.api.nvim_win_get_cursor(0)[1] - 1
   local col = vim.api.nvim_win_get_cursor(0)[2]
@@ -378,7 +364,7 @@ local function cursor_color_at_pos()
   return normal.fg and string.format('#%06x', normal.fg) or '#DCDCDC'
 end
 
--- Update the Cursor highlight so the cursor takes the color of the char under it
+-- Make Cursor inherit fg of the char under it.
 function M.update_cursor_color()
   local fg = cursor_color_at_pos()
   local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
@@ -386,11 +372,8 @@ function M.update_cursor_color()
   vim.api.nvim_set_hl(0, 'Cursor', { bg = fg, fg = bg })
 end
 
--- Run the SQL query in the current dbee editor buffer. From visual mode runs
--- the selection; otherwise runs the statement under the cursor. dbee exposes
--- these as named actions on the editor UI, not as standalone functions.
--- The actions silently no-op when no current connection is set (default state
--- right after opening Dbee); warn explicitly so we never get a mystery hang.
+-- Run SQL in the dbee editor (selection in visual mode, else statement under cursor).
+-- dbee actions silently no-op without a connection; warn explicitly to avoid mystery hangs.
 function M.dbee_run()
   local api = require('dbee').api
   if not api.core.get_current_connection() then
@@ -402,13 +385,11 @@ function M.dbee_run()
   local action = (mode == 'v' or mode == 'V' or mode == '\22')
     and 'run_selection' or 'run_under_cursor'
   api.ui.editor_do_action(action)
-  -- The result float starts hidden; un-hide it after kicking off the query.
+  -- Result float starts hidden; un-hide after kicking off the query.
   pcall(function() require('plugins.dbee').show_result() end)
 end
 
--- Toggle focus between the current window and a floating window.
--- From a normal window: jumps to the first focusable float.
--- From a float: jumps back to the previous window.
+-- Toggle focus: normal -> first focusable float, float -> previous window.
 function M.focus_floating()
   if vim.api.nvim_win_get_config(0).relative ~= '' then
     vim.cmd('wincmd p')
@@ -424,8 +405,7 @@ function M.focus_floating()
   vim.notify('No floating window', vim.log.levels.INFO)
 end
 
--- Search selected text literally (\V + escape backslash and slash),
--- so regex metacharacters in the selection are matched as-is.
+-- Search selection literally (\V) so regex metacharacters match as-is.
 function M.search_visual(forward)
   vim.cmd('normal! "vy')
   local text = vim.fn.getreg('v')
