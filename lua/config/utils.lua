@@ -405,6 +405,30 @@ function M.focus_floating()
   vim.notify('No floating window', vim.log.levels.INFO)
 end
 
+-- Gitsigns preview_hunk sizes the float to the longest line; clamp width and
+-- soft-wrap so long hunks don't run off-screen.
+function M.gitsigns_preview_hunk()
+  local prior = {}
+  for _, w in ipairs(vim.api.nvim_list_wins()) do prior[w] = true end
+
+  require('gitsigns').preview_hunk()
+
+  vim.schedule(function()
+    local max_w = math.max(20, math.floor(vim.o.columns * 0.8))
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if not prior[win] then
+        local cfg = vim.api.nvim_win_get_config(win)
+        if cfg.relative ~= '' and cfg.width and cfg.width > max_w then
+          cfg.width = max_w
+          vim.api.nvim_win_set_config(win, cfg)
+          vim.api.nvim_set_option_value('wrap', true, { win = win })
+          vim.api.nvim_set_option_value('linebreak', true, { win = win })
+        end
+      end
+    end
+  end)
+end
+
 -- Search selection literally (\V) so regex metacharacters match as-is.
 function M.search_visual(forward)
   vim.cmd('normal! "vy')

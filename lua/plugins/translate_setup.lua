@@ -55,6 +55,60 @@ function M.translate_selection(target)
   vim.api.nvim_win_set_cursor(0, { end_line, 0 })
 end
 
+-- Custom floating output: clamp width to a fraction of editor columns and
+-- enable soft word-wrap so long single-line translations don't overflow.
+local floating_max_ratio = 0.8
+local _float
+
+local function close_float()
+  if _float then
+    pcall(vim.api.nvim_win_close, _float.win, true)
+    pcall(vim.api.nvim_buf_delete, _float.buf, { force = true })
+    _float = nil
+  end
+end
+
+local function floating_cmd(lines)
+  if type(lines) == 'string' then lines = { lines } end
+  close_float()
+
+  local options = require('translate.config').get('preset').output.floating
+  local max_w = math.max(1, math.floor(vim.o.columns * floating_max_ratio))
+
+  local widest = 0
+  for _, l in ipairs(lines) do
+    widest = math.max(widest, vim.api.nvim_strwidth(l))
+  end
+  local width = math.max(1, math.min(widest, max_w))
+
+  -- Account for soft-wrap when computing height.
+  local height = 0
+  for _, l in ipairs(lines) do
+    local w = math.max(1, vim.api.nvim_strwidth(l))
+    height = height + math.ceil(w / width)
+  end
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, true, lines)
+  vim.api.nvim_set_option_value('filetype', options.filetype, { buf = buf })
+
+  local win = vim.api.nvim_open_win(buf, false, {
+    relative = options.relative,
+    style = options.style,
+    width = width,
+    height = height,
+    row = options.row,
+    col = options.col,
+    border = options.border,
+    zindex = options.zindex,
+  })
+  vim.api.nvim_set_option_value('wrap', true, { win = win })
+  vim.api.nvim_set_option_value('linebreak', true, { win = win })
+
+  _float = { win = win, buf = buf }
+  vim.api.nvim_create_autocmd('CursorMoved', { callback = close_float, once = true })
+end
+
 require('translate').setup({
   default = {
     command = 'google',
@@ -62,6 +116,9 @@ require('translate').setup({
   },
   parse_before = {
     strip_comments = { cmd = strip_comments_cmd },
+  },
+  output = {
+    floating = { cmd = floating_cmd },
   },
   preset = {
     output = {

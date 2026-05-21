@@ -64,7 +64,7 @@ map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics'
 map('n', '<leader>gs', builtin.git_status, { desc = 'Git status (changed files)' })
 map('n', '<D-S-g>',    builtin.git_status, { desc = 'Git status (changed files)' })
 map('n', '<leader>gb', ':BlameToggle<CR>', { desc = 'Toggle git blame side panel (date heat-map)', silent = true })
-map('n', '<leader>gp', ':Gitsigns preview_hunk<CR>', { desc = 'Preview hunk diff (popup)', silent = true })
+map('n', '<leader>gp', utils.gitsigns_preview_hunk, { desc = 'Preview hunk diff (popup)' })
 map('n', '<leader>gr', function()
   require('gitsigns').reset_hunk()
   vim.cmd('noautocmd write')
