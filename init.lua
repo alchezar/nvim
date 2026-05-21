@@ -113,6 +113,7 @@ require("plugins.treesitter")
 require("plugins.debugging")
 require("plugins.formatting")
 require("plugins.translate_setup")
+require("plugins.axum_routes")
 
 -- Plugin setup
 require('nvim-autopairs').setup()
