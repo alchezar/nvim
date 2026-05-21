@@ -138,7 +138,7 @@ require('plugins.blame_setup')
 require('plugins.diffview_setup')
 require('plugins.startify_setup')
 require('crates').setup({ popup = { border = 'rounded' } })
-require('hex').setup()
+require('plugins.hex_setup')
 
 -- In Cargo.toml, override `gh` to show the crate popup instead of LSP hover.
 vim.api.nvim_create_autocmd('BufRead', {
