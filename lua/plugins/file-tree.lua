@@ -94,3 +94,22 @@ vim.api.nvim_create_autocmd('BufWinEnter', {
     end
   end,
 })
+
+-- When nvim-tree opens a file via `o` (or any split-from-tree path), the new
+-- editor window inherits `cursorline = true` from the NvimTree window since
+-- `cursorline` is window-local and copied on :split. Strip it from regular
+-- file windows. Skipped while a blame view is active in the tab - blame.nvim
+-- legitimately needs cursorline on its synced editor window.
+vim.api.nvim_create_autocmd('BufWinEnter', {
+  callback = function(args)
+    if vim.bo[args.buf].buftype ~= '' then return end
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.bo[vim.api.nvim_win_get_buf(w)].filetype == 'blame' then return end
+    end
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_buf(win) == args.buf then
+        vim.wo[win].cursorline = false
+      end
+    end
+  end,
+})
