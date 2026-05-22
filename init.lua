@@ -19,15 +19,16 @@ vim.opt.expandtab = true
 -- Case-insensitive search; uppercase in pattern -> case-sensitive (smartcase)
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
--- Whitespace display: trailing dots always; full whitespace in visual mode
+-- Whitespace display: trailing dots always; full whitespace in visual/insert modes
 vim.opt.list = true
 vim.opt.listchars = { trail = '·', tab = '  ' }
 -- Blank out vertical split separators (between editor splits, nvim-tree, dbui).
 vim.opt.fillchars:append({ vert = ' ' })
 vim.api.nvim_create_autocmd('ModeChanged', {
   callback = function()
-    local in_visual = vim.v.event.new_mode:match('^[vV\22]') ~= nil
-    if in_visual then
+    local mode = vim.v.event.new_mode
+    local show_all = mode:match('^[vV\22]') ~= nil or mode:match('^[iR]') ~= nil
+    if show_all then
       local sw = vim.bo.shiftwidth
       if sw <= 0 then sw = vim.bo.tabstop end
       local lead = '│' .. string.rep('·', math.max(sw - 1, 0))
@@ -36,7 +37,7 @@ vim.api.nvim_create_autocmd('ModeChanged', {
       vim.opt.listchars = { trail = '·', tab = '  ' }
     end
     local ok, vc = pcall(require, 'virt-column')
-    if ok then vc.update({ enabled = in_visual }) end
+    if ok then vc.update({ enabled = show_all }) end
   end,
 })
 -- Apply tab_spaces from rustfmt.toml to *.rs buffers

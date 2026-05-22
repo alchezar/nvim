@@ -87,17 +87,18 @@ require('nvim-tree').setup({
 
 local function apply_tree_hl()
   local theme = require('config.theme_colors')
-  vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL',   { fg = theme.dark })
-  vim.api.nvim_set_hl(0, 'NvimTreeGitFolderIgnoredHL', { fg = theme.dark })
+  vim.api.nvim_set_hl(0, 'NvimTreeNormal',             { fg = theme.gray })
+  vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL',   { fg = theme.brown })
+  vim.api.nvim_set_hl(0, 'NvimTreeGitFolderIgnoredHL', { fg = theme.brown })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFileDirtyHL',     { fg = theme.blue })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFolderDirtyHL',   { fg = theme.blue })
-  vim.api.nvim_set_hl(0, 'NvimTreeFolderName',        { fg = theme.gray })
-  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderName',  { fg = theme.gray, bold = true })
-  vim.api.nvim_set_hl(0, 'NvimTreeEmptyFolderName',   { fg = theme.gray, italic = true })
-  vim.api.nvim_set_hl(0, 'NvimTreeFolderIcon',        { fg = theme.gray })
-  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderIcon',  { fg = theme.gray })
-  vim.api.nvim_set_hl(0, 'NvimTreeRootFolder',        { fg = theme.gray, bold = true })
-  vim.api.nvim_set_hl(0, 'NvimTreeSymlinkFolderName', { fg = theme.gray, italic = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeFolderName',        { fg = theme.silver, bold = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderName',  { fg = theme.silver, bold = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeEmptyFolderName',   { fg = theme.silver, bold = true, italic = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeFolderIcon',        { fg = theme.silver })
+  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderIcon',  { fg = theme.silver })
+  vim.api.nvim_set_hl(0, 'NvimTreeRootFolder',        { fg = theme.silver, bold = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeSymlinkFolderName', { fg = theme.silver, bold = true, italic = true })
   vim.api.nvim_set_hl(0, 'NvimTreeCursorLine', { bg = theme.black })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_tree_hl })
@@ -105,7 +106,7 @@ apply_tree_hl()
 
 -- Annotate mod.rs / README.md (case-insensitive) with `[parent]` virtual text.
 local mod_ns = vim.api.nvim_create_namespace('nvim_tree_mod_rs_parent')
-vim.api.nvim_set_hl(0, 'NvimTreeModRsParent', { fg = require('config.theme_colors').gray })
+vim.api.nvim_set_hl(0, 'NvimTreeModRsParent', { fg = require('config.theme_colors').silver, bold = true })
 
 require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   local bufnr = payload and payload.bufnr

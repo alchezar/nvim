@@ -7,6 +7,11 @@ vim.g.neovide_opacity = 0.9
 vim.g.neovide_normal_opacity = 0.9
 vim.g.neovide_input_macos_option_key_is_meta = "both"
 vim.g.neovide_hide_mouse_when_typing = true
+vim.g.neovide_cursor_trail_size = 0.8
+
+vim.g.neovide_cursor_smooth_blink = false
+vim.g.neovide_cursor_animate_in_insert_mode = true
+vim.g.neovide_cursor_animate_command_line = true
 
 -- Font settings. My own font with concinese name.
 -- Based on the Iosevka Font. https://typeof.net/Iosevka/
@@ -26,7 +31,7 @@ local function apply_neovide_theme()
 end
 
 local update_cursor_color = require("config.utils").update_cursor_color
-vim.opt.guicursor = "n-v-c-sm:block-Cursor,i-ci-ve:ver25-Cursor,r-cr-o:hor20-Cursor"
+vim.opt.guicursor = "n-v-c-sm:block-Cursor-blinkwait500-blinkoff500-blinkon500,i-ci-ve:ver25-Cursor-blinkwait500-blinkoff500-blinkon500,r-cr-o:hor20-Cursor"
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "ModeChanged" }, {
   callback = update_cursor_color,
 })
