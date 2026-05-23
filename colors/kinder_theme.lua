@@ -247,6 +247,7 @@ local function rust_lsp_highlights(lang)
 		["@lsp.typemod.function.static." .. lang]      = { fg = colors.emerald },
 		["@lsp.type.typeParameter." .. lang]           = { fg = colors.teal },
 		["@lsp.type.punctuation." .. lang]             = { fg = colors.gray },
+		["@lsp.type.formatSpecifier." .. lang]         = { fg = colors.purple },
 		["@lsp.type.variable." .. lang]                = { fg = colors.gray },
 		["@lsp.type.const." .. lang]                   = { fg = colors.lime },
 		["@lsp.typemod.variable.declaration." .. lang] = { fg = colors.gray },
