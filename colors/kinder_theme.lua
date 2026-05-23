@@ -25,6 +25,10 @@ vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 
 vim.api.nvim_set_hl(0, "Visual", { bg = "#0055C5" })
 
+vim.api.nvim_set_hl(0, "Search",    { bg = colors.purple, fg = colors.bg })
+vim.api.nvim_set_hl(0, "CurSearch", { bg = colors.purple, fg = colors.bg, bold = true })
+vim.api.nvim_set_hl(0, "IncSearch", { bg = colors.purple, fg = colors.bg, bold = true })
+
 -- qfFileName / NvimTreeFolderName link to Directory; override once and the rest follow.
 vim.api.nvim_set_hl(0, "Directory",  { fg = colors.gray })
 vim.api.nvim_set_hl(0, "qfFileName", { fg = colors.gray })

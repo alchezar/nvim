@@ -132,6 +132,7 @@ vim.api.nvim_create_autocmd('BufEnter', {
 })
 require('nvim-web-devicons').setup()
 require('virt-column').setup({ enabled = false, char = '▕', virtcolumn = '80,100', highlight = 'VirtColumn' })
+require('nvim-highlight-colors').setup({ render = 'background' })
 require('plugins.bookmarks')
 require('plugins.markdown')
 require('plugins.fishbone_setup')

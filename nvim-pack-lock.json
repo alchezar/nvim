@@ -108,6 +108,10 @@
       "rev": "dda517694889a5d238d7aa407403984da9f80cc0",
       "src": "https://github.com/kndndrj/nvim-dbee"
     },
+    "nvim-highlight-colors": {
+      "rev": "e4c7af0211866162d999ce0bdd6a029302e19139",
+      "src": "https://github.com/brenoprata10/nvim-highlight-colors"
+    },
     "nvim-lspconfig": {
       "rev": "a4ed4e761c400849e8c9f8bda33e5083f890268c",
       "src": "https://github.com/neovim/nvim-lspconfig"
