@@ -57,6 +57,7 @@ function _G.startify_projects_group(group_name)
 end
 
 vim.g.startify_enable_special = 0
+vim.g.startify_fortune_use_unicode = 1
 
 -- Dim the directory portion of Recent files so the filename stays visually primary.
 local function apply_startify_hl()
@@ -66,6 +67,11 @@ local function apply_startify_hl()
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_startify_hl })
 apply_startify_hl()
+
+local function load_extra_quotes()
+  local ok, quotes = pcall(require, 'config.quotes')
+  return ok and quotes or {}
+end
 
 local content_width = 85
 local last_pad_n    = nil
@@ -119,7 +125,13 @@ end
 
 vim.api.nvim_create_autocmd('VimEnter', {
   once     = true,
-  callback = function() apply_layout(0) end,
+  callback = function()
+    vim.g.startify_custom_header_quotes = vim.list_extend(
+      vim.fn['startify#fortune#predefined_quotes'](),
+      load_extra_quotes()
+    )
+    apply_layout(0)
+  end,
 })
 
 -- Find first `[idx]` entry below the Recent files header.
