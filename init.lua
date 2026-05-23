@@ -130,7 +130,7 @@ vim.api.nvim_create_autocmd('BufEnter', {
     require('config.utils').auto_cd_to_project_root(args.buf)
   end,
 })
-require('nvim-web-devicons').setup()
+require('config.tree_icons').setup()
 require('virt-column').setup({ enabled = false, char = '▕', virtcolumn = '80,100', highlight = 'VirtColumn' })
 require('nvim-highlight-colors').setup({ render = 'background' })
 require('plugins.bookmarks')
