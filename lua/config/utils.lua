@@ -324,6 +324,20 @@ function M.open_clipboard_path()
   end
 end
 
+function M.yank_to_clipboard(text)
+  vim.fn.setreg('+', text)
+  vim.notify('Copied: ' .. text)
+end
+
+function M.find_files_in_home()
+  require('telescope.builtin').find_files({
+    cwd = vim.env.HOME,
+    hidden = true,
+    no_ignore = true,
+    prompt_title = 'Find files ($HOME)',
+  })
+end
+
 -- Markers used by auto_cd_to_project_root.
 M.project_root_markers = {
   '.git',

@@ -11,6 +11,7 @@ vim.opt.textwidth = 80
 vim.api.nvim_create_autocmd('FileType', {
   callback = function() vim.opt_local.textwidth = 80 end,
 })
+vim.opt.scrolloff = 2
 -- Tabs / indent settings
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4

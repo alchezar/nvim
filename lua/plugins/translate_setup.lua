@@ -46,13 +46,17 @@ local function strip_comments_cmd(lines, pos)
   return lines
 end
 
--- :Translate the visual selection; keep cursor at the END so the float doesn't cover the text.
+-- :Translate the visual selection; park cursor BELOW the selection so the
+-- floating output (relative=cursor, row=1) doesn't cover the source text.
+-- Falls back to the last selected line when selection ends at EOF.
 local M = {}
 function M.translate_selection(target)
   vim.cmd('normal! \27')  -- <Esc> to update '<,'> marks
-  local end_line = vim.fn.line("'>")
+  local end_line  = vim.fn.line("'>")
+  local last_line = vim.fn.line('$')
   vim.cmd(string.format("'<,'>Translate %s -output=floating", target))
-  vim.api.nvim_win_set_cursor(0, { end_line, 0 })
+  local target_line = math.min(end_line + 1, last_line)
+  vim.api.nvim_win_set_cursor(0, { target_line, 0 })
 end
 
 -- Custom floating output: clamp width to a fraction of editor columns and
