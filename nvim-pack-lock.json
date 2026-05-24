@@ -41,7 +41,7 @@
       "src": "https://github.com/saadparwaiz1/cmp_luasnip"
     },
     "conform.nvim": {
-      "rev": "18aeab3d63d350dcf44d64c462cc489a3412af40",
+      "rev": "24c70347f6b2128679f47d2eb765156ef34bf9e0",
       "src": "https://github.com/stevearc/conform.nvim"
     },
     "crates.nvim": {
@@ -145,7 +145,7 @@
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "6d3b5788fd7c9a6745f3d92ae1b2da6bfeab0ad1",
+      "rev": "8eea5f85d5ce4c1c66643317ebec96e72623e2be",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "telescope.nvim": {

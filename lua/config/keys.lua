@@ -56,6 +56,8 @@ map('n', '<leader>?',  builtin.keymaps,   { desc = 'Search keymaps (cheatsheet)'
 map('n', '<leader>fp', utils.open_clipboard_path, { desc = 'Open file path from clipboard' })
 map('n', '<leader>fa', utils.find_files_in_home, { desc = 'Find files everywhere ($HOME)' })
 map('n', '<leader>fe', ':AxumRoutes<CR>', { desc = 'Axum/utoipa endpoints', silent = true })
+map('n', '<leader>fr', function() builtin.oldfiles({ cwd_only = true }) end, { desc = 'Recent files (project)' })
+map('n', '<leader>fR', builtin.oldfiles, { desc = 'Recent files' })
 -- Copy file path / location to system clipboard
 map('n', '<leader>cp', function() utils.yank_to_clipboard(vim.fn.expand('%') .. ':' .. vim.fn.line('.')) end,   { desc = 'Copy relative path:line' })
 map('n', '<leader>cP', function() utils.yank_to_clipboard(vim.fn.expand('%:p') .. ':' .. vim.fn.line('.')) end, { desc = 'Copy absolute path:line' })

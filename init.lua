@@ -106,8 +106,8 @@ apply_vm_hl()
 require("config.plugins")
 
 -- Plugin configs
-require("config.keys")
 require("config.autosave")
+require("config.keys")
 require("plugins.telescope_setup")
 require("plugins.lsp")
 require("plugins.completion_setup")
