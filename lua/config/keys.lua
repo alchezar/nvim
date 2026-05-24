@@ -14,8 +14,8 @@ map('n', '<C-Enter>', 'moo<Esc>kw', { desc = 'New line below' }) -- Insert new l
 map('x', '*', function() utils.search_visual(true) end, { desc = 'Search selected text forward' }) -- Search selected text forward
 map('x', '#', function() utils.search_visual(false) end, { desc = 'Search selected text backward' }) -- Search selected text backward
 map('n', '<D-C-]>', utils.toggle_inlay_hints,   { desc = 'Toggle inlay hints' }) -- Toggle inlay hints
-map('n', '<D-/>', 'gcc', { desc = 'Toggle comment on current line (Cmd+/)', remap = true }) -- Toggle line comment (Cmd+/) in normal mode
-map('x', '<D-/>', 'gc',  { desc = 'Toggle comment on selection (Cmd+/)', remap = true }) -- Toggle line comment (Cmd+/) in visual mode
+map('n', '<D-/>', 'gccj', { desc = 'Toggle comment on current line (Cmd+/)', remap = true }) -- Toggle line comment (Cmd+/) in normal mode
+map('x', '<D-/>', "gc'>j", { desc = 'Toggle comment on selection (Cmd+/)', remap = true }) -- Toggle line comment (Cmd+/) in visual mode
 map('x', '<D-C-u>',   function() translate.translate_selection('UK') end, { desc = 'Translate selection to Ukrainian' }) -- Translate selected text (Cmd+Ctrl+U: -> Ukrainian)
 map('x', '<D-C-S-u>', function() translate.translate_selection('EN') end, { desc = 'Translate selection to English' }) -- Translate selected text (Cmd+Ctrl+Shift+U: -> English)
 map('n', '<leader>n', ':noh<CR>', { desc = 'Clear search highlight', silent = true }) -- Disable search highlight

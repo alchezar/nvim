@@ -118,7 +118,7 @@ require("plugins.translate_setup")
 require("plugins.axum_routes")
 
 -- Plugin setup
-require('nvim-autopairs').setup()
+require('nvim-autopairs').setup({ enable_check_bracket_line = false })
 require('Comment').setup()
 require('gitsigns').setup()
 require('todo-comments').setup()

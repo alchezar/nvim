@@ -107,7 +107,8 @@
  (#eq? @_crate "sqlx")
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
@@ -121,7 +122,8 @@
  (#eq? @_crate "sqlx")
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
@@ -134,7 +136,8 @@
  (#eq? @_crate "sqlx")
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
@@ -147,7 +150,8 @@
  (#eq? @_crate "sqlx")
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
@@ -161,7 +165,8 @@
    arguments: (arguments (raw_string_literal (string_content) @injection.content)))
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
@@ -172,7 +177,8 @@
    arguments: (arguments (string_literal (string_content) @injection.content)))
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
@@ -182,7 +188,8 @@
    arguments: (arguments (raw_string_literal (string_content) @injection.content)))
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
@@ -192,7 +199,8 @@
    arguments: (arguments (string_literal (string_content) @injection.content)))
  (#any-of? @_func
    "query" "query_as" "query_scalar"
-   "query_with" "query_as_with" "query_scalar_with")
+   "query_with" "query_as_with" "query_scalar_with"
+   "raw_sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
