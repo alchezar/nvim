@@ -4,7 +4,9 @@ vim.g.rustaceanvim = {
     settings = {
       ['rust-analyzer'] = {
         checkOnSave = true,
-        check = { command = 'clippy' },
+        -- RUSTFLAGS surfaces redundant path prefixes; rustc's unused_qualifications is allow-by-default
+        -- and check.extraArgs does not reach clippy through rustaceanvim.
+        check = { command = 'clippy', extraEnv = { RUSTFLAGS = '-Wunused_qualifications' } },
         cargo = { allFeatures = true },
         semanticHighlighting = {
           strings = { enable = false },
