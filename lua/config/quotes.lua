@@ -142,4 +142,6 @@ return {
   {'Hack without fear.', '', '- Aaron Turon, on Rust'},
   {'Rust: where the compiler is your pair programmer,',
    "and it's always right.", '', '- Rust folklore'},
+  {"If the user's ass is on fire, it's a shitty experience.", '',
+   '- Artur Plysiuk'},
 }
