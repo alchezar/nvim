@@ -13,6 +13,13 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_heading_hl })
 apply_heading_hl()
 
+-- Widen the sign column in markdown so a bookmark digit sits beside the
+-- heading sign instead of being hidden behind it.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'markdown',
+  callback = function() vim.opt_local.signcolumn = 'auto:2' end,
+})
+
 require('render-markdown').setup({
   heading = {
     foregrounds = {

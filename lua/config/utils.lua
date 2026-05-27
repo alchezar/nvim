@@ -350,10 +350,15 @@ M.project_root_markers = {
   'compile_commands.json',
 }
 
-function M.auto_cd_to_project_root(bufnr)
+-- Project root for a buffer by the markers above (nil if none / scratch buf).
+function M.project_root(bufnr)
   local path = vim.api.nvim_buf_get_name(bufnr)
-  if path == '' or vim.bo[bufnr].buftype ~= '' then return end
-  local root = vim.fs.root(bufnr, M.project_root_markers)
+  if path == '' or vim.bo[bufnr].buftype ~= '' then return nil end
+  return vim.fs.root(bufnr, M.project_root_markers)
+end
+
+function M.auto_cd_to_project_root(bufnr)
+  local root = M.project_root(bufnr)
   if root and root ~= vim.fn.getcwd() then
     vim.cmd.lcd(root)
   end

@@ -31,7 +31,7 @@ vim.pack.add({
   'https://github.com/numToStr/Comment.nvim',
   'https://github.com/lewis6991/gitsigns.nvim',
   'https://github.com/lukas-reineke/virt-column.nvim',
-  'https://github.com/chentoast/marks.nvim',
+  'https://github.com/chentoast/marks.nvim',                                 -- Letter marks a-z/A-Z signs (numbered 0-9 are our own module)
   'https://github.com/alchezar/fishbone.nvim',
   'https://github.com/brenoprata10/nvim-highlight-colors',                   -- Inline color preview for #hex / rgb / hsl
   'https://github.com/MeanderingProgrammer/render-markdown.nvim',            -- Markdown
