@@ -47,10 +47,8 @@ require('nvim-tree').setup({
   view = { width = 40, cursorline = false },
   update_focused_file = {
     enable = true,
-    -- Keep highlight/expand on focus, but don't rebuild the tree root each time
-    -- (that root rescan + git refresh caused the cursor lag on <leader>e).
     update_root = {
-      enable = false,
+      enable = true,
       ignore_list = {},
     },
   },
@@ -85,6 +83,23 @@ require('nvim-tree').setup({
       },
     },
   },
+})
+
+-- update_root off in setup: its cwd-aware path re-ran git on every BufEnter when vim
+-- cwd drifted from the tree root (the <leader>e lag). Re-root only on a real project change.
+local tree_root_markers = { '.git', 'Cargo.toml', 'go.mod', 'package.json', '.hg', '.svn' }
+local function tree_realpath(p) return vim.uv.fs_realpath(p) or p end
+vim.api.nvim_create_autocmd('BufEnter', {
+  callback = function(args)
+    if vim.bo[args.buf].buftype ~= '' then return end
+    local name = vim.api.nvim_buf_get_name(args.buf)
+    if name == '' or vim.fn.filereadable(name) == 0 then return end
+    local core = require('nvim-tree.core')
+    if not core.get_explorer() then return end
+    local root = vim.fs.root(name, tree_root_markers) or vim.fs.dirname(name)
+    if tree_realpath(core.get_cwd()) == tree_realpath(root) then return end
+    vim.schedule(function() require('nvim-tree.api').tree.change_root(root) end)
+  end,
 })
 
 local function apply_tree_hl()

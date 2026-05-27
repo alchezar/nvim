@@ -41,7 +41,7 @@
       "src": "https://github.com/saadparwaiz1/cmp_luasnip"
     },
     "conform.nvim": {
-      "rev": "24c70347f6b2128679f47d2eb765156ef34bf9e0",
+      "rev": "619363c30309d29ffa631e67c8183f2a72caa373",
       "src": "https://github.com/stevearc/conform.nvim"
     },
     "crates.nvim": {
@@ -53,7 +53,7 @@
       "src": "https://github.com/sindrets/diffview.nvim"
     },
     "fishbone.nvim": {
-      "rev": "4e3053d01580853e1769264be167931910e33a2b",
+      "rev": "b6aee991bf30f532c7b7a103e001a8fa2d3da7d3",
       "src": "https://github.com/alchezar/fishbone.nvim"
     },
     "gitsigns.nvim": {
@@ -133,7 +133,7 @@
       "src": "https://github.com/nvim-treesitter/nvim-treesitter"
     },
     "nvim-web-devicons": {
-      "rev": "0d7d35fa946837b8738b17c18d1faa1ac351e7f9",
+      "rev": "dfbfaa967a6f7ec50789bead7ef87e336c1fa63c",
       "src": "https://github.com/nvim-tree/nvim-web-devicons"
     },
     "plenary.nvim": {
@@ -141,11 +141,11 @@
       "src": "https://github.com/nvim-lua/plenary.nvim"
     },
     "render-markdown.nvim": {
-      "rev": "629eb9533ec989d9d5c6cab8f3ad5372422c24e0",
+      "rev": "5adf0895310c1904e5abfaad40a2baad7fe44a07",
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "8eea5f85d5ce4c1c66643317ebec96e72623e2be",
+      "rev": "95f9e17010f232f6a5d631be821c9eb9b14469c2",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "telescope.nvim": {
