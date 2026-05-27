@@ -47,8 +47,10 @@ require('nvim-tree').setup({
   view = { width = 40, cursorline = false },
   update_focused_file = {
     enable = true,
+    -- Keep highlight/expand on focus, but don't rebuild the tree root each time
+    -- (that root rescan + git refresh caused the cursor lag on <leader>e).
     update_root = {
-      enable = true,
+      enable = false,
       ignore_list = {},
     },
   },
