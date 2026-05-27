@@ -23,6 +23,33 @@ vim.g.rustaceanvim = {
   },
 }
 
+-- #[utoipa::path] & co. expand qualified paths but stamp them with our bare token's span,
+-- so unused_qualifications fires on an identifier with no `::` - an unactionable false positive.
+-- Keep only hits whose flagged text actually contains `::` (the segments rustc says to remove).
+local function unused_qual_actionable(uri, d)
+  local r = d.range
+  local bufnr = vim.uri_to_bufnr(uri)
+  vim.fn.bufload(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, r.start.line, r['end'].line + 1, false)
+  if not lines[1] then return true end
+  local seg = #lines == 1 and lines[1]:sub(r.start.character + 1, r['end'].character)
+    or table.concat(lines, '\n')
+  return seg:find('::', 1, true) ~= nil
+end
+
+local rust_publish = vim.lsp.handlers['textDocument/publishDiagnostics']
+vim.lsp.handlers['textDocument/publishDiagnostics'] = function(err, result, ctx)
+  local client = vim.lsp.get_client_by_id(ctx.client_id)
+  if client and client.name == 'rust-analyzer' and result and result.diagnostics then
+    result.diagnostics = vim.tbl_filter(function(d)
+      local code = type(d.code) == 'table' and d.code.value or d.code
+      if code ~= 'unused_qualifications' then return true end
+      return unused_qual_actionable(result.uri, d)
+    end, result.diagnostics)
+  end
+  return rust_publish(err, result, ctx)
+end
+
 -- Default capabilities for all servers (cmp_nvim_lsp).
 vim.lsp.config('*', {
   capabilities = require('cmp_nvim_lsp').default_capabilities(),
