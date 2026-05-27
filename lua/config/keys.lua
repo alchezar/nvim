@@ -24,6 +24,10 @@ map('n', '<leader>p', '"_dP', { desc = 'Paste without overwriting register' }) -
 map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' }) -- Open yazi file manager
 map('n', '<leader>i', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' }) -- Toggle inlay hints
 map('n', '<leader>wf', utils.focus_floating, { desc = 'Focus floating window (toggle)' }) -- Focus floating window (toggle)
+map('n', '<leader>wh', '<C-w>h', { desc = 'Go to window left', silent = true }) -- Window left
+map('n', '<leader>wj', '<C-w>j', { desc = 'Go to window below', silent = true }) -- Window below
+map('n', '<leader>wk', '<C-w>k', { desc = 'Go to window above', silent = true }) -- Window above
+map('n', '<leader>wl', '<C-w>l', { desc = 'Go to window right', silent = true }) -- Window right
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true }) -- Trouble
 -- LSP (matching .ideavimrc bindings)
 map('n', 'gd', builtin.lsp_definitions, { desc = 'Go to definition (Telescope)' })
