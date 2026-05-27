@@ -41,21 +41,29 @@ local function tree_sorter(nodes)
 end
 
 require('nvim-tree').setup({
+  -- Tree follows the global cwd (set to the project root by auto_cd_to_project_root).
+  -- Re-roots on a real project change; within a project getcwd == root so focus never reloads.
   sync_root_with_cwd = true,
-  respect_buf_cwd = true,
+  respect_buf_cwd = false,
   sort = { sorter = tree_sorter },
   view = { width = 40, cursorline = false },
+  -- Reveal the open file without re-running git per BufEnter (update_root would; the lag).
   update_focused_file = {
     enable = true,
     update_root = {
-      enable = true,
+      enable = false,
       ignore_list = {},
     },
   },
   root_dirs = {},
   git = { enable = true },
+  filesystem_watchers = { enable = true },
+
   filters = {
+    -- Show git-ignored files (.env, .secret/...): nvim-tree runs `git status --ignored=matching`,
+    -- which does NOT recurse into ignored dirs, so this is cheap. Hide only the huge target/.
     git_ignored = false,
+    custom = { '^target$' },
   },
   diagnostics = {
     enable = true,
@@ -83,23 +91,6 @@ require('nvim-tree').setup({
       },
     },
   },
-})
-
--- update_root off in setup: its cwd-aware path re-ran git on every BufEnter when vim
--- cwd drifted from the tree root (the <leader>e lag). Re-root only on a real project change.
-local tree_root_markers = { '.git', 'Cargo.toml', 'go.mod', 'package.json', '.hg', '.svn' }
-local function tree_realpath(p) return vim.uv.fs_realpath(p) or p end
-vim.api.nvim_create_autocmd('BufEnter', {
-  callback = function(args)
-    if vim.bo[args.buf].buftype ~= '' then return end
-    local name = vim.api.nvim_buf_get_name(args.buf)
-    if name == '' or vim.fn.filereadable(name) == 0 then return end
-    local core = require('nvim-tree.core')
-    if not core.get_explorer() then return end
-    local root = vim.fs.root(name, tree_root_markers) or vim.fs.dirname(name)
-    if tree_realpath(core.get_cwd()) == tree_realpath(root) then return end
-    vim.schedule(function() require('nvim-tree.api').tree.change_root(root) end)
-  end,
 })
 
 local function apply_tree_hl()

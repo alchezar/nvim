@@ -357,10 +357,20 @@ function M.project_root(bufnr)
   return vim.fs.root(bufnr, M.project_root_markers)
 end
 
+-- Global cd (not lcd): a single cwd shared by all windows keeps nvim-tree's
+-- root and its focus-reload check (getcwd == tree root) consistent. A window-local
+-- lcd would diverge from the tree window's cwd and trigger a full reload on every focus.
 function M.auto_cd_to_project_root(bufnr)
   local root = M.project_root(bufnr)
+  if not root then
+    -- No project marker: fall back to the file's own dir so the tree still follows it.
+    local path = vim.api.nvim_buf_get_name(bufnr)
+    if path ~= '' and vim.bo[bufnr].buftype == '' then
+      root = vim.fs.dirname(path)
+    end
+  end
   if root and root ~= vim.fn.getcwd() then
-    vim.cmd.lcd(root)
+    vim.cmd.cd(root)
   end
 end
 
