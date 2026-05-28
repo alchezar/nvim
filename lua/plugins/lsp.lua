@@ -8,6 +8,8 @@ vim.g.rustaceanvim = {
         -- and check.extraArgs does not reach clippy through rustaceanvim.
         check = { command = 'clippy', extraEnv = { RUSTFLAGS = '-Wunused_qualifications' } },
         cargo = { allFeatures = true },
+        -- Suppress dim/underline on #[cfg]-gated branches.
+        diagnostics = { disabled = { 'inactive-code' } },
         semanticHighlighting = {
           strings = { enable = false },
         },
