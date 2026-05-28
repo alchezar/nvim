@@ -472,6 +472,33 @@ for _, lang in ipairs({ "python" }) do
 	end
 end
 
+-- XML: default syntax links tags to Function (everything green); split by role.
+vim.api.nvim_set_hl(0, "xmlTag",             { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlEndTag",          { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlTagName",         { fg = colors.red })
+vim.api.nvim_set_hl(0, "xmlAttrib",          { fg = colors.orange })
+vim.api.nvim_set_hl(0, "xmlEqual",           { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlString",          { fg = colors.yellow })
+vim.api.nvim_set_hl(0, "xmlComment",         { fg = colors.silver, italic = true })
+vim.api.nvim_set_hl(0, "xmlCommentStart",    { fg = colors.silver, italic = true })
+vim.api.nvim_set_hl(0, "xmlCommentPart",     { fg = colors.silver, italic = true })
+vim.api.nvim_set_hl(0, "xmlProcessingDelim", { fg = colors.purple })
+vim.api.nvim_set_hl(0, "xmlNamespace",       { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "xmlEntity",          { fg = colors.purple })
+vim.api.nvim_set_hl(0, "xmlEntityPunct",     { fg = colors.purple })
+vim.api.nvim_set_hl(0, "xmlCdata",           { fg = colors.fg })
+vim.api.nvim_set_hl(0, "xmlCdataStart",      { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlCdataEnd",        { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlDocType",         { fg = colors.purple })
+vim.api.nvim_set_hl(0, "xmlDocTypeKeyword",  { fg = colors.red })
+
+-- Treesitter equivalents (tree-sitter-xml uses @tag.* / @string).
+vim.api.nvim_set_hl(0, "@tag.xml",           { fg = colors.red })
+vim.api.nvim_set_hl(0, "@tag.delimiter.xml", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "@tag.attribute.xml", { fg = colors.orange })
+vim.api.nvim_set_hl(0, "@string.xml",        { fg = colors.yellow })
+vim.api.nvim_set_hl(0, "@comment.xml",       { fg = colors.silver, italic = true })
+
 -- LSP diagnostics.
 vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
 vim.api.nvim_set_hl(0, "DiagnosticWarn",  { fg = colors.orange })

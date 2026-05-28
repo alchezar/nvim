@@ -7,7 +7,7 @@ return {
   silver  = "#797979",
   dark    = "#5A5A5A",
   black   = "#181818",
-  brown   = "#71504D",
+  brown   = "#9A6A5C", -- #71504D
   pink    = "#FC618D",
   red     = "#FC6161",
   orange  = "#FFA348",
