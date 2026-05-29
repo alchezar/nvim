@@ -63,7 +63,7 @@ require('nvim-tree').setup({
     -- Show git-ignored files (.env, .secret/...): nvim-tree runs `git status --ignored=matching`,
     -- which does NOT recurse into ignored dirs, so this is cheap. Hide only the huge target/.
     git_ignored = false,
-    custom = { '^target$' },
+    custom = { '^target$', '^\\.DS_Store$' },
   },
   diagnostics = {
     enable = true,

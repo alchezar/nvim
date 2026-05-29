@@ -10,6 +10,7 @@ local actions      = require('telescope.actions')
 local action_state = require('telescope.actions.state')
 
 local METHODS = 'GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE'
+local METHOD_LIST = { 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE' }
 
 local function rg_vimgrep(pattern, extra_args)
   local cmd = { 'rg', '--vimgrep', '--no-heading', '--color=never',
@@ -72,24 +73,36 @@ local function find_handler_after(file, start_lnum, span)
 end
 
 local function collect_anchored()
-  local pattern = [[^\s*//\s*`?(]] .. METHODS .. [[)\s+(/\S*?)`?\s*$]]
-  local out = {}
-  for _, raw in ipairs(rg_vimgrep(pattern)) do
+  -- Match `METHOD /path` anywhere in a `//` or `///` comment - covers bare
+  -- `// GET /x`, doc `/// GET /x`, and banners `// Foo - GET /x`. Skip tests/.
+  local pattern = [[^\s*//.*\b(]] .. METHODS .. [[)\s+/]]
+  local out, seen = {}, {}
+  for _, raw in ipairs(rg_vimgrep(pattern, { '-g', '!**/tests/**' })) do
     local m = parse_vimgrep(raw)
-    if m then
-      local meth, path = m.text:match('//%s*`?(%a+)%s+(/[^`%s]*)')
+    -- `//!` lines are module-level endpoint overviews - they duplicate the
+    -- per-handler `///` and resolve to the wrong fn, so drop them.
+    if m and not m.text:match('^%s*//!') then
+      local meth, path
+      for _, mm in ipairs(METHOD_LIST) do
+        local p = m.text:match(mm .. '%s+`?(/[^`%s),]*)')
+        if p then meth, path = mm, p; break end
+      end
       if meth and path then
         local handler, hlnum, doc = find_handler_after(m.file, m.lnum, 120)
-        table.insert(out, {
-          method        = meth:upper(),
-          path          = path,
-          file          = m.file,
-          anchor_lnum   = m.lnum,
-          handler       = handler,
-          handler_lnum  = hlnum,
-          doc           = doc,
-          kind          = 'anchor',
-        })
+        local key = hlnum and (m.file .. ':' .. hlnum) or (meth .. ' ' .. path)
+        if not seen[key] then
+          seen[key] = true
+          table.insert(out, {
+            method        = meth,
+            path          = path,
+            file          = m.file,
+            anchor_lnum   = m.lnum,
+            handler       = handler,
+            handler_lnum  = hlnum,
+            doc           = doc,
+            kind          = 'anchor',
+          })
+        end
       end
     end
   end
