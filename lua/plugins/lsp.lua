@@ -219,10 +219,7 @@ vim.lsp.config('lua_ls', {
   settings = {
     Lua = {
       diagnostics = {
-        globals = { 'vim' },
-        -- Plugin APIs (cmp, dbee, ...) build fields via metatables lua_ls can't
-        -- see, and setup() takes partial config tables; these fire as false positives.
-        disable = { 'undefined-field', 'redundant-parameter', 'missing-fields' },
+        globals = { 'vim', 'bit' },
       },
       hint = { enable = true },
       telemetry = { enable = false },

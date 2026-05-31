@@ -65,7 +65,7 @@ vim.api.nvim_set_keymap('v', '<C-k>', ":m '<-2<CR>gv", { noremap = true, silent 
 vim.api.nvim_set_keymap('v', '<C-j>', ":m '>+1<CR>gv", { noremap = true, silent = true })
 
 -- Vim UI2
-require ('vim._core.ui2').enable({
+require('vim._core.ui2').enable({
   enable = true,
   msg = {
     target = "cmd",
@@ -78,34 +78,11 @@ require ('vim._core.ui2').enable({
 
 -- Neovide related settings
 require("config.neovide")
-
 -- Multi-cursor (vim-visual-multi) - must be set before plugins load
-vim.g.VM_maps = {
-  ['Add Cursor Down']    = '<D-M-Down>',
-  ['Add Cursor Up']      = '<D-M-Up>',
-  ['Find Under']         = '<D-d>',
-  ['Find Subword Under'] = '<D-d>',
-  ['Switch Mode']        = 'v',
-}
-vim.g.VM_silent_exit = 1
-vim.g.VM_set_statusline = 0
-vim.g.VM_show_warnings = 0
-
--- vim-visual-multi cursor colors: white block cursors, theme-matched selection
-local function apply_vm_hl()
-  local theme = require('config.theme_colors')
-  vim.api.nvim_set_hl(0, 'VM_Mono',   { fg = theme.bg, bg = theme.white })
-  vim.api.nvim_set_hl(0, 'VM_Cursor', { fg = theme.bg, bg = theme.white })
-  vim.api.nvim_set_hl(0, 'VM_Insert', { fg = theme.bg, bg = theme.white })
-  vim.api.nvim_set_hl(0, 'VM_Extend', { bg = theme.dark })
-end
-vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_vm_hl })
-apply_vm_hl()
+require('plugins.visual_multi_setup')
 
 -- Plugins
 require("config.plugins")
-
--- Plugin configs
 require("config.autosave")
 require("config.keys")
 require("plugins.telescope_setup")
@@ -116,33 +93,13 @@ require("plugins.debugging")
 require("plugins.formatting")
 require("plugins.translate_setup")
 require("plugins.axum_routes")
-
--- Plugin setup
-require('nvim-autopairs').setup({ enable_check_bracket_line = false })
--- Auto-close generics `<>` in Rust after a type name; skips comparison like `a < b`.
-do
-  local Rule = require('nvim-autopairs.rule')
-  local cond = require('nvim-autopairs.conds')
-  require('nvim-autopairs').add_rules({
-    Rule('<', '>', { 'rust' })
-      :with_pair(cond.before_regex('[%w_:]$'))
-      :with_move(function(opts) return opts.char == '>' end),
-  })
-end
+require('plugins.autopairs_setup')
 require('Comment').setup()
 require('gitsigns').setup()
 require('todo-comments').setup()
 require('trouble').setup()
+require('plugins.fidget_setup')
 require('plugins.file-tree')
-
--- Auto-cd to project root based on common markers. nested = true so the global cd's
--- DirChanged reaches nvim-tree (sync_root_with_cwd), re-rooting the tree on project change.
-vim.api.nvim_create_autocmd('BufEnter', {
-  nested = true,
-  callback = function(args)
-    require('config.utils').auto_cd_to_project_root(args.buf)
-  end,
-})
 require('config.tree_icons').setup()
 require('virt-column').setup({ enabled = false, char = '▕', virtcolumn = '80,100', highlight = 'VirtColumn' })
 require('nvim-highlight-colors').setup({ render = 'background' })
@@ -153,27 +110,7 @@ require('plugins.dbee')
 require('plugins.blame_setup')
 require('plugins.diffview_setup')
 require('plugins.startify_setup')
-require('crates').setup({ popup = { border = 'rounded' } })
+require('plugins.crates_setup')
 require('plugins.hex_setup')
-
--- In Cargo.toml, override `gh` to show the crate popup instead of LSP hover.
-vim.api.nvim_create_autocmd('BufRead', {
-  pattern = 'Cargo.toml',
-  callback = function(args)
-    vim.keymap.set('n', 'gh', require('crates').show_popup,
-      { buffer = args.buf, desc = 'Show crate popup' })
-  end,
-})
-
--- Treat *.xxx.template as filetype xxx (e.g. nginx.conf.template -> nginx).
-vim.filetype.add({
-  pattern = {
-    ['.*%.template'] = function(path)
-      return vim.filetype.match({ filename = (path:gsub('%.template$', '')) })
-    end,
-  },
-})
-
--- EasyMotion (matches .ideavimrc binding: s = bidirectional 2-char search)
-vim.g.EasyMotion_smartcase = 1
-vim.keymap.set({ 'n', 'x', 'o' }, 's', '<Plug>(easymotion-s2)')
+require('config.filetypes')
+require('plugins.easymotion_setup')

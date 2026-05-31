@@ -52,6 +52,10 @@
       "rev": "4516612fe98ff56ae0415a259ff6361a89419b0a",
       "src": "https://github.com/sindrets/diffview.nvim"
     },
+    "fidget.nvim": {
+      "rev": "82404b196e73a00b1727a91903beef5ddc319d22",
+      "src": "https://github.com/j-hui/fidget.nvim"
+    },
     "fishbone.nvim": {
       "rev": "b6aee991bf30f532c7b7a103e001a8fa2d3da7d3",
       "src": "https://github.com/alchezar/fishbone.nvim"
@@ -145,7 +149,7 @@
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "95f9e17010f232f6a5d631be821c9eb9b14469c2",
+      "rev": "4136336ac7e0dcbb1ffc60263d68dab500a6d183",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "telescope.nvim": {

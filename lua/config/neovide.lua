@@ -13,6 +13,9 @@ vim.g.neovide_cursor_smooth_blink = false
 vim.g.neovide_cursor_animate_in_insert_mode = true
 vim.g.neovide_cursor_animate_command_line = true
 
+-- vim.g.neovide_position_animation_length = 0
+vim.g.neovide_floating_shadow = false
+
 -- Font settings. My own font with concinese name.
 -- Based on the Iosevka Font. https://typeof.net/Iosevka/
 vim.opt.guifont = "Iosevka Chill Nerd Medium:h17"

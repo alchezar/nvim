@@ -2,6 +2,7 @@ vim.pack.add({
   'https://github.com/mhinz/vim-startify',                        -- Start screen
   'https://github.com/neovim/nvim-lspconfig',                     -- LSP
   'https://github.com/mrcjkb/rustaceanvim',                       --
+  'https://github.com/j-hui/fidget.nvim',                         --
   'https://github.com/hrsh7th/nvim-cmp',                          -- Completion
   'https://github.com/hrsh7th/cmp-nvim-lsp',                      --
   'https://github.com/hrsh7th/cmp-buffer',                        --

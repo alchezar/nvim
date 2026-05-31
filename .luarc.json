@@ -1,0 +1,7 @@
+{
+  "runtime.version": "LuaJIT",
+  "diagnostics.globals": ["vim", "bit"],
+  "diagnostics.disable": ["different-requires", "undefined-field", "redundant-parameter", "missing-fields"],
+  "workspace.checkThirdParty": false,
+  "workspace.library": ["$VIMRUNTIME/lua", "${3rd}/luv/library"]
+}

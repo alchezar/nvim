@@ -279,3 +279,12 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
     end
   end
 end)
+
+-- Auto-cd to project root based on common markers. nested = true so the global cd's
+-- DirChanged reaches nvim-tree (sync_root_with_cwd), re-rooting the tree on project change.
+vim.api.nvim_create_autocmd('BufEnter', {
+  nested = true,
+  callback = function(args)
+    require('config.utils').auto_cd_to_project_root(args.buf)
+  end,
+})
