@@ -57,7 +57,7 @@
       "src": "https://github.com/j-hui/fidget.nvim"
     },
     "fishbone.nvim": {
-      "rev": "b6aee991bf30f532c7b7a103e001a8fa2d3da7d3",
+      "rev": "bbb1ef8079f32246a8db198a677d4d6cbcf81119",
       "src": "https://github.com/alchezar/fishbone.nvim"
     },
     "gitsigns.nvim": {

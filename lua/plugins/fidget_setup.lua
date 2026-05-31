@@ -1,6 +1,6 @@
 -- Lighter bg for the fidget float (it can't be transparent in Neovide), so it
--- contrasts less with the see-through editor. Own group, not the theme palette.
-vim.api.nvim_set_hl(0, 'FidgetNormal', { bg = '#333333' })
+-- contrasts less with the see-through editor.
+vim.api.nvim_set_hl(0, 'FidgetNormal', { bg = require('config.theme_colors').float })
 
 require('fidget').setup({
   -- String (not table) icon = no spinner animation.

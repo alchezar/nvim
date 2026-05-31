@@ -16,6 +16,7 @@ require('fishbone').setup({
     cursor     = theme.white,
     search     = theme.purple,
     mark       = theme.yellow,
+    selection  = theme.cobalt,
     viewport   = theme.silver,
     error      = theme.red,
     warn       = theme.orange,

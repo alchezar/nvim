@@ -9,38 +9,31 @@ end
 
 local colors = require('config.theme_colors')
 
-local function highlight(group, color)
-	local style = color.style and 'gui=' .. color.style or 'gui=NONE'
-	local fg = color.fg and 'guifg=' .. color.fg or 'guifg=NONE'
-	local bg = color.bg and 'guibg=' .. color.bg or 'guibg=NONE'
-	vim.cmd('highlight ' .. group .. ' ' .. style .. ' ' .. fg .. ' ' .. bg)
-end
-
-vim.api.nvim_set_hl(0, 'StatusLine', {fg = colors.fg, bg = colors.bg})
-vim.api.nvim_set_hl(0, 'CommandLine', {fg = colors.fg, bg = colors.bg})
+vim.api.nvim_set_hl(0, 'StatusLine', { fg = colors.fg, bg = colors.bg })
+vim.api.nvim_set_hl(0, 'CommandLine', { fg = colors.fg, bg = colors.bg })
 
 -- Transparent background.
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 
-vim.api.nvim_set_hl(0, "Visual", { bg = "#0055C5" })
+vim.api.nvim_set_hl(0, "Visual", { bg = colors.cobalt })
 
-vim.api.nvim_set_hl(0, "Search",    { bg = colors.purple, fg = colors.bg })
+vim.api.nvim_set_hl(0, "Search", { bg = colors.purple, fg = colors.bg })
 vim.api.nvim_set_hl(0, "CurSearch", { bg = colors.purple, fg = colors.bg, bold = true })
 vim.api.nvim_set_hl(0, "IncSearch", { bg = colors.purple, fg = colors.bg, bold = true })
 
 -- qfFileName / NvimTreeFolderName link to Directory; override once and the rest follow.
-vim.api.nvim_set_hl(0, "Directory",  { fg = colors.gray })
+vim.api.nvim_set_hl(0, "Directory", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "qfFileName", { fg = colors.gray })
-vim.api.nvim_set_hl(0, "qfLineNr",   { fg = colors.silver })
+vim.api.nvim_set_hl(0, "qfLineNr", { fg = colors.silver })
 -- QuickFixLine default links to Search; override to avoid cyan fg.
 vim.api.nvim_set_hl(0, "QuickFixLine", { bg = colors.dark, bold = true })
 
 vim.api.nvim_set_hl(0, "TelescopeResultsFileName", { fg = colors.gray })
-vim.api.nvim_set_hl(0, "TelescopeResultsLineNr",   { fg = colors.silver })
-vim.api.nvim_set_hl(0, "TelescopeResultsNormal",   { fg = colors.fg })
-vim.api.nvim_set_hl(0, "TelescopeResultsComment",  { fg = colors.silver })
-vim.api.nvim_set_hl(0, "TelescopeMatching",        { fg = colors.orange, bold = true })
+vim.api.nvim_set_hl(0, "TelescopeResultsLineNr", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "TelescopeResultsNormal", { fg = colors.fg })
+vim.api.nvim_set_hl(0, "TelescopeResultsComment", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "TelescopeMatching", { fg = colors.orange, bold = true })
 
 -- Defaults. Use `:Inspect` to find the group.
 vim.api.nvim_set_hl(0, "Whitespace", { fg = colors.silver })
@@ -121,31 +114,31 @@ end
 
 local function cpp_lsp_highlights(lang)
 	return {
-		["@lsp.type.class." .. lang]         = { fg = colors.blue },
-		["@lsp.type.struct." .. lang]        = { fg = colors.blue },
-		["@lsp.type.enum." .. lang]          = { fg = colors.cyan },
-		["@lsp.type.enumMember." .. lang]    = { fg = colors.pink },
-		["@lsp.type.interface." .. lang]     = { fg = colors.teal },
-		["@lsp.type.concept." .. lang]       = { fg = colors.teal },
-		["@lsp.type.type." .. lang]          = { fg = colors.blue },
-		["@lsp.type.typeAlias." .. lang]     = { fg = colors.blue },
-		["@lsp.type.typeParameter." .. lang] = { fg = colors.teal },
-		["@lsp.type.parameter." .. lang]     = { fg = colors.orange },
-		["@lsp.type.property." .. lang]      = { fg = colors.white },
-		["@lsp.type.method." .. lang]        = { fg = colors.green },
-		["@lsp.type.function." .. lang]      = { fg = colors.green },
-		["@lsp.type.variable." .. lang]      = { fg = colors.gray },
-		["@lsp.type.namespace." .. lang]     = { fg = colors.dark },
-		["@lsp.type.macro." .. lang]         = { fg = colors.brown, bold = true },
-		["@lsp.type.keyword." .. lang]       = { fg = colors.red },
-		["@lsp.type.string." .. lang]        = { fg = colors.yellow },
-		["@lsp.type.number." .. lang]        = { fg = colors.purple },
-		["@lsp.type.operator." .. lang]      = { fg = colors.red },
-		["@lsp.type.comment." .. lang]       = { fg = colors.silver },
-		["@lsp.type.bracket." .. lang]       = { fg = colors.gray },
-		["@lsp.type.label." .. lang]         = { fg = colors.red },
-		["@lsp.type.modifier." .. lang]      = { fg = colors.red },
-		["@lsp.type.unknown." .. lang]       = { fg = colors.gray },
+		["@lsp.type.class." .. lang]                       = { fg = colors.blue },
+		["@lsp.type.struct." .. lang]                      = { fg = colors.blue },
+		["@lsp.type.enum." .. lang]                        = { fg = colors.cyan },
+		["@lsp.type.enumMember." .. lang]                  = { fg = colors.pink },
+		["@lsp.type.interface." .. lang]                   = { fg = colors.teal },
+		["@lsp.type.concept." .. lang]                     = { fg = colors.teal },
+		["@lsp.type.type." .. lang]                        = { fg = colors.blue },
+		["@lsp.type.typeAlias." .. lang]                   = { fg = colors.blue },
+		["@lsp.type.typeParameter." .. lang]               = { fg = colors.teal },
+		["@lsp.type.parameter." .. lang]                   = { fg = colors.orange },
+		["@lsp.type.property." .. lang]                    = { fg = colors.white },
+		["@lsp.type.method." .. lang]                      = { fg = colors.green },
+		["@lsp.type.function." .. lang]                    = { fg = colors.green },
+		["@lsp.type.variable." .. lang]                    = { fg = colors.gray },
+		["@lsp.type.namespace." .. lang]                   = { fg = colors.dark },
+		["@lsp.type.macro." .. lang]                       = { fg = colors.brown, bold = true },
+		["@lsp.type.keyword." .. lang]                     = { fg = colors.red },
+		["@lsp.type.string." .. lang]                      = { fg = colors.yellow },
+		["@lsp.type.number." .. lang]                      = { fg = colors.purple },
+		["@lsp.type.operator." .. lang]                    = { fg = colors.red },
+		["@lsp.type.comment." .. lang]                     = { fg = colors.silver },
+		["@lsp.type.bracket." .. lang]                     = { fg = colors.gray },
+		["@lsp.type.label." .. lang]                       = { fg = colors.red },
+		["@lsp.type.modifier." .. lang]                    = { fg = colors.red },
+		["@lsp.type.unknown." .. lang]                     = { fg = colors.gray },
 		["@lsp.typemod.variable.readonly." .. lang]        = { fg = colors.lime },
 		["@lsp.typemod.variable.fileScope." .. lang]       = { fg = colors.gray },
 		["@lsp.typemod.variable.globalScope." .. lang]     = { fg = colors.lime },
@@ -201,26 +194,26 @@ end
 
 local function rust_treesitter_highlights(lang)
 	return {
-		["@keyword." .. lang]                = { fg = colors.red },
-		["@keyword.storate." .. lang]        = { fg = colors.red },
-		["@function." .. lang]               = { fg = colors.green },
-		["@function.call." .. lang]          = { fg = colors.green },
-		["@macro." .. lang]                  = { fg = colors.brown },
-		["@function.macro." .. lang]         = { fg = colors.teal },
-		["@type." .. lang]                   = { fg = colors.blue },
-		["@type.builtin." .. lang]           = { fg = colors.cyan },
-		["@field." .. lang]                  = { fg = colors.gray },
-		["@variable." .. lang]               = { fg = colors.white },
-		["@variable.parameter." .. lang]     = { fg = colors.orange },
-		["@comment." .. lang]                = { fg = colors.silver },
-		["@string." .. lang]                 = { fg = colors.yellow },
-		["@number." .. lang]                 = { fg = colors.purple },
-		["@operator." .. lang]               = { fg = colors.red },
-		["@punctuation.bracket." .. lang]    = { fg = colors.gray },
-		["@punctuation.delimiter." .. lang]  = { fg = colors.gray },
-		["@attribute." .. lang]              = { fg = colors.cyan },
-		["@namespace." .. lang]              = { fg = colors.blue },
-		["@constructor." .. lang]            = { fg = colors.green },
+		["@keyword." .. lang]               = { fg = colors.red },
+		["@keyword.storate." .. lang]       = { fg = colors.red },
+		["@function." .. lang]              = { fg = colors.green },
+		["@function.call." .. lang]         = { fg = colors.green },
+		["@macro." .. lang]                 = { fg = colors.brown },
+		["@function.macro." .. lang]        = { fg = colors.teal },
+		["@type." .. lang]                  = { fg = colors.blue },
+		["@type.builtin." .. lang]          = { fg = colors.cyan },
+		["@field." .. lang]                 = { fg = colors.gray },
+		["@variable." .. lang]              = { fg = colors.white },
+		["@variable.parameter." .. lang]    = { fg = colors.orange },
+		["@comment." .. lang]               = { fg = colors.silver },
+		["@string." .. lang]                = { fg = colors.yellow },
+		["@number." .. lang]                = { fg = colors.purple },
+		["@operator." .. lang]              = { fg = colors.red },
+		["@punctuation.bracket." .. lang]   = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang] = { fg = colors.gray },
+		["@attribute." .. lang]             = { fg = colors.cyan },
+		["@namespace." .. lang]             = { fg = colors.blue },
+		["@constructor." .. lang]           = { fg = colors.green },
 	}
 end
 
@@ -275,70 +268,70 @@ end
 -- TS / JS / TSX (treesitter + LSP).
 local function ts_treesitter_highlights(lang)
 	return {
-		["@keyword." .. lang]                 = { fg = colors.red },
-		["@keyword.import." .. lang]          = { fg = colors.red },
-		["@keyword.export." .. lang]          = { fg = colors.red },
-		["@keyword.return." .. lang]          = { fg = colors.red },
-		["@keyword.operator." .. lang]        = { fg = colors.red },
-		["@keyword.function." .. lang]        = { fg = colors.red },
-		["@keyword.coroutine." .. lang]       = { fg = colors.red },
-		["@keyword.modifier." .. lang]        = { fg = colors.red },
-		["@keyword.conditional." .. lang]     = { fg = colors.red },
-		["@keyword.repeat." .. lang]          = { fg = colors.red },
-		["@function." .. lang]                = { fg = colors.green },
-		["@function.call." .. lang]           = { fg = colors.green },
-		["@function.method." .. lang]         = { fg = colors.green },
-		["@function.method.call." .. lang]    = { fg = colors.green },
-		["@function.builtin." .. lang]        = { fg = colors.green },
-		["@type." .. lang]                    = { fg = colors.blue },
-		["@type.builtin." .. lang]            = { fg = colors.red },
-		["@variable." .. lang]                = { fg = colors.gray },
-		["@variable.parameter." .. lang]      = { fg = colors.orange },
-		["@variable.member." .. lang]         = { fg = colors.white },
-		["@variable.builtin." .. lang]        = { fg = colors.red },
-		["@property." .. lang]                = { fg = colors.white },
-		["@constructor." .. lang]             = { fg = colors.green },
-		["@string." .. lang]                  = { fg = colors.yellow },
-		["@string.escape." .. lang]           = { fg = colors.purple },
-		["@string.special." .. lang]          = { fg = colors.purple },
-		["@string.regexp." .. lang]           = { fg = colors.orange },
-		["@number." .. lang]                  = { fg = colors.purple },
-		["@boolean." .. lang]                 = { fg = colors.purple },
-		["@constant." .. lang]                = { fg = colors.lime },
-		["@constant.builtin." .. lang]        = { fg = colors.purple },
-		["@operator." .. lang]                = { fg = colors.gray },
-		["@punctuation.bracket." .. lang]     = { fg = colors.silver },
-		["@punctuation.delimiter." .. lang]   = { fg = colors.red },
-		["@punctuation.special." .. lang]     = { fg = colors.silver },
-		["@comment." .. lang]                 = { fg = colors.silver },
-		["@module." .. lang]                  = { fg = colors.silver },
-		["@tag." .. lang]                     = { fg = colors.red },
-		["@tag.attribute." .. lang]           = { fg = colors.orange },
-		["@tag.delimiter." .. lang]           = { fg = colors.gray },
+		["@keyword." .. lang]               = { fg = colors.red },
+		["@keyword.import." .. lang]        = { fg = colors.red },
+		["@keyword.export." .. lang]        = { fg = colors.red },
+		["@keyword.return." .. lang]        = { fg = colors.red },
+		["@keyword.operator." .. lang]      = { fg = colors.red },
+		["@keyword.function." .. lang]      = { fg = colors.red },
+		["@keyword.coroutine." .. lang]     = { fg = colors.red },
+		["@keyword.modifier." .. lang]      = { fg = colors.red },
+		["@keyword.conditional." .. lang]   = { fg = colors.red },
+		["@keyword.repeat." .. lang]        = { fg = colors.red },
+		["@function." .. lang]              = { fg = colors.green },
+		["@function.call." .. lang]         = { fg = colors.green },
+		["@function.method." .. lang]       = { fg = colors.green },
+		["@function.method.call." .. lang]  = { fg = colors.green },
+		["@function.builtin." .. lang]      = { fg = colors.green },
+		["@type." .. lang]                  = { fg = colors.blue },
+		["@type.builtin." .. lang]          = { fg = colors.red },
+		["@variable." .. lang]              = { fg = colors.gray },
+		["@variable.parameter." .. lang]    = { fg = colors.orange },
+		["@variable.member." .. lang]       = { fg = colors.white },
+		["@variable.builtin." .. lang]      = { fg = colors.red },
+		["@property." .. lang]              = { fg = colors.white },
+		["@constructor." .. lang]           = { fg = colors.green },
+		["@string." .. lang]                = { fg = colors.yellow },
+		["@string.escape." .. lang]         = { fg = colors.purple },
+		["@string.special." .. lang]        = { fg = colors.purple },
+		["@string.regexp." .. lang]         = { fg = colors.orange },
+		["@number." .. lang]                = { fg = colors.purple },
+		["@boolean." .. lang]               = { fg = colors.purple },
+		["@constant." .. lang]              = { fg = colors.lime },
+		["@constant.builtin." .. lang]      = { fg = colors.purple },
+		["@operator." .. lang]              = { fg = colors.gray },
+		["@punctuation.bracket." .. lang]   = { fg = colors.silver },
+		["@punctuation.delimiter." .. lang] = { fg = colors.red },
+		["@punctuation.special." .. lang]   = { fg = colors.silver },
+		["@comment." .. lang]               = { fg = colors.silver },
+		["@module." .. lang]                = { fg = colors.silver },
+		["@tag." .. lang]                   = { fg = colors.red },
+		["@tag.attribute." .. lang]         = { fg = colors.orange },
+		["@tag.delimiter." .. lang]         = { fg = colors.gray },
 	}
 end
 
 local function ts_lsp_highlights(lang)
 	return {
-		["@lsp.type.class." .. lang]             = { fg = colors.blue },
-		["@lsp.type.interface." .. lang]         = { fg = colors.teal },
-		["@lsp.type.enum." .. lang]              = { fg = colors.cyan },
-		["@lsp.type.enumMember." .. lang]        = { fg = colors.pink },
-		["@lsp.type.parameter." .. lang]         = { fg = colors.orange },
-		["@lsp.type.property." .. lang]          = {}, -- let treesitter decide so get/set stay green
-		["@lsp.type.method." .. lang]            = { fg = colors.green },
-		["@lsp.type.function." .. lang]          = { fg = colors.green },
-		["@lsp.type.variable." .. lang]          = { fg = colors.lime },
-		["@lsp.typemod.variable.local." .. lang] = { fg = colors.gray },
-		["@lsp.type.namespace." .. lang]         = { fg = colors.cyan },
-		["@lsp.type.type." .. lang]              = { fg = colors.blue },
-		["@lsp.type.typeAlias." .. lang]         = { fg = colors.blue },
-		["@lsp.type.typeParameter." .. lang]     = { fg = colors.teal },
-		["@lsp.type.keyword." .. lang]           = { fg = colors.red },
-		["@lsp.type.string." .. lang]            = { fg = colors.yellow },
-		["@lsp.type.number." .. lang]            = { fg = colors.purple },
-		["@lsp.type.decorator." .. lang]         = { fg = colors.brown },
-		["@lsp.type.builtinType." .. lang]       = { fg = colors.red },
+		["@lsp.type.class." .. lang]                       = { fg = colors.blue },
+		["@lsp.type.interface." .. lang]                   = { fg = colors.teal },
+		["@lsp.type.enum." .. lang]                        = { fg = colors.cyan },
+		["@lsp.type.enumMember." .. lang]                  = { fg = colors.pink },
+		["@lsp.type.parameter." .. lang]                   = { fg = colors.orange },
+		["@lsp.type.property." .. lang]                    = {}, -- let treesitter decide so get/set stay green
+		["@lsp.type.method." .. lang]                      = { fg = colors.green },
+		["@lsp.type.function." .. lang]                    = { fg = colors.green },
+		["@lsp.type.variable." .. lang]                    = { fg = colors.lime },
+		["@lsp.typemod.variable.local." .. lang]           = { fg = colors.gray },
+		["@lsp.type.namespace." .. lang]                   = { fg = colors.cyan },
+		["@lsp.type.type." .. lang]                        = { fg = colors.blue },
+		["@lsp.type.typeAlias." .. lang]                   = { fg = colors.blue },
+		["@lsp.type.typeParameter." .. lang]               = { fg = colors.teal },
+		["@lsp.type.keyword." .. lang]                     = { fg = colors.red },
+		["@lsp.type.string." .. lang]                      = { fg = colors.yellow },
+		["@lsp.type.number." .. lang]                      = { fg = colors.purple },
+		["@lsp.type.decorator." .. lang]                   = { fg = colors.brown },
+		["@lsp.type.builtinType." .. lang]                 = { fg = colors.red },
 		-- defaultLibrary: classes/funcs -> cyan, objects (console, Math, JSON) -> lime.
 		["@lsp.typemod.class.defaultLibrary." .. lang]     = { fg = colors.cyan },
 		["@lsp.typemod.function.defaultLibrary." .. lang]  = { fg = colors.cyan },
@@ -363,26 +356,26 @@ end
 -- SQL (sqlx::query! injections and standalone .sql).
 local function sql_treesitter_highlights(lang)
 	return {
-		["@keyword." .. lang]                 = { fg = colors.red },
-		["@keyword.operator." .. lang]        = { fg = colors.red },
-		["@keyword.modifier." .. lang]        = { fg = colors.red },
-		["@keyword.conditional." .. lang]     = { fg = colors.red },
-		["@keyword.repeat." .. lang]          = { fg = colors.red },
-		["@type." .. lang]                    = { fg = colors.blue },
-		["@type.builtin." .. lang]            = { fg = colors.cyan },
-		["@function.call." .. lang]           = { fg = colors.green },
-		["@variable." .. lang]                = { fg = colors.white },
-		["@variable.member." .. lang]         = { fg = colors.gray },
-		["@variable.parameter." .. lang]      = { fg = colors.orange },
-		["@string." .. lang]                  = { fg = colors.yellow },
-		["@number." .. lang]                  = { fg = colors.purple },
-		["@number.float." .. lang]            = { fg = colors.purple },
-		["@boolean." .. lang]                 = { fg = colors.purple },
-		["@operator." .. lang]                = { fg = colors.red },
-		["@punctuation.bracket." .. lang]     = { fg = colors.gray },
-		["@punctuation.delimiter." .. lang]   = { fg = colors.gray },
-		["@attribute." .. lang]               = { fg = colors.cyan },
-		["@comment." .. lang]                 = { fg = colors.silver },
+		["@keyword." .. lang]               = { fg = colors.red },
+		["@keyword.operator." .. lang]      = { fg = colors.red },
+		["@keyword.modifier." .. lang]      = { fg = colors.red },
+		["@keyword.conditional." .. lang]   = { fg = colors.red },
+		["@keyword.repeat." .. lang]        = { fg = colors.red },
+		["@type." .. lang]                  = { fg = colors.blue },
+		["@type.builtin." .. lang]          = { fg = colors.cyan },
+		["@function.call." .. lang]         = { fg = colors.green },
+		["@variable." .. lang]              = { fg = colors.white },
+		["@variable.member." .. lang]       = { fg = colors.gray },
+		["@variable.parameter." .. lang]    = { fg = colors.orange },
+		["@string." .. lang]                = { fg = colors.yellow },
+		["@number." .. lang]                = { fg = colors.purple },
+		["@number.float." .. lang]          = { fg = colors.purple },
+		["@boolean." .. lang]               = { fg = colors.purple },
+		["@operator." .. lang]              = { fg = colors.red },
+		["@punctuation.bracket." .. lang]   = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang] = { fg = colors.gray },
+		["@attribute." .. lang]             = { fg = colors.cyan },
+		["@comment." .. lang]               = { fg = colors.silver },
 	}
 end
 
@@ -395,45 +388,45 @@ end
 -- PYTHON (treesitter + pyright LSP).
 local function python_treesitter_highlights(lang)
 	return {
-		["@keyword." .. lang]                  = { fg = colors.red },
-		["@keyword.import." .. lang]           = { fg = colors.red },
-		["@keyword.return." .. lang]           = { fg = colors.red },
-		["@keyword.operator." .. lang]         = { fg = colors.red },
-		["@keyword.function." .. lang]         = { fg = colors.red },
-		["@keyword.coroutine." .. lang]        = { fg = colors.red },
-		["@keyword.modifier." .. lang]         = { fg = colors.red },
-		["@keyword.conditional." .. lang]      = { fg = colors.red },
-		["@keyword.repeat." .. lang]           = { fg = colors.red },
-		["@keyword.exception." .. lang]        = { fg = colors.red },
-		["@function." .. lang]                 = { fg = colors.green },
-		["@function.call." .. lang]            = { fg = colors.green },
-		["@function.method." .. lang]          = { fg = colors.green },
-		["@function.method.call." .. lang]     = { fg = colors.green },
-		["@function.builtin." .. lang]         = { fg = colors.green },
-		["@constructor." .. lang]              = { fg = colors.green },
-		["@type." .. lang]                     = { fg = colors.blue },
-		["@type.builtin." .. lang]             = { fg = colors.cyan },
-		["@variable." .. lang]                 = { fg = colors.gray },
-		["@variable.parameter." .. lang]       = { fg = colors.orange },
-		["@variable.member." .. lang]          = { fg = colors.white },
-		["@variable.builtin." .. lang]         = { fg = colors.white },
-		["@property." .. lang]                 = { fg = colors.white },
-		["@string." .. lang]                   = { fg = colors.yellow },
-		["@string.escape." .. lang]            = { fg = colors.purple },
-		["@string.special." .. lang]           = { fg = colors.purple },
-		["@string.regexp." .. lang]            = { fg = colors.purple },
-		["@string.documentation." .. lang]     = { fg = colors.silver },
-		["@number." .. lang]                   = { fg = colors.purple },
-		["@boolean." .. lang]                  = { fg = colors.purple },
-		["@constant." .. lang]                 = { fg = colors.lime },
-		["@constant.builtin." .. lang]         = { fg = colors.pink },
-		["@operator." .. lang]                 = { fg = colors.red },
-		["@punctuation.bracket." .. lang]      = { fg = colors.gray },
-		["@punctuation.delimiter." .. lang]    = { fg = colors.gray },
-		["@punctuation.special." .. lang]      = { fg = colors.red },
-		["@comment." .. lang]                  = { fg = colors.silver },
-		["@module." .. lang]                   = { fg = colors.silver },
-		["@attribute." .. lang]                = { fg = colors.cyan },
+		["@keyword." .. lang]               = { fg = colors.red },
+		["@keyword.import." .. lang]        = { fg = colors.red },
+		["@keyword.return." .. lang]        = { fg = colors.red },
+		["@keyword.operator." .. lang]      = { fg = colors.red },
+		["@keyword.function." .. lang]      = { fg = colors.red },
+		["@keyword.coroutine." .. lang]     = { fg = colors.red },
+		["@keyword.modifier." .. lang]      = { fg = colors.red },
+		["@keyword.conditional." .. lang]   = { fg = colors.red },
+		["@keyword.repeat." .. lang]        = { fg = colors.red },
+		["@keyword.exception." .. lang]     = { fg = colors.red },
+		["@function." .. lang]              = { fg = colors.green },
+		["@function.call." .. lang]         = { fg = colors.green },
+		["@function.method." .. lang]       = { fg = colors.green },
+		["@function.method.call." .. lang]  = { fg = colors.green },
+		["@function.builtin." .. lang]      = { fg = colors.green },
+		["@constructor." .. lang]           = { fg = colors.green },
+		["@type." .. lang]                  = { fg = colors.blue },
+		["@type.builtin." .. lang]          = { fg = colors.cyan },
+		["@variable." .. lang]              = { fg = colors.gray },
+		["@variable.parameter." .. lang]    = { fg = colors.orange },
+		["@variable.member." .. lang]       = { fg = colors.white },
+		["@variable.builtin." .. lang]      = { fg = colors.white },
+		["@property." .. lang]              = { fg = colors.white },
+		["@string." .. lang]                = { fg = colors.yellow },
+		["@string.escape." .. lang]         = { fg = colors.purple },
+		["@string.special." .. lang]        = { fg = colors.purple },
+		["@string.regexp." .. lang]         = { fg = colors.purple },
+		["@string.documentation." .. lang]  = { fg = colors.silver },
+		["@number." .. lang]                = { fg = colors.purple },
+		["@boolean." .. lang]               = { fg = colors.purple },
+		["@constant." .. lang]              = { fg = colors.lime },
+		["@constant.builtin." .. lang]      = { fg = colors.pink },
+		["@operator." .. lang]              = { fg = colors.red },
+		["@punctuation.bracket." .. lang]   = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang] = { fg = colors.gray },
+		["@punctuation.special." .. lang]   = { fg = colors.red },
+		["@comment." .. lang]               = { fg = colors.silver },
+		["@module." .. lang]                = { fg = colors.silver },
+		["@attribute." .. lang]             = { fg = colors.cyan },
 	}
 end
 
@@ -473,62 +466,62 @@ for _, lang in ipairs({ "python" }) do
 end
 
 -- XML: default syntax links tags to Function (everything green); split by role.
-vim.api.nvim_set_hl(0, "xmlTag",             { fg = colors.silver })
-vim.api.nvim_set_hl(0, "xmlEndTag",          { fg = colors.silver })
-vim.api.nvim_set_hl(0, "xmlTagName",         { fg = colors.red })
-vim.api.nvim_set_hl(0, "xmlAttrib",          { fg = colors.orange })
-vim.api.nvim_set_hl(0, "xmlEqual",           { fg = colors.silver })
-vim.api.nvim_set_hl(0, "xmlString",          { fg = colors.yellow })
-vim.api.nvim_set_hl(0, "xmlComment",         { fg = colors.silver, italic = true })
-vim.api.nvim_set_hl(0, "xmlCommentStart",    { fg = colors.silver, italic = true })
-vim.api.nvim_set_hl(0, "xmlCommentPart",     { fg = colors.silver, italic = true })
+vim.api.nvim_set_hl(0, "xmlTag", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlEndTag", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlTagName", { fg = colors.red })
+vim.api.nvim_set_hl(0, "xmlAttrib", { fg = colors.orange })
+vim.api.nvim_set_hl(0, "xmlEqual", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlString", { fg = colors.yellow })
+vim.api.nvim_set_hl(0, "xmlComment", { fg = colors.silver, italic = true })
+vim.api.nvim_set_hl(0, "xmlCommentStart", { fg = colors.silver, italic = true })
+vim.api.nvim_set_hl(0, "xmlCommentPart", { fg = colors.silver, italic = true })
 vim.api.nvim_set_hl(0, "xmlProcessingDelim", { fg = colors.purple })
-vim.api.nvim_set_hl(0, "xmlNamespace",       { fg = colors.cyan })
-vim.api.nvim_set_hl(0, "xmlEntity",          { fg = colors.purple })
-vim.api.nvim_set_hl(0, "xmlEntityPunct",     { fg = colors.purple })
-vim.api.nvim_set_hl(0, "xmlCdata",           { fg = colors.fg })
-vim.api.nvim_set_hl(0, "xmlCdataStart",      { fg = colors.silver })
-vim.api.nvim_set_hl(0, "xmlCdataEnd",        { fg = colors.silver })
-vim.api.nvim_set_hl(0, "xmlDocType",         { fg = colors.purple })
-vim.api.nvim_set_hl(0, "xmlDocTypeKeyword",  { fg = colors.red })
+vim.api.nvim_set_hl(0, "xmlNamespace", { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "xmlEntity", { fg = colors.purple })
+vim.api.nvim_set_hl(0, "xmlEntityPunct", { fg = colors.purple })
+vim.api.nvim_set_hl(0, "xmlCdata", { fg = colors.fg })
+vim.api.nvim_set_hl(0, "xmlCdataStart", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlCdataEnd", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "xmlDocType", { fg = colors.purple })
+vim.api.nvim_set_hl(0, "xmlDocTypeKeyword", { fg = colors.red })
 
 -- Treesitter equivalents (tree-sitter-xml uses @tag.* / @string).
-vim.api.nvim_set_hl(0, "@tag.xml",           { fg = colors.red })
+vim.api.nvim_set_hl(0, "@tag.xml", { fg = colors.red })
 vim.api.nvim_set_hl(0, "@tag.delimiter.xml", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "@tag.attribute.xml", { fg = colors.orange })
-vim.api.nvim_set_hl(0, "@string.xml",        { fg = colors.yellow })
-vim.api.nvim_set_hl(0, "@comment.xml",       { fg = colors.silver, italic = true })
+vim.api.nvim_set_hl(0, "@string.xml", { fg = colors.yellow })
+vim.api.nvim_set_hl(0, "@comment.xml", { fg = colors.silver, italic = true })
 
 -- LSP diagnostics.
 vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
-vim.api.nvim_set_hl(0, "DiagnosticWarn",  { fg = colors.orange })
-vim.api.nvim_set_hl(0, "DiagnosticInfo",  { fg = colors.blue })
-vim.api.nvim_set_hl(0, "DiagnosticHint",  { fg = colors.gray })
-vim.api.nvim_set_hl(0, "DiagnosticOk",    { fg = colors.green })
+vim.api.nvim_set_hl(0, "DiagnosticWarn", { fg = colors.orange })
+vim.api.nvim_set_hl(0, "DiagnosticInfo", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "DiagnosticHint", { fg = colors.gray })
+vim.api.nvim_set_hl(0, "DiagnosticOk", { fg = colors.green })
 
 -- Telescope borders match yazi's darkgray.
-vim.api.nvim_set_hl(0, "TelescopeBorder",        { fg = colors.dark })
-vim.api.nvim_set_hl(0, "TelescopePromptBorder",  { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopePromptBorder", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "TelescopeResultsBorder", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "TelescopePreviewBorder", { fg = colors.dark })
 
 -- nvim-tree folders.
-vim.api.nvim_set_hl(0, "NvimTreeFolderName",       { fg = colors.gray })
+vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = colors.gray })
 vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.gray, bold = true })
-vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName",  { fg = colors.gray })
-vim.api.nvim_set_hl(0, "NvimTreeFolderIcon",       { fg = colors.blue })
-vim.api.nvim_set_hl(0, "NvimTreeRootFolder",       { fg = colors.blue, bold = true })
+vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName", { fg = colors.gray })
+vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "NvimTreeRootFolder", { fg = colors.blue, bold = true })
 
 -- nvim-tree git status on file names.
-vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL",   { fg = colors.cyan })
-vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL",     { fg = colors.red })
-vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL",  { fg = colors.blue })
-vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL",  { fg = colors.cyan })
-vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL",    { fg = colors.red })
+vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL", { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL", { fg = colors.red })
+vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL", { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL", { fg = colors.red })
 vim.api.nvim_set_hl(0, "NvimTreeGitFolderStagedHL", { fg = colors.blue })
 
 -- gitsigns sign column (also reused by nvim-scrollbar).
-vim.api.nvim_set_hl(0, "GitSignsAdd",    { fg = colors.green })
+vim.api.nvim_set_hl(0, "GitSignsAdd", { fg = colors.green })
 vim.api.nvim_set_hl(0, "GitSignsChange", { fg = colors.blue })
 vim.api.nvim_set_hl(0, "GitSignsDelete", { fg = colors.red })
 
@@ -549,4 +542,3 @@ vim.g.terminal_color_12 = colors.blue
 vim.g.terminal_color_13 = colors.purple
 vim.g.terminal_color_14 = colors.emerald
 vim.g.terminal_color_15 = colors.white
-
