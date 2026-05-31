@@ -79,6 +79,8 @@ require('nvim-tree').setup({
     highlight_git = 'name',
     highlight_diagnostics = 'name',
     icons = {
+      -- nvim-tree docs type padding as string; bundled stub says table -> false positive.
+      ---@diagnostic disable-next-line: assign-type-mismatch
       padding = '  ',
       show = { git = false },
       glyphs = {
@@ -95,17 +97,17 @@ require('nvim-tree').setup({
 
 local function apply_tree_hl()
   local theme = require('config.theme_colors')
-  vim.api.nvim_set_hl(0, 'NvimTreeNormal',             { fg = theme.gray })
-  vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL',   { fg = theme.brown })
+  vim.api.nvim_set_hl(0, 'NvimTreeNormal', { fg = theme.gray })
+  vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL', { fg = theme.brown })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFolderIgnoredHL', { fg = theme.brown })
-  vim.api.nvim_set_hl(0, 'NvimTreeGitFileDirtyHL',     { fg = theme.blue })
-  vim.api.nvim_set_hl(0, 'NvimTreeGitFolderDirtyHL',   { fg = theme.blue })
-  vim.api.nvim_set_hl(0, 'NvimTreeFolderName',        { fg = theme.silver, bold = true })
-  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderName',  { fg = theme.silver, bold = true })
-  vim.api.nvim_set_hl(0, 'NvimTreeEmptyFolderName',   { fg = theme.silver, bold = true, italic = true })
-  vim.api.nvim_set_hl(0, 'NvimTreeFolderIcon',        { fg = theme.silver })
-  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderIcon',  { fg = theme.silver })
-  vim.api.nvim_set_hl(0, 'NvimTreeRootFolder',        { fg = theme.silver, bold = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeGitFileDirtyHL', { fg = theme.blue })
+  vim.api.nvim_set_hl(0, 'NvimTreeGitFolderDirtyHL', { fg = theme.blue })
+  vim.api.nvim_set_hl(0, 'NvimTreeFolderName', { fg = theme.silver, bold = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderName', { fg = theme.silver, bold = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeEmptyFolderName', { fg = theme.silver, bold = true, italic = true })
+  vim.api.nvim_set_hl(0, 'NvimTreeFolderIcon', { fg = theme.silver })
+  vim.api.nvim_set_hl(0, 'NvimTreeOpenedFolderIcon', { fg = theme.silver })
+  vim.api.nvim_set_hl(0, 'NvimTreeRootFolder', { fg = theme.silver, bold = true })
   vim.api.nvim_set_hl(0, 'NvimTreeSymlinkFolderName', { fg = theme.silver, bold = true, italic = true })
   vim.api.nvim_set_hl(0, 'NvimTreeCursorLine', { bg = theme.black })
 end
@@ -130,7 +132,7 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   local nodes_by_line = explorer:get_nodes_by_line(start_line)
   for line, node in pairs(nodes_by_line) do
     local is_special = node and node.name
-      and (node.name == 'mod.rs' or node.name:lower() == 'readme.md')
+        and (node.name == 'mod.rs' or node.name:lower() == 'readme.md')
     if is_special and node.parent and node.parent.name and node.parent.nodes then
       -- Skip when there are no sibling subdirs: parent is obvious from the row above.
       local has_subdir = false
@@ -198,7 +200,7 @@ local function is_extensionless_executable(node)
   if not node.absolute_path then return false end
   local stat = vim.uv.fs_stat(node.absolute_path)
   if not stat then return false end
-  return bit.band(stat.mode, 73) ~= 0  -- 0o111: any +x bit (owner/group/other)
+  return bit.band(stat.mode, 73) ~= 0 -- 0o111: any +x bit (owner/group/other)
 end
 
 require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)

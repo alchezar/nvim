@@ -22,20 +22,28 @@ local function strip_comments_cmd(lines, pos)
     if prefix ~= '' then
       -- Eat prefix and any doc-marker repetition (///, //!, ---, ##).
       local _, e = l:find('^%s*' .. vim.pesc(prefix) .. '[/%-#!]*%s?')
-      if e then removed_start = removed_start + e; l = l:sub(e + 1) end
+      if e then
+        removed_start = removed_start + e; l = l:sub(e + 1)
+      end
     end
     for _, pat in ipairs(start_patterns) do
       local _, e = l:find(pat)
-      if e then removed_start = removed_start + e; l = l:sub(e + 1) end
+      if e then
+        removed_start = removed_start + e; l = l:sub(e + 1)
+      end
     end
 
     if suffix ~= '' then
       local s_idx = l:find('%s*' .. vim.pesc(suffix) .. '%s*$')
-      if s_idx then removed_end = removed_end + (#l - s_idx + 1); l = l:sub(1, s_idx - 1) end
+      if s_idx then
+        removed_end = removed_end + (#l - s_idx + 1); l = l:sub(1, s_idx - 1)
+      end
     end
     for _, pat in ipairs(end_patterns) do
       local s_idx = l:find(pat)
-      if s_idx then removed_end = removed_end + (#l - s_idx + 1); l = l:sub(1, s_idx - 1) end
+      if s_idx then
+        removed_end = removed_end + (#l - s_idx + 1); l = l:sub(1, s_idx - 1)
+      end
     end
 
     pos[i].col[1] = pos[i].col[1] + removed_start
@@ -51,7 +59,7 @@ end
 -- Falls back to the last selected line when selection ends at EOF.
 local M = {}
 function M.translate_selection(target)
-  vim.cmd('normal! \27')  -- <Esc> to update '<,'> marks
+  vim.cmd('normal! \27') -- <Esc> to update '<,'> marks
   local end_line  = vim.fn.line("'>")
   local last_line = vim.fn.line('$')
   vim.cmd(string.format("'<,'>Translate %s -output=floating", target))

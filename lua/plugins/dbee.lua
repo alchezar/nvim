@@ -31,8 +31,8 @@ end
 local function infer_type(url)
   local scheme = (url:match('^([%w]+):') or ''):lower()
   if scheme == 'postgres' or scheme == 'postgresql' then return 'postgres' end
-  if scheme == 'mysql'    or scheme == 'mariadb'    then return 'mysql'    end
-  if scheme == 'sqlite'   or scheme == 'sqlite3'    then return 'sqlite'   end
+  if scheme == 'mysql' or scheme == 'mariadb' then return 'mysql' end
+  if scheme == 'sqlite' or scheme == 'sqlite3' then return 'sqlite' end
   return nil
 end
 
@@ -79,7 +79,7 @@ end
 local function load_dbs()
   local env_file = vim.fn.getcwd() .. '/.env'
   if vim.fn.filereadable(env_file) == 1 then
-    pcall(vim.cmd, 'Dotenv ' .. vim.fn.fnameescape(env_file))
+    pcall(function() vim.cmd('Dotenv ' .. vim.fn.fnameescape(env_file)) end)
   end
   local url = pick_database_url()
   vim.g.dbee_project_url = url and url ~= '' and normalise(url) or nil
@@ -95,14 +95,14 @@ vim.api.nvim_create_autocmd('DirChanged', { callback = load_dbs })
 -- Layout: drawer = 40-col vsplit right; editor / result / call_log = floats.
 local function open_float(width_pct, height_pct, title)
   local width  = math.floor(vim.o.columns * width_pct)
-  local height = math.floor(vim.o.lines   * height_pct)
-  local buf = vim.api.nvim_create_buf(false, true)
-  local win = vim.api.nvim_open_win(buf, false, {
+  local height = math.floor(vim.o.lines * height_pct)
+  local buf    = vim.api.nvim_create_buf(false, true)
+  local win    = vim.api.nvim_open_win(buf, false, {
     relative  = 'editor',
     width     = width,
     height    = height,
-    row       = math.floor((vim.o.lines   - height) / 2) - 1,
-    col       = math.floor((vim.o.columns - width)  / 2),
+    row       = math.floor((vim.o.lines - height) / 2) - 1,
+    col       = math.floor((vim.o.columns - width) / 2),
     border    = 'rounded',
     title     = title,
     title_pos = 'center',
@@ -132,7 +132,7 @@ local function bind_hide_keys(winid, hide_fn)
   if not (winid and vim.api.nvim_win_is_valid(winid)) then return end
   local buf = vim.api.nvim_win_get_buf(winid)
   local opts = { buffer = buf, silent = true, nowait = true }
-  vim.keymap.set('n', 'q',     hide_fn, opts)
+  vim.keymap.set('n', 'q', hide_fn, opts)
   vim.keymap.set('n', '<Esc>', hide_fn, opts)
 end
 
@@ -187,11 +187,16 @@ local function hide_float(self, key)
   end
 end
 
-function FloatLayout:show_editor()   show_float(self, 'editor_win', self._setup_editor_float) end
-function FloatLayout:hide_editor()   hide_float(self, 'editor_win') end
-function FloatLayout:show_result()   show_float(self, 'result_win', self._setup_result_float) end
-function FloatLayout:hide_result()   hide_float(self, 'result_win') end
-function FloatLayout:show_call_log() show_float(self, 'log_win',    self._setup_log_float)    end
+function FloatLayout:show_editor() show_float(self, 'editor_win', self._setup_editor_float) end
+
+function FloatLayout:hide_editor() hide_float(self, 'editor_win') end
+
+function FloatLayout:show_result() show_float(self, 'result_win', self._setup_result_float) end
+
+function FloatLayout:hide_result() hide_float(self, 'result_win') end
+
+function FloatLayout:show_call_log() show_float(self, 'log_win', self._setup_log_float) end
+
 function FloatLayout:hide_call_log() hide_float(self, 'log_win') end
 
 function FloatLayout:open()
@@ -278,20 +283,20 @@ end
 -- Auto-show result float on any query (covers drawer helper menus that bypass dbee_run).
 pcall(function()
   dbee.api.core.register_event_listener('call_state_changed', function(data)
-    local ok = pcall(function()
+    local listener_ok = pcall(function()
       if data and data.call and data.call.state == 'executing' and layout:is_open() then
         vim.schedule(function() pcall(function() layout:show_result() end) end)
       end
     end)
-    if not ok then vim.schedule(function() vim.notify('dbee listener error', vim.log.levels.DEBUG) end) end
+    if not listener_ok then vim.schedule(function() vim.notify('dbee listener error', vim.log.levels.DEBUG) end) end
   end)
 end)
 
 return {
-  layout = layout,
-  show_editor   = function() layout:show_editor()   end,
-  hide_editor   = function() layout:hide_editor()   end,
-  show_result   = function() layout:show_result()   end,
-  hide_result   = function() layout:hide_result()   end,
+  layout        = layout,
+  show_editor   = function() layout:show_editor() end,
+  hide_editor   = function() layout:hide_editor() end,
+  show_result   = function() layout:show_result() end,
+  hide_result   = function() layout:hide_result() end,
   show_call_log = function() layout:show_call_log() end,
 }

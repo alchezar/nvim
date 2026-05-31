@@ -8,12 +8,12 @@ local binary_ext = {
 }
 
 local exe_magic = {
-  '\x7f\x45\x4c\x46',  -- ELF (Linux)
-  '\xfe\xed\xfa\xce',  -- Mach-O 32 BE
-  '\xfe\xed\xfa\xcf',  -- Mach-O 64 BE
-  '\xce\xfa\xed\xfe',  -- Mach-O 32 LE
-  '\xcf\xfa\xed\xfe',  -- Mach-O 64 LE
-  '\xca\xfe\xba\xbe',  -- Mach-O universal
+  '\x7f\x45\x4c\x46', -- ELF (Linux)
+  '\xfe\xed\xfa\xce', -- Mach-O 32 BE
+  '\xfe\xed\xfa\xcf', -- Mach-O 64 BE
+  '\xce\xfa\xed\xfe', -- Mach-O 32 LE
+  '\xcf\xfa\xed\xfe', -- Mach-O 64 LE
+  '\xca\xfe\xba\xbe', -- Mach-O universal
 }
 
 local function is_binary_pre_read()

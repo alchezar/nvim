@@ -31,7 +31,8 @@ local function apply_neovide_theme()
 end
 
 local update_cursor_color = require("config.utils").update_cursor_color
-vim.opt.guicursor = "n-v-c-sm:block-Cursor-blinkwait500-blinkoff500-blinkon500,i-ci-ve:ver25-Cursor-blinkwait500-blinkoff500-blinkon500,r-cr-o:hor20-Cursor"
+vim.opt.guicursor =
+"n-v-c-sm:block-Cursor-blinkwait500-blinkoff500-blinkon500,i-ci-ve:ver25-Cursor-blinkwait500-blinkoff500-blinkon500,r-cr-o:hor20-Cursor"
 vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "ModeChanged" }, {
   callback = update_cursor_color,
 })

@@ -93,6 +93,7 @@ function M.switch_source_header()
     vim.notify('clangd not attached', vim.log.levels.WARN)
     return
   end
+  ---@diagnostic disable-next-line: param-type-mismatch
   clients[1]:request('textDocument/switchSourceHeader',
     vim.lsp.util.make_text_document_params(0),
     function(err, result)
@@ -110,6 +111,15 @@ end
 
 function M.toggle_inlay_hints()
   vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled())
+end
+
+-- diagnostic.goto_prev/next are deprecated in 0.11; jump{count} replaces them.
+function M.diagnostic_prev()
+  vim.diagnostic.jump({ count = -1 })
+end
+
+function M.diagnostic_next()
+  vim.diagnostic.jump({ count = 1 })
 end
 
 -- Hover float with line diagnostics prepended.
@@ -261,7 +271,7 @@ function M.apply_rustfmt_indent(bufnr)
   for line in io.lines(found) do
     local n = line:match('^%s*tab_spaces%s*=%s*(%d+)')
     if n then
-      local sw = tonumber(n)
+      local sw                  = tonumber(n) --[[@as integer]]
       vim.bo[bufnr].shiftwidth  = sw
       vim.bo[bufnr].softtabstop = sw
       vim.bo[bufnr].tabstop     = sw
@@ -412,7 +422,7 @@ function M.dbee_run()
   end
   local mode = vim.fn.mode()
   local action = (mode == 'v' or mode == 'V' or mode == '\22')
-    and 'run_selection' or 'run_under_cursor'
+      and 'run_selection' or 'run_under_cursor'
   api.ui.editor_do_action(action)
   -- Result float starts hidden; un-hide after kicking off the query.
   pcall(function() require('plugins.dbee').show_result() end)

@@ -290,7 +290,7 @@ local function list()
           lnum = item.line,
           display = function()
             return line, {
-              { { 0,         p0 }, ghl },
+              { { 0, p0 },         ghl },
               { { p0 + #SEP, p1 }, 'TelescopeResultsFileName' },
               { { p1 + #SEP, p2 }, 'TelescopeResultsLineNr' },
               { { p2 + #SEP, p3 }, 'TelescopeResultsNormal' },
@@ -336,7 +336,9 @@ vim.api.nvim_create_autocmd({ 'BufWritePost', 'BufLeave' }, {
 })
 vim.api.nvim_create_autocmd('VimLeavePre', {
   group = group,
-  callback = function() sync_all(); save_store() end,
+  callback = function()
+    sync_all(); save_store()
+  end,
 })
 
 load_store()

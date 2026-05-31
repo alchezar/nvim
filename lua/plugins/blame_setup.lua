@@ -5,8 +5,8 @@ local theme = require('config.theme_colors')
 local function hex_to_rgb(hex)
   hex = hex:gsub('#', '')
   return tonumber(hex:sub(1, 2), 16),
-         tonumber(hex:sub(3, 4), 16),
-         tonumber(hex:sub(5, 6), 16)
+      tonumber(hex:sub(3, 4), 16),
+      tonumber(hex:sub(5, 6), 16)
 end
 
 local function rgb_to_hsl(r, g, b)
@@ -41,8 +41,8 @@ local function hsl_to_rgb(h, s, l)
   local q = l < 0.5 and l * (1 + s) or l + s - l * s
   local p = 2 * l - q
   return math.floor(hue2rgb(p, q, h + 1 / 3) * 255 + 0.5),
-         math.floor(hue2rgb(p, q, h)         * 255 + 0.5),
-         math.floor(hue2rgb(p, q, h - 1 / 3) * 255 + 0.5)
+      math.floor(hue2rgb(p, q, h) * 255 + 0.5),
+      math.floor(hue2rgb(p, q, h - 1 / 3) * 255 + 0.5)
 end
 
 -- N-step HSL gradient between two hex colors.
@@ -53,8 +53,8 @@ local function gradient(from_hex, to_hex, n)
   for i = 0, n - 1 do
     local t = n == 1 and 0 or i / (n - 1)
     local r, g, b = hsl_to_rgb(h1 + (h2 - h1) * t,
-                               s1 + (s2 - s1) * t,
-                               l1 + (l2 - l1) * t)
+      s1 + (s2 - s1) * t,
+      l1 + (l2 - l1) * t)
     out[#out + 1] = string.format('#%02X%02X%02X', r, g, b)
   end
   return out
@@ -86,6 +86,7 @@ vim.api.nvim_create_autocmd('User', {
 -- palette ends, so oldest lands on washed-out pink and can fall off to nil/white.
 -- This maps oldest -> palette[1], newest -> palette[#palette].
 local hl_module = require('blame.highlights')
+---@diagnostic disable-next-line: duplicate-set-field
 hl_module.create_highlights_per_hash = function(parsed_lines, config)
   local hash_time_map = {}
   for _, value in ipairs(parsed_lines) do
@@ -128,7 +129,6 @@ require('blame').setup({
   colors = gradient(theme.red, theme.green, 20),
   blame_options = nil,
   commit_detail_view = 'vsplit',
-  format_fn = nil,
   mappings = {
     commit_info = 'i',
     stack_push  = '<TAB>',

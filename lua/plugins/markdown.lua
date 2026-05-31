@@ -5,8 +5,8 @@ local levels = { 'H1', 'H2', 'H3', 'H4', 'H5', 'H6' }
 local colors = { theme.red, theme.orange, theme.yellow, theme.green, theme.blue, theme.purple }
 
 local function apply_heading_hl()
-  for i, lvl in ipairs(levels) do
-    vim.api.nvim_set_hl(0, 'RenderMarkdownH' .. i,    { fg = colors[i], bold = true })
+  for i, _ in ipairs(levels) do
+    vim.api.nvim_set_hl(0, 'RenderMarkdownH' .. i, { fg = colors[i], bold = true })
     vim.api.nvim_set_hl(0, 'RenderMarkdownH' .. i .. 'Bg', {})
   end
 end

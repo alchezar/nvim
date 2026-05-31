@@ -19,9 +19,9 @@ local function lsp_entry_maker(_)
     local line_col = item.lnum .. ':' .. item.col
     local text     = (item.text or ''):gsub('^%s+', '')
     local line     = path .. SEP .. line_col .. SEP .. text
-    local p1 = #path
-    local p2 = p1 + #SEP + #line_col
-    local p3 = p2 + #SEP + #text
+    local p1       = #path
+    local p2       = p1 + #SEP + #line_col
+    local p3       = p2 + #SEP + #text
     return {
       value    = item,
       ordinal  = item.filename .. ' ' .. text,
@@ -31,9 +31,9 @@ local function lsp_entry_maker(_)
       text     = text,
       display  = function()
         return line, {
-          { { 0,             p1 }, 'TelescopeResultsFileName' },
-          { { p1 + #SEP,     p2 }, 'TelescopeResultsLineNr'   },
-          { { p2 + #SEP,     p3 }, 'TelescopeResultsNormal'   },
+          { { 0, p1 },             'TelescopeResultsFileName' },
+          { { p1 + #SEP, p2 },     'TelescopeResultsLineNr' },
+          { { p2 + #SEP, p3 },     'TelescopeResultsNormal' },
         }
       end,
     }

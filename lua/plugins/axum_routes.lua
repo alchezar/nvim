@@ -1,7 +1,7 @@
 -- Telescope picker for axum/utoipa endpoints. A `// METHOD /full/path` comment
 -- above #[utoipa::path(..)] supplies the full URL; bare attrs get (no prefix).
 
-local M = {}
+local M            = {}
 
 local pickers      = require('telescope.pickers')
 local finders      = require('telescope.finders')
@@ -9,12 +9,12 @@ local conf         = require('telescope.config').values
 local actions      = require('telescope.actions')
 local action_state = require('telescope.actions.state')
 
-local METHODS = 'GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE'
-local METHOD_LIST = { 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE' }
+local METHODS      = 'GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE'
+local METHOD_LIST  = { 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE' }
 
 local function rg_vimgrep(pattern, extra_args)
   local cmd = { 'rg', '--vimgrep', '--no-heading', '--color=never',
-                '--type', 'rust', '-i' }
+    '--type', 'rust', '-i' }
   for _, a in ipairs(extra_args or {}) do table.insert(cmd, a) end
   table.insert(cmd, '-e'); table.insert(cmd, pattern)
   local out = vim.fn.systemlist(cmd)
@@ -36,12 +36,14 @@ local function find_handler_after(file, start_lnum, span)
   for i = start_lnum + 1, math.min(#lines, start_lnum + span) do
     local l = lines[i]
     local n = l:match('^%s*pub%s+async%s+fn%s+([%w_]+)')
-      or l:match('^%s*pub%s+fn%s+([%w_]+)')
-      or l:match('^%s*pub%([^)]+%)%s+async%s+fn%s+([%w_]+)')
-      or l:match('^%s*pub%([^)]+%)%s+fn%s+([%w_]+)')
-      or l:match('^%s*async%s+fn%s+([%w_]+)')
-      or l:match('^%s*fn%s+([%w_]+)')
-    if n then name, fn_lnum = n, i; break end
+        or l:match('^%s*pub%s+fn%s+([%w_]+)')
+        or l:match('^%s*pub%([^)]+%)%s+async%s+fn%s+([%w_]+)')
+        or l:match('^%s*pub%([^)]+%)%s+fn%s+([%w_]+)')
+        or l:match('^%s*async%s+fn%s+([%w_]+)')
+        or l:match('^%s*fn%s+([%w_]+)')
+    if n then
+      name, fn_lnum = n, i; break
+    end
   end
   if not name then return nil, nil, nil end
 
@@ -85,7 +87,9 @@ local function collect_anchored()
       local meth, path
       for _, mm in ipairs(METHOD_LIST) do
         local p = m.text:match(mm .. '%s+`?(/[^`%s),]*)')
-        if p then meth, path = mm, p; break end
+        if p then
+          meth, path = mm, p; break
+        end
       end
       if meth and path then
         local handler, hlnum, doc = find_handler_after(m.file, m.lnum, 120)
@@ -93,14 +97,14 @@ local function collect_anchored()
         if not seen[key] then
           seen[key] = true
           table.insert(out, {
-            method        = meth,
-            path          = path,
-            file          = m.file,
-            anchor_lnum   = m.lnum,
-            handler       = handler,
-            handler_lnum  = hlnum,
-            doc           = doc,
-            kind          = 'anchor',
+            method       = meth,
+            path         = path,
+            file         = m.file,
+            anchor_lnum  = m.lnum,
+            handler      = handler,
+            handler_lnum = hlnum,
+            doc          = doc,
+            kind         = 'anchor',
           })
         end
       end
@@ -119,10 +123,10 @@ local function collect_utoipa()
       for i = m.lnum, math.min(#lines, m.lnum + 40) do
         local l = lines[i]
         if not method then
-          method = l:match('^%s*(get)%s*,')  or l:match('^%s*(post)%s*,')
-                 or l:match('^%s*(put)%s*,') or l:match('^%s*(delete)%s*,')
-                 or l:match('^%s*(patch)%s*,') or l:match('^%s*(head)%s*,')
-                 or l:match('^%s*(options)%s*,') or l:match('^%s*(trace)%s*,')
+          method = l:match('^%s*(get)%s*,') or l:match('^%s*(post)%s*,')
+              or l:match('^%s*(put)%s*,') or l:match('^%s*(delete)%s*,')
+              or l:match('^%s*(patch)%s*,') or l:match('^%s*(head)%s*,')
+              or l:match('^%s*(options)%s*,') or l:match('^%s*(trace)%s*,')
         end
         if not rel then rel = l:match('path%s*=%s*"([^"]+)"') end
         if method and rel then break end
@@ -131,14 +135,14 @@ local function collect_utoipa()
       if method and rel then
         local handler, hlnum, doc = find_handler_after(m.file, m.lnum, 120)
         table.insert(out, {
-          method        = method:upper(),
-          path          = rel,
-          file          = m.file,
-          attr_lnum     = m.lnum,
-          handler       = handler,
-          handler_lnum  = hlnum,
-          doc           = doc,
-          kind          = 'no-prefix',
+          method       = method:upper(),
+          path         = rel,
+          file         = m.file,
+          attr_lnum    = m.lnum,
+          handler      = handler,
+          handler_lnum = hlnum,
+          doc          = doc,
+          kind         = 'no-prefix',
         })
       end
     end
@@ -147,8 +151,8 @@ local function collect_utoipa()
 end
 
 local function collect_all()
-  local anchored = collect_anchored()
-  local utoipa   = collect_utoipa()
+  local anchored          = collect_anchored()
+  local utoipa            = collect_utoipa()
 
   -- Index utoipa entries by handler position so we can cross-check anchors.
   local utoipa_by_handler = {}
@@ -166,7 +170,7 @@ local function collect_all()
       if u then
         if u.method ~= e.method then e.mismatch_method = u.method end
         -- `path = "/"` is the router-root case; anchor's full URL ends with the parent prefix.
-        if u.path ~= '/' and e.path:sub(-#u.path) ~= u.path then
+        if u.path ~= '/' and e.path:sub(- #u.path) ~= u.path then
           e.mismatch_path = u.path
         end
       end
@@ -244,22 +248,22 @@ local function make_entry(item)
   local doc      = item.doc and ('  ' .. trunc(item.doc, DOC_MAX)) or ''
   local file_tag = '  ' .. relpath(item.file)
   local text     = method .. mark .. path_pre .. path_b .. path_q
-    .. arrow .. handler .. doc .. file_tag
+      .. arrow .. handler .. doc .. file_tag
 
-  local p0 = 0
-  local p1 = #method
-  local p2 = p1 + #mark
-  local p3 = p2 + #path_pre
-  local p4 = p3 + #path_b
-  local p5 = p4 + #path_q
-  local p6 = p5 + #arrow
-  local p7 = p6 + #handler
-  local p8 = p7 + #doc
-  local p9 = p8 + #file_tag
+  local p0       = 0
+  local p1       = #method
+  local p2       = p1 + #mark
+  local p3       = p2 + #path_pre
+  local p4       = p3 + #path_b
+  local p5       = p4 + #path_q
+  local p6       = p5 + #arrow
+  local p7       = p6 + #handler
+  local p8       = p7 + #doc
+  local p9       = p8 + #file_tag
 
   -- Highlight literals bright and {placeholders} dim within path_b.
   local path_hls = {}
-  local i = 1
+  local i        = 1
   while i <= #path_b do
     local lb, rb = path_b:find('{[^}]-}', i)
     if not lb then
@@ -311,17 +315,17 @@ function M.open()
   vim.o.mousescroll = 'ver:3,hor:1'
 
   pickers.new({}, {
-    prompt_title = 'Axum endpoints',
-    finder       = finders.new_table({ results = items, entry_maker = make_entry }),
-    sorter       = conf.generic_sorter({}),
-    previewer    = conf.grep_previewer({}),
+    prompt_title    = 'Axum endpoints',
+    finder          = finders.new_table({ results = items, entry_maker = make_entry }),
+    sorter          = conf.generic_sorter({}),
+    previewer       = conf.grep_previewer({}),
     attach_mappings = function(prompt_bufnr, _)
       vim.api.nvim_create_autocmd('BufWipeout', {
-        buffer = prompt_bufnr,
-        once   = true,
+        buffer   = prompt_bufnr,
+        once     = true,
         callback = function() vim.o.mousescroll = saved_mousescroll end,
       })
-      actions.select_default:replace(function(prompt_bufnr)
+      actions.select_default:replace(function()
         local sel = action_state.get_selected_entry()
         actions.close(prompt_bufnr)
         if not sel or not sel.value then return end

@@ -35,11 +35,12 @@ local function unused_qual_actionable(uri, d)
   local lines = vim.api.nvim_buf_get_lines(bufnr, r.start.line, r['end'].line + 1, false)
   if not lines[1] then return true end
   local seg = #lines == 1 and lines[1]:sub(r.start.character + 1, r['end'].character)
-    or table.concat(lines, '\n')
+      or table.concat(lines, '\n')
   return seg:find('::', 1, true) ~= nil
 end
 
 local rust_publish = vim.lsp.handlers['textDocument/publishDiagnostics']
+---@diagnostic disable-next-line: duplicate-set-field
 vim.lsp.handlers['textDocument/publishDiagnostics'] = function(err, result, ctx)
   local client = vim.lsp.get_client_by_id(ctx.client_id)
   if client and client.name == 'rust-analyzer' and result and result.diagnostics then
@@ -167,9 +168,9 @@ vim.lsp.config('basedpyright', {
   },
   before_init = function(params, config)
     local root = params.workspaceFolders
-      and params.workspaceFolders[1]
-      and vim.uri_to_fname(params.workspaceFolders[1].uri)
-      or vim.fn.getcwd()
+        and params.workspaceFolders[1]
+        and vim.uri_to_fname(params.workspaceFolders[1].uri)
+        or vim.fn.getcwd()
     local py = find_project_python(root)
     if py then
       config.settings.python.pythonPath = py
@@ -196,6 +197,40 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
+-- Lua via `lua-language-server` (brew install lua-language-server).
+vim.lsp.config('lua_ls', {
+  -- A .luarc.json in the project wins; on_init only fills runtime/library when absent.
+  on_init = function(client)
+    if client.workspace_folders then
+      local path = client.workspace_folders[1].name
+      if vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc') then
+        return
+      end
+    end
+    client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
+      runtime = { version = 'LuaJIT' },
+      -- Pull in Neovim's API + plugin runtime so `vim`, vim.api, etc. resolve.
+      workspace = {
+        checkThirdParty = false,
+        library = vim.api.nvim_get_runtime_file('', true),
+      },
+    })
+  end,
+  settings = {
+    Lua = {
+      diagnostics = {
+        globals = { 'vim' },
+        -- Plugin APIs (cmp, dbee, ...) build fields via metatables lua_ls can't
+        -- see, and setup() takes partial config tables; these fire as false positives.
+        disable = { 'undefined-field', 'redundant-parameter', 'missing-fields' },
+      },
+      hint = { enable = true },
+      telemetry = { enable = false },
+    },
+  },
+})
+vim.lsp.enable('lua_ls')
+
 -- C / C++.
 vim.lsp.config('clangd', {
   cmd = {
@@ -215,7 +250,7 @@ vim.lsp.codelens.enable(true)
 -- Highlight separators in hover/float windows.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'markdown',
-  callback = function(args)
+  callback = function()
     if vim.api.nvim_win_get_config(0).relative ~= '' then
       vim.fn.matchadd('FloatBorder', '^─\\+$')
       vim.fn.matchadd('Comment', '\\v(\\w+::)+')
