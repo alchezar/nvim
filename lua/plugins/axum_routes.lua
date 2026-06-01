@@ -74,8 +74,37 @@ local function find_handler_after(file, start_lnum, span)
   return name, fn_lnum, doc
 end
 
+-- Keywords that end the attribute block by starting the documented item.
+local ITEM_KW = {
+  fn = true, struct = true, enum = true, union = true, trait = true,
+  impl = true, type = true, const = true, static = true, mod = true, use = true,
+}
+
+-- First keyword of a line, ignoring visibility/async/unsafe/default modifiers.
+local function first_kw(l)
+  local s = l:gsub('^%s*', '')
+  s = s:gsub('^pub%s*%b()%s*', ''):gsub('^pub%s+', '')
+  s = s:gsub('^default%s+', ''):gsub('^unsafe%s+', ''):gsub('^async%s+', '')
+  return s:match('^([%w_]+)')
+end
+
+-- A banner counts only when a `#[utoipa::path(` attribute sits between it and
+-- the item it documents. Scan down through blanks/comments/other attributes
+-- (`#[inline]` etc); stop at the first declaration. utoipa first -> handler;
+-- a declaration first -> it documents a type/overview, so reject it.
+local function anchor_over_utoipa(file, anchor_lnum)
+  local lines = vim.fn.readfile(file, '', anchor_lnum + 120)
+  for i = anchor_lnum + 1, math.min(#lines, anchor_lnum + 120) do
+    local l = lines[i]
+    if l:match('^%s*#%[utoipa::path') then return true end
+    local w = first_kw(l)
+    if w and ITEM_KW[w] then return false end
+  end
+  return false
+end
+
 local function collect_anchored()
-  -- Match `METHOD /path` anywhere in a `//` or `///` comment - covers bare
+  -- Match `METHOD /path` anywhere in a `//`/`///` comment - covers bare
   -- `// GET /x`, doc `/// GET /x`, and banners `// Foo - GET /x`. Skip tests/.
   local pattern = [[^\s*//.*\b(]] .. METHODS .. [[)\s+/]]
   local out, seen = {}, {}
@@ -83,7 +112,7 @@ local function collect_anchored()
     local m = parse_vimgrep(raw)
     -- `//!` lines are module-level endpoint overviews - they duplicate the
     -- per-handler `///` and resolve to the wrong fn, so drop them.
-    if m and not m.text:match('^%s*//!') then
+    if m and not m.text:match('^%s*//!') and anchor_over_utoipa(m.file, m.lnum) then
       local meth, path
       for _, mm in ipairs(METHOD_LIST) do
         local p = m.text:match(mm .. '%s+`?(/[^`%s),]*)')
