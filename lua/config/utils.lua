@@ -526,6 +526,36 @@ function M.gitsigns_preview_hunk()
   end)
 end
 
+-- Active keyboard layout, cached so the layout-aware keymaps below never shell
+-- out on the hot path. A libuv timer refreshes it in the background (async
+-- vim.system, non-blocking); polling pauses while nvim is unfocused.
+local kbd_layout = ''
+local function refresh_layout()
+  vim.system({ 'im-select' }, { text = true }, function(r)
+    if r.code == 0 then kbd_layout = vim.trim(r.stdout) end
+  end)
+end
+local function on_ukrainian() return kbd_layout:find('Ukrainian', 1, true) ~= nil end
+
+function M.watch_kbd_layout()
+  local timer = vim.uv.new_timer()
+  refresh_layout()
+  if not timer then return end
+  local function poll()
+    if not timer:is_active() then timer:start(0, 300, vim.schedule_wrap(refresh_layout)) end
+  end
+  poll()
+  vim.api.nvim_create_autocmd('FocusGained', { callback = function() refresh_layout(); poll() end })
+  vim.api.nvim_create_autocmd('FocusLost', { callback = function() timer:stop() end })
+end
+
+-- These keys print the same char in both layouts but on different physical keys,
+-- so langmap can't tell them apart. On Ukrainian the QWERTY-position command is
+-- unreachable, so resolve to it; on any latin layout keep the key's own char.
+function M.key_dollar() return on_ukrainian() and '$' or ';' end -- укр Shift+4 prints ;
+function M.key_caret() return on_ukrainian() and '^' or ':' end  -- укр Shift+6 prints :
+function M.key_at() return on_ukrainian() and '@' or '"' end     -- укр Shift+2 prints "
+
 -- Search selection literally (\V) so regex metacharacters match as-is.
 function M.search_visual(forward)
   vim.cmd('normal! "vy')

@@ -68,6 +68,10 @@
       "rev": "b46e63356a69e8d6f046c38a9708d55d17f15038",
       "src": "https://github.com/RaafatTurki/hex.nvim"
     },
+    "langmapper.nvim": {
+      "rev": "49462fd9f4f33cf8cfbaa779ba07d3c0b255cc06",
+      "src": "https://github.com/Wansmer/langmapper.nvim"
+    },
     "lazygit.nvim": {
       "rev": "a04ad0dbc725134edbee3a5eea29290976695357",
       "src": "https://github.com/kdheepak/lazygit.nvim"
@@ -149,7 +153,7 @@
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "4136336ac7e0dcbb1ffc60263d68dab500a6d183",
+      "rev": "8bdd018fab9ccf0a404237c424962146ae16675a",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "telescope.nvim": {

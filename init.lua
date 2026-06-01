@@ -83,6 +83,8 @@ require('plugins.visual_multi_setup')
 
 -- Plugins
 require("config.plugins")
+-- Before any keymaps: hack_keymap wraps vim.keymap.set to add Ukrainian twins.
+require("plugins.langmapper_setup")
 require("config.autosave")
 require("config.keys")
 require("plugins.telescope_setup")
@@ -114,3 +116,6 @@ require('plugins.crates_setup')
 require('plugins.hex_setup')
 require('config.filetypes')
 require('plugins.easymotion_setup')
+
+-- Must run last: scans every keymap set above and adds the Ukrainian variant.
+require('langmapper').automapping({ global = true, buffer = true })

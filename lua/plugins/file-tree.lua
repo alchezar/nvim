@@ -110,6 +110,7 @@ local function apply_tree_hl()
   vim.api.nvim_set_hl(0, 'NvimTreeRootFolder', { fg = theme.silver, bold = true })
   vim.api.nvim_set_hl(0, 'NvimTreeSymlinkFolderName', { fg = theme.silver, bold = true, italic = true })
   vim.api.nvim_set_hl(0, 'NvimTreeCursorLine', { bg = theme.black })
+  vim.api.nvim_set_hl(0, 'NvimTreeCopiedHL', { link = 'NvimTreeNormal' }) -- Render copied files like any other
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_tree_hl })
 apply_tree_hl()
