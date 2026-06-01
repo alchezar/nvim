@@ -122,6 +122,64 @@ function M.diagnostic_next()
   vim.diagnostic.jump({ count = 1 })
 end
 
+-- Break a one-line fn signature so each param sits on its own line.
+-- Depth tracking keeps generics/tuples (Result<T, E>, (A, B)) intact.
+local function split_signature(line)
+  if not line:find('%f[%w]fn%f[%W]') then return nil end
+  local open = line:find('(', 1, true)
+  if not open then return nil end
+
+  local depth, close = 0, nil
+  for i = open, #line do
+    local c = line:sub(i, i)
+    if c == '(' then depth = depth + 1
+    elseif c == ')' then
+      depth = depth - 1
+      if depth == 0 then close = i break end
+    end
+  end
+  if not close then return nil end
+
+  local inner = line:sub(open + 1, close - 1)
+  if inner:gsub('%s', '') == '' then return nil end
+
+  local params, last = {}, 1
+  local a, b, c2, p = 0, 0, 0, 0 -- angle, bracket, brace, paren depth
+  for i = 1, #inner do
+    local ch = inner:sub(i, i)
+    if ch == '<' then a = a + 1
+    elseif ch == '>' then if a > 0 then a = a - 1 end
+    elseif ch == '[' then b = b + 1
+    elseif ch == ']' then if b > 0 then b = b - 1 end
+    elseif ch == '{' then c2 = c2 + 1
+    elseif ch == '}' then if c2 > 0 then c2 = c2 - 1 end
+    elseif ch == '(' then p = p + 1
+    elseif ch == ')' then if p > 0 then p = p - 1 end
+    elseif ch == ',' and a == 0 and b == 0 and c2 == 0 and p == 0 then
+      table.insert(params, inner:sub(last, i - 1))
+      last = i + 1
+    end
+  end
+  table.insert(params, inner:sub(last))
+  if #params < 2 then return nil end
+
+  local out = { line:sub(1, open) }
+  for _, param in ipairs(params) do
+    table.insert(out, '    ' .. vim.trim(param) .. ',')
+  end
+  table.insert(out, line:sub(close))
+  return out
+end
+
+local function reflow_signatures(lines)
+  local out = {}
+  for _, l in ipairs(lines) do
+    local split = split_signature(l)
+    if split then vim.list_extend(out, split) else table.insert(out, l) end
+  end
+  return out
+end
+
 -- Hover float with line diagnostics prepended.
 function M.hover()
   local bufnr = 0
@@ -164,7 +222,7 @@ function M.hover()
     client:request('textDocument/hover', params, function(err, result)
       if not hover_lines and not err and result and result.contents then
         local h = vim.lsp.util.convert_input_to_markdown_lines(result.contents)
-        if #h > 0 then hover_lines = h end
+        if #h > 0 then hover_lines = reflow_signatures(h) end
       end
       remaining = remaining - 1
       if remaining == 0 then
