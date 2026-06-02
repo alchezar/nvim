@@ -46,6 +46,7 @@ map('n', 'go', utils.switch_source_header, { desc = 'Switch C/C++ source/header'
 map('n', '<leader>o', builtin.lsp_document_symbols, { desc = 'File structure (Telescope)' })
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
 map('n', '<leader>rl', utils.restart_buf_lsp, { desc = 'Reload LSP for current buffer' })
+map('n', '<leader>rb', utils.reload_buf, { desc = 'Reload current buffer (wipe and reopen)' })
 -- Telescope
 map('n', '<Tab>', '<C-^>', { desc = 'Switch to alternate file' })
 map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })
@@ -65,6 +66,7 @@ map('n', '<leader>?', builtin.keymaps, { desc = 'Search keymaps (cheatsheet)' })
 map('n', '<leader>fp', utils.open_clipboard_path, { desc = 'Open file path from clipboard' })
 map('n', '<leader>fa', utils.find_files_in_home, { desc = 'Find files everywhere ($HOME)' })
 map('n', '<leader>fe', ':AxumRoutes<CR>', { desc = 'Axum/utoipa endpoints', silent = true })
+map('n', '<leader>fE', ':AxumRoutesFile<CR>', { desc = 'Axum/utoipa endpoints (file)', silent = true })
 map('n', '<leader>fr', function() builtin.oldfiles({ cwd_only = true }) end, { desc = 'Recent files (project)' })
 map('n', '<leader>fR', builtin.oldfiles, { desc = 'Recent files' })
 -- Copy file path / location to system clipboard

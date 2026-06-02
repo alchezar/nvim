@@ -12,11 +12,12 @@ local action_state = require('telescope.actions.state')
 local METHODS      = 'GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE'
 local METHOD_LIST  = { 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE' }
 
-local function rg_vimgrep(pattern, extra_args)
+local function rg_vimgrep(pattern, extra_args, paths)
   local cmd = { 'rg', '--vimgrep', '--no-heading', '--color=never',
     '--type', 'rust', '-i' }
   for _, a in ipairs(extra_args or {}) do table.insert(cmd, a) end
   table.insert(cmd, '-e'); table.insert(cmd, pattern)
+  for _, p in ipairs(paths or {}) do table.insert(cmd, p) end
   local out = vim.fn.systemlist(cmd)
   if vim.v.shell_error ~= 0 and #out == 0 then return {} end
   return out
@@ -103,12 +104,15 @@ local function anchor_over_utoipa(file, anchor_lnum)
   return false
 end
 
-local function collect_anchored()
+local function collect_anchored(file)
   -- Match `METHOD /path` anywhere in a `//`/`///` comment - covers bare
-  -- `// GET /x`, doc `/// GET /x`, and banners `// Foo - GET /x`. Skip tests/.
+  -- `// GET /x`, doc `/// GET /x`, and banners `// Foo - GET /x`. Skip tests/
+  -- only on a project-wide scan; a single explicit file is always searched.
   local pattern = [[^\s*//.*\b(]] .. METHODS .. [[)\s+/]]
+  local extra = file and {} or { '-g', '!**/tests/**' }
+  local paths = file and { file } or nil
   local out, seen = {}, {}
-  for _, raw in ipairs(rg_vimgrep(pattern, { '-g', '!**/tests/**' })) do
+  for _, raw in ipairs(rg_vimgrep(pattern, extra, paths)) do
     local m = parse_vimgrep(raw)
     -- `//!` lines are module-level endpoint overviews - they duplicate the
     -- per-handler `///` and resolve to the wrong fn, so drop them.
@@ -142,9 +146,10 @@ local function collect_anchored()
   return out
 end
 
-local function collect_utoipa()
+local function collect_utoipa(file)
+  local paths = file and { file } or nil
   local out = {}
-  for _, raw in ipairs(rg_vimgrep([[#\[utoipa::path\(]])) do
+  for _, raw in ipairs(rg_vimgrep([[#\[utoipa::path\(]], nil, paths)) do
     local m = parse_vimgrep(raw)
     if m then
       local lines = vim.fn.readfile(m.file, '', m.lnum + 40)
@@ -179,9 +184,9 @@ local function collect_utoipa()
   return out
 end
 
-local function collect_all()
-  local anchored          = collect_anchored()
-  local utoipa            = collect_utoipa()
+local function collect_all(file)
+  local anchored          = collect_anchored(file)
+  local utoipa            = collect_utoipa(file)
 
   -- Index utoipa entries by handler position so we can cross-check anchors.
   local utoipa_by_handler = {}
@@ -331,10 +336,13 @@ local function make_entry(item)
   }
 end
 
-function M.open()
-  local items = collect_all()
+function M.open(opts)
+  opts = opts or {}
+  local file = opts.file
+  local items = collect_all(file)
   if #items == 0 then
-    vim.notify('No axum/utoipa endpoints found', vim.log.levels.INFO)
+    vim.notify(file and 'No endpoints in this file' or 'No axum/utoipa endpoints found',
+      vim.log.levels.INFO)
     return
   end
 
@@ -344,7 +352,7 @@ function M.open()
   vim.o.mousescroll = 'ver:3,hor:1'
 
   pickers.new({}, {
-    prompt_title    = 'Axum endpoints',
+    prompt_title    = file and 'Axum endpoints (file)' or 'Axum endpoints',
     finder          = finders.new_table({ results = items, entry_maker = make_entry }),
     sorter          = conf.generic_sorter({}),
     previewer       = conf.grep_previewer({}),
@@ -367,7 +375,11 @@ function M.open()
   }):find()
 end
 
-vim.api.nvim_create_user_command('AxumRoutes', M.open,
+vim.api.nvim_create_user_command('AxumRoutes', function() M.open() end,
   { desc = 'List axum/utoipa endpoints in Telescope' })
+
+vim.api.nvim_create_user_command('AxumRoutesFile',
+  function() M.open({ file = vim.api.nvim_buf_get_name(0) }) end,
+  { desc = 'List axum/utoipa endpoints in the current file' })
 
 return M

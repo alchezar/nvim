@@ -375,6 +375,33 @@ function M.restart_buf_lsp()
   wait_and_reattach(0)
 end
 
+-- Wipe the current buffer and reopen the same file, for a fully fresh buffer state.
+-- A scratch buffer parks the window so the original can be force-wiped without closing it.
+function M.reload_buf()
+  local old = vim.api.nvim_get_current_buf()
+  local name = vim.api.nvim_buf_get_name(old)
+  if name == '' or vim.bo[old].buftype ~= '' then
+    vim.notify('Not a file buffer', vim.log.levels.WARN)
+    return
+  end
+  if vim.bo[old].modified then
+    vim.notify('Buffer has unsaved changes - save first', vim.log.levels.WARN)
+    return
+  end
+  local pos = vim.api.nvim_win_get_cursor(0)
+  local scratch = vim.api.nvim_create_buf(true, false)
+  vim.api.nvim_win_set_buf(0, scratch)
+  vim.api.nvim_buf_delete(old, { force = true })
+  vim.cmd('edit ' .. vim.fn.fnameescape(name))
+  -- :edit reuses the empty scratch (loading the file into it); only wipe it
+  -- when a separate buffer was opened instead, or we'd delete the reload.
+  local cur = vim.api.nvim_get_current_buf()
+  if cur ~= scratch and vim.api.nvim_buf_is_valid(scratch) then
+    vim.api.nvim_buf_delete(scratch, { force = true })
+  end
+  pcall(vim.api.nvim_win_set_cursor, 0, pos)
+end
+
 -- Open a path from clipboard. Accepts `path`, `path:line`, `path:line:col`.
 function M.open_clipboard_path()
   local raw = vim.trim(vim.fn.getreg('+'))
