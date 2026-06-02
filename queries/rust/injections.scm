@@ -204,3 +204,47 @@
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
+; ------------------------------------------------------------------------------
+; QueryBuilder::new("SELECT ...") - the seed fragment is SQL too.
+
+; QueryBuilder::new(...) after `use sqlx::QueryBuilder;`
+((call_expression
+   function: (scoped_identifier
+     path: (identifier) @_type
+     name: (identifier) @_new)
+   arguments: (arguments
+     [(string_literal (string_content) @injection.content)
+      (raw_string_literal (string_content) @injection.content)]))
+ (#eq? @_type "QueryBuilder")
+ (#eq? @_new "new")
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; sqlx::QueryBuilder::new(...) - fully qualified path
+((call_expression
+   function: (scoped_identifier
+     path: (scoped_identifier name: (identifier) @_type)
+     name: (identifier) @_new)
+   arguments: (arguments
+     [(string_literal (string_content) @injection.content)
+      (raw_string_literal (string_content) @injection.content)]))
+ (#eq? @_type "QueryBuilder")
+ (#eq? @_new "new")
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; Turbofish: QueryBuilder::<Postgres>::new(...) / sqlx::QueryBuilder::<Postgres>::new(...)
+((call_expression
+   function: (scoped_identifier
+     path: (generic_type
+       type: [(type_identifier) @_type
+              (scoped_identifier name: (identifier) @_type)])
+     name: (identifier) @_new)
+   arguments: (arguments
+     [(string_literal (string_content) @injection.content)
+      (raw_string_literal (string_content) @injection.content)]))
+ (#eq? @_type "QueryBuilder")
+ (#eq? @_new "new")
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
