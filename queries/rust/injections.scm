@@ -248,3 +248,32 @@
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
+; ------------------------------------------------------------------------------
+; redis::Script::new(r"...") - the body is a Lua script (redis.call, KEYS, ARGV).
+
+; Script::new(...) after `use redis::Script;`
+((call_expression
+   function: (scoped_identifier
+     path: (identifier) @_type
+     name: (identifier) @_new)
+   arguments: (arguments
+     [(string_literal (string_content) @injection.content)
+      (raw_string_literal (string_content) @injection.content)]))
+ (#eq? @_type "Script")
+ (#eq? @_new "new")
+ (#set! injection.language "lua")
+ (#set! injection.priority 110))
+
+; redis::Script::new(...) - fully qualified path
+((call_expression
+   function: (scoped_identifier
+     path: (scoped_identifier name: (identifier) @_type)
+     name: (identifier) @_new)
+   arguments: (arguments
+     [(string_literal (string_content) @injection.content)
+      (raw_string_literal (string_content) @injection.content)]))
+ (#eq? @_type "Script")
+ (#eq? @_new "new")
+ (#set! injection.language "lua")
+ (#set! injection.priority 110))
+

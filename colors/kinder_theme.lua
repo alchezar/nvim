@@ -385,6 +385,9 @@ for _, lang in ipairs({ "sql" }) do
 	end
 end
 
+-- LUA.
+vim.api.nvim_set_hl(0, "@function.builtin.lua", { fg = colors.emerald })
+
 -- PYTHON (treesitter + pyright LSP).
 local function python_treesitter_highlights(lang)
 	return {

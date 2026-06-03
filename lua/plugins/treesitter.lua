@@ -3,7 +3,7 @@
 -- Preload injection-only parsers (no buffer has their ft, so FileType never fires).
 -- Without this, opening a non-rust file first means sqlx::query! injections
 -- silently fall back to @string.rust on the initial highlight pass.
-for _, lang in ipairs({ 'sql' }) do
+for _, lang in ipairs({ 'sql', 'lua' }) do
   pcall(vim.treesitter.language.add, lang)
 end
 
