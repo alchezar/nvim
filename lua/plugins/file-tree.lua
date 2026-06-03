@@ -281,6 +281,63 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   end
 end)
 
+-- Tint the expand arrow by folder name: src -> blue, tests -> green, crate(s)/module(s) -> purple,
+-- migrations -> red, docs/spec -> yellow, frontend -> cyan, deploy -> orange, dot-folders -> brown. Colors the first non-blank token (the arrow).
+local folder_ns = vim.api.nvim_create_namespace('nvim_tree_folder_color')
+local folder_theme = require('config.theme_colors')
+vim.api.nvim_set_hl(0, 'NvimTreeFolderSrcIcon', { fg = folder_theme.blue })
+vim.api.nvim_set_hl(0, 'NvimTreeFolderTestsIcon', { fg = folder_theme.green })
+vim.api.nvim_set_hl(0, 'NvimTreeFolderCrateIcon', { fg = folder_theme.purple })
+vim.api.nvim_set_hl(0, 'NvimTreeFolderMigrationsIcon', { fg = folder_theme.red })
+vim.api.nvim_set_hl(0, 'NvimTreeFolderDocsIcon', { fg = folder_theme.yellow })
+vim.api.nvim_set_hl(0, 'NvimTreeFolderFrontendIcon', { fg = folder_theme.cyan })
+vim.api.nvim_set_hl(0, 'NvimTreeFolderDeployIcon', { fg = folder_theme.orange })
+vim.api.nvim_set_hl(0, 'NvimTreeFolderHiddenIcon', { fg = folder_theme.brown })
+
+local folder_arrow_hl = {
+  src             = 'NvimTreeFolderSrcIcon',
+  tests           = 'NvimTreeFolderTestsIcon',
+  crate           = 'NvimTreeFolderCrateIcon',
+  crates          = 'NvimTreeFolderCrateIcon',
+  module          = 'NvimTreeFolderCrateIcon',
+  modules         = 'NvimTreeFolderCrateIcon',
+  migrations      = 'NvimTreeFolderMigrationsIcon',
+  migrations_down = 'NvimTreeFolderMigrationsIcon',
+  docs            = 'NvimTreeFolderDocsIcon',
+  spec            = 'NvimTreeFolderDocsIcon',
+  frontend        = 'NvimTreeFolderFrontendIcon',
+  deploy          = 'NvimTreeFolderDeployIcon',
+}
+
+require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
+  local bufnr = payload and payload.bufnr
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
+  vim.api.nvim_buf_clear_namespace(bufnr, folder_ns, 0, -1)
+
+  local core = require('nvim-tree.core')
+  local explorer = core.get_explorer()
+  if not explorer then return end
+
+  local start_line = core.get_nodes_starting_line()
+  local nodes_by_line = explorer:get_nodes_by_line(start_line)
+  for line, node in pairs(nodes_by_line) do
+    local hl = node and node.type == 'directory' and node.name
+        and (folder_arrow_hl[node.name] or (node.name:sub(1, 1) == '.' and 'NvimTreeFolderHiddenIcon'))
+    if hl then
+      local text = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ''
+      local lead = text:match('^%s*')
+      local arrow = text:sub(#lead + 1):match('^%S+')
+      if arrow then
+        vim.api.nvim_buf_set_extmark(bufnr, folder_ns, line - 1, #lead, {
+          end_col = #lead + #arrow,
+          hl_group = hl,
+          priority = 200,
+        })
+      end
+    end
+  end
+end)
+
 -- Auto-cd to project root based on common markers. nested = true so the global cd's
 -- DirChanged reaches nvim-tree (sync_root_with_cwd), re-rooting the tree on project change.
 vim.api.nvim_create_autocmd('BufEnter', {
