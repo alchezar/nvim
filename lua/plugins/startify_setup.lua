@@ -73,6 +73,11 @@ local function load_extra_quotes()
   return ok and quotes or {}
 end
 
+local function load_vim_tips()
+  local ok, tips = pcall(require, 'config.vim_tips')
+  return ok and tips.get() or {}
+end
+
 local content_width = 85
 local last_pad_n    = nil
 
@@ -126,10 +131,10 @@ end
 vim.api.nvim_create_autocmd('VimEnter', {
   once     = true,
   callback = function()
-    vim.g.startify_custom_header_quotes = vim.list_extend(
-      vim.fn['startify#fortune#predefined_quotes'](),
-      load_extra_quotes()
-    )
+    local quotes = vim.fn['startify#fortune#predefined_quotes']()
+    vim.list_extend(quotes, load_extra_quotes())
+    vim.list_extend(quotes, load_vim_tips())
+    vim.g.startify_custom_header_quotes = quotes
     apply_layout(0)
   end,
 })
