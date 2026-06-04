@@ -107,6 +107,7 @@ require('virt-column').setup({ enabled = false, char = '▕', virtcolumn = '80,1
 require('nvim-highlight-colors').setup({ render = 'background' })
 require('plugins.bookmarks')
 require('plugins.markdown')
+require('plugins.csvview_setup')
 require('plugins.fishbone_setup')
 require('plugins.dbee')
 require('plugins.blame_setup')

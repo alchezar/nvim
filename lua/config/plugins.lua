@@ -36,6 +36,7 @@ vim.pack.add({
   'https://github.com/alchezar/fishbone.nvim',                    --
   'https://github.com/brenoprata10/nvim-highlight-colors',        -- Inline color preview for #hex / rgb / hsl
   'https://github.com/MeanderingProgrammer/render-markdown.nvim', -- Markdown
+  'https://github.com/hat0uma/csvview.nvim',                      -- CSV/TSV: render rows as an aligned table
   'https://github.com/Saecki/crates.nvim',                        -- Cargo.toml: inline crate version info
   'https://github.com/MunifTanjim/nui.nvim',                      -- Database UI (nvim-dbee)
   'https://github.com/kndndrj/nvim-dbee',                         --
