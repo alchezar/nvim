@@ -2,6 +2,8 @@ if not vim.g.neovide then
   return
 end
 
+local palette = require("config.theme_colors")
+
 vim.g.neovide_window_blurred = true
 vim.g.neovide_opacity = 0.9
 vim.g.neovide_normal_opacity = 0.9
@@ -16,10 +18,12 @@ vim.g.neovide_cursor_animate_command_line = true
 -- vim.g.neovide_position_animation_length = 0
 vim.g.neovide_floating_shadow = false
 
--- Font settings. My own font with concinese name.
--- Based on the Iosevka Font. https://typeof.net/Iosevka/
--- macOS resolves a bolder weight from the base family; Windows/DirectWrite
--- registers each weight as its own family, so name the weight explicitly.
+-- Tint the OS title bar to match the editor gb (Windows only, via DWM caption).
+vim.g.neovide_title_background_color = palette.bg
+vim.g.neovide_title_text_color = palette.fg
+
+-- Iosevka Chill Nerd. Widnows needs the explicit weight name;
+-- macOS resolves a bolder weight from the base family.
 vim.opt.guifont = vim.fn.has("mac") == 1
     and "Iosevka Chill Nerd Medium:h17"
     or "Iosevka Chill Nerd:h13"
@@ -32,9 +36,8 @@ vim.cmd("colorscheme kinder_theme")
 --  - Solid background (terminal nvim stays transparent)
 --  - Block cursor takes the color of the character underneath
 local function apply_neovide_theme()
-  local bg = "#262626"
-  vim.api.nvim_set_hl(0, "Normal", { bg = bg })
-  vim.api.nvim_set_hl(0, "NormalFloat", { bg = bg })
+  vim.api.nvim_set_hl(0, "Normal", { bg = palette.bg })
+  vim.api.nvim_set_hl(0, "NormalFloat", { bg = palette.bg })
 end
 
 local update_cursor_color = require("config.utils").update_cursor_color
