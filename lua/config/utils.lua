@@ -132,10 +132,14 @@ local function split_signature(line)
   local depth, close = 0, nil
   for i = open, #line do
     local c = line:sub(i, i)
-    if c == '(' then depth = depth + 1
+    if c == '(' then
+      depth = depth + 1
     elseif c == ')' then
       depth = depth - 1
-      if depth == 0 then close = i break end
+      if depth == 0 then
+        close = i
+        break
+      end
     end
   end
   if not close then return nil end
@@ -147,14 +151,22 @@ local function split_signature(line)
   local a, b, c2, p = 0, 0, 0, 0 -- angle, bracket, brace, paren depth
   for i = 1, #inner do
     local ch = inner:sub(i, i)
-    if ch == '<' then a = a + 1
-    elseif ch == '>' then if a > 0 then a = a - 1 end
-    elseif ch == '[' then b = b + 1
-    elseif ch == ']' then if b > 0 then b = b - 1 end
-    elseif ch == '{' then c2 = c2 + 1
-    elseif ch == '}' then if c2 > 0 then c2 = c2 - 1 end
-    elseif ch == '(' then p = p + 1
-    elseif ch == ')' then if p > 0 then p = p - 1 end
+    if ch == '<' then
+      a = a + 1
+    elseif ch == '>' then
+      if a > 0 then a = a - 1 end
+    elseif ch == '[' then
+      b = b + 1
+    elseif ch == ']' then
+      if b > 0 then b = b - 1 end
+    elseif ch == '{' then
+      c2 = c2 + 1
+    elseif ch == '}' then
+      if c2 > 0 then c2 = c2 - 1 end
+    elseif ch == '(' then
+      p = p + 1
+    elseif ch == ')' then
+      if p > 0 then p = p - 1 end
     elseif ch == ',' and a == 0 and b == 0 and c2 == 0 and p == 0 then
       table.insert(params, inner:sub(last, i - 1))
       last = i + 1
@@ -556,8 +568,10 @@ end
 -- Active keyboard layout, cached so the layout-aware keymaps below never shell
 -- out on the hot path. A libuv timer refreshes it in the background (async
 -- vim.system, non-blocking); polling pauses while nvim is unfocused.
+local has_im_select = vim.fn.executable('im-select') == 1
 local kbd_layout = ''
 local function refresh_layout()
+  if not has_im_select then return end
   vim.system({ 'im-select' }, { text = true }, function(r)
     if r.code == 0 then kbd_layout = vim.trim(r.stdout) end
   end)
@@ -565,6 +579,7 @@ end
 local function on_ukrainian() return kbd_layout:find('Ukrainian', 1, true) ~= nil end
 
 function M.watch_kbd_layout()
+  if not has_im_select then return end
   local timer = vim.uv.new_timer()
   refresh_layout()
   if not timer then return end
@@ -572,7 +587,9 @@ function M.watch_kbd_layout()
     if not timer:is_active() then timer:start(0, 300, vim.schedule_wrap(refresh_layout)) end
   end
   poll()
-  vim.api.nvim_create_autocmd('FocusGained', { callback = function() refresh_layout(); poll() end })
+  vim.api.nvim_create_autocmd('FocusGained', { callback = function()
+    refresh_layout(); poll()
+  end })
   vim.api.nvim_create_autocmd('FocusLost', { callback = function() timer:stop() end })
 end
 
@@ -580,7 +597,9 @@ end
 -- so langmap can't tell them apart. On Ukrainian the QWERTY-position command is
 -- unreachable, so resolve to it; on any latin layout keep the key's own char.
 function M.key_dollar() return on_ukrainian() and '$' or ';' end -- укр Shift+4 prints ;
+
 function M.key_caret() return on_ukrainian() and '^' or ':' end  -- укр Shift+6 prints :
+
 function M.key_at() return on_ukrainian() and '@' or '"' end     -- укр Shift+2 prints "
 
 -- Search selection literally (\V) so regex metacharacters match as-is.

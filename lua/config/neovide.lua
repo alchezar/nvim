@@ -18,7 +18,11 @@ vim.g.neovide_floating_shadow = false
 
 -- Font settings. My own font with concinese name.
 -- Based on the Iosevka Font. https://typeof.net/Iosevka/
-vim.opt.guifont = "Iosevka Chill Nerd Medium:h17"
+-- macOS resolves a bolder weight from the base family; Windows/DirectWrite
+-- registers each weight as its own family, so name the weight explicitly.
+vim.opt.guifont = vim.fn.has("mac") == 1
+    and "Iosevka Chill Nerd Medium:h17"
+    or "Iosevka Chill Nerd:h13"
 vim.opt.linespace = -4;
 -- Set color scheme. My own color theme with a concine name.
 -- Based on the MonokaiPro(Spectrum) and OneDarkPro color themes.

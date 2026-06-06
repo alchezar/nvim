@@ -20,6 +20,7 @@ map('x', '<D-C-u>', function() translate.translate_selection('UK') end, { desc =
 map('x', '<D-C-S-u>', function() translate.translate_selection('EN') end, { desc = 'Translate selection to English' }) -- Translate selected text (Cmd+Ctrl+Shift+U: -> English)
 map('n', '<leader>n', ':noh<CR>', { desc = 'Clear search highlight', silent = true })                                  -- Disable search highlight
 map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
+map('n', '<leader>sl', [[/\vlet (mut )?\w*:<CR>]], { desc = 'Search let/let mut bindings' })                           -- Highlight Rust let / let mut declarations
 map('n', '<leader>p', '"_dP', { desc = 'Paste without overwriting register' })                                         -- Keep register on paste
 map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })                                                         -- Open yazi file manager
 map('n', '<leader>i', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })                                       -- Toggle inlay hints

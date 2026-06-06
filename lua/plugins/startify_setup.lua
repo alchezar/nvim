@@ -215,9 +215,6 @@ local function apply_layout(win_col)
   vim.g.startify_custom_header = "luaeval('_G.startify_cow_render()')"
   vim.g.startify_files_number  = 100 - total_projects(projects)
 
-  -- Setting g:startify_padding_left alone leaves items at stale pad; only set_padding refreshes s:leftpad.
-  pcall(vim.fn['startify#set_padding'], pad_n)
-
   local items = {}
   for i, name in ipairs(groups) do
     table.insert(items, string.format(
@@ -253,12 +250,57 @@ local function cursor_to_recent_files()
       for j = i + 1, math.min(i + 30, #lines) do
         local col = lines[j]:find('%[')
         if col then
-          vim.api.nvim_win_set_cursor(0, { j, col - 1 })
+          vim.api.nvim_win_set_cursor(0, { j, col })  -- land on the digit, not the `[`
           return
         end
       end
     end
   end
+end
+
+-- Re-indent `[idx]` entries to pad_n: the plugin's frozen s:leftpad ignores our
+-- dynamic centering. Navigation is line-keyed, so shifting whitespace is safe.
+local function align_entries(buf, pad_n)
+  local pad     = string.rep(' ', pad_n)
+  local lines   = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+  local changed = false
+  for i, line in ipairs(lines) do
+    local rest = line:match('^%s*(%[.*)$')
+    if rest then lines[i] = pad .. rest; changed = true end
+  end
+  if not changed then return end
+  local mod = vim.bo[buf].modifiable
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = mod
+  vim.bo[buf].modified = false  -- else the next Startify's enew aborts with E37
+end
+
+-- Replace the plugin's CursorMoved (it pins to a frozen s:fixed_column that our
+-- centering invalidates): keep the cursor on the `[idx]`, skipping headers/blanks.
+local function setup_cursor(buf)
+  vim.api.nvim_clear_autocmds({ event = 'CursorMoved', buffer = buf })
+  local prev_row
+  vim.api.nvim_create_autocmd('CursorMoved', {
+    buffer   = buf,
+    callback = function()
+      local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+      local function col_at(r) return lines[r] and lines[r]:find('%[') end
+      local row = vim.api.nvim_win_get_cursor(0)[1]
+      local dir = (prev_row and row < prev_row) and -1 or 1
+      local r   = row
+      while r >= 1 and r <= #lines and not col_at(r) do r = r + dir end
+      if r < 1 or r > #lines then       -- past an edge: walk back to the nearest entry
+        r = row
+        repeat r = r - dir until r < 1 or r > #lines or col_at(r)
+      end
+      local col = col_at(r)
+      if not col then return end
+      prev_row = r
+      -- 1-based `[` position as a 0-based column lands on the digit after it.
+      vim.api.nvim_win_set_cursor(0, { r, col })
+    end,
+  })
 end
 
 -- vim.o.columns at VimEnter can be stale (Neovide settles after); recompute on every
@@ -276,8 +318,11 @@ vim.api.nvim_create_autocmd('User', {
       vim.schedule(function() vim.cmd('Startify') end)
       return
     end
+    local buf = vim.api.nvim_get_current_buf()
+    align_entries(buf, last_pad_n)
+    setup_cursor(buf)
     cursor_to_recent_files()
-    highlight_tip_key(vim.api.nvim_get_current_buf())
+    highlight_tip_key(buf)
   end,
 })
 
