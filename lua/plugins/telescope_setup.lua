@@ -31,9 +31,9 @@ local function lsp_entry_maker(_)
       text     = text,
       display  = function()
         return line, {
-          { { 0, p1 },             'TelescopeResultsFileName' },
-          { { p1 + #SEP, p2 },     'TelescopeResultsLineNr' },
-          { { p2 + #SEP, p3 },     'TelescopeResultsNormal' },
+          { { 0, p1 },         'TelescopeResultsFileName' },
+          { { p1 + #SEP, p2 }, 'TelescopeResultsLineNr' },
+          { { p2 + #SEP, p3 }, 'TelescopeResultsNormal' },
         }
       end,
     }

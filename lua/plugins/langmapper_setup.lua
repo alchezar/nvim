@@ -45,3 +45,11 @@ vim.keymap.set(motion, 'ж', ';', { desc = 'repeat f/t (Ukrainian ; key)' })
 vim.keymap.set(cmd, 'Ж', ':', { desc = 'command mode (Ukrainian : key)' })
 vim.keymap.set(cmd, 'Є', '"', { desc = 'register prefix (Ukrainian " key)' })
 u.watch_kbd_layout()
+
+-- Defer to VimEnter so every keymap from init.lua is already set: automapping
+-- scans them all and adds the Ukrainian variant. Must run after, not during, setup.
+vim.api.nvim_create_autocmd('VimEnter', {
+  callback = function()
+    require('langmapper').automapping({ global = true, buffer = true })
+  end,
+})

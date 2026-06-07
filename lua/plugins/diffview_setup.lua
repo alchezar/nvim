@@ -33,10 +33,10 @@ require('diffview').setup({
 })
 
 -- Subtle bg tints so syntax fg still reads clearly inside diffs.
-vim.api.nvim_set_hl(0, 'DiffAdd', { bg = '#1f3a2a' })
-vim.api.nvim_set_hl(0, 'DiffDelete', { bg = '#3a1f1f', fg = theme.silver })
-vim.api.nvim_set_hl(0, 'DiffChange', { bg = '#2a2f3a' })
-vim.api.nvim_set_hl(0, 'DiffText', { bg = '#3a3520', fg = theme.orange, bold = true })
+vim.api.nvim_set_hl(0, 'DiffAdd', { bg = theme.diff.add })
+vim.api.nvim_set_hl(0, 'DiffDelete', { bg = theme.diff.delete, fg = theme.silver })
+vim.api.nvim_set_hl(0, 'DiffChange', { bg = theme.diff.change })
+vim.api.nvim_set_hl(0, 'DiffText', { bg = theme.diff.text, fg = theme.orange, bold = true })
 
 -- Diffview file panel.
 vim.api.nvim_set_hl(0, 'DiffviewFilePanelTitle', { fg = theme.cyan, bold = true })

@@ -1,5 +1,7 @@
 local M = {}
 
+local colors = require('config.theme_colors')
+
 -- Float yazi; open the chosen file.
 function M.open_yazi()
   local tmp = vim.fn.tempname()
@@ -497,14 +499,14 @@ local function cursor_color_at_pos()
     end
   end
   local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
-  return normal.fg and string.format('#%06x', normal.fg) or '#DCDCDC'
+  return normal.fg and string.format('#%06x', normal.fg) or colors.fg
 end
 
 -- Make Cursor inherit fg of the char under it.
 function M.update_cursor_color()
   local fg = cursor_color_at_pos()
   local normal = vim.api.nvim_get_hl(0, { name = 'Normal', link = false })
-  local bg = normal.bg and string.format('#%06x', normal.bg) or '#262626'
+  local bg = normal.bg and string.format('#%06x', normal.bg) or colors.bg
   vim.api.nvim_set_hl(0, 'Cursor', { bg = fg, fg = bg })
 end
 
@@ -587,9 +589,11 @@ function M.watch_kbd_layout()
     if not timer:is_active() then timer:start(0, 300, vim.schedule_wrap(refresh_layout)) end
   end
   poll()
-  vim.api.nvim_create_autocmd('FocusGained', { callback = function()
-    refresh_layout(); poll()
-  end })
+  vim.api.nvim_create_autocmd('FocusGained', {
+    callback = function()
+      refresh_layout(); poll()
+    end
+  })
   vim.api.nvim_create_autocmd('FocusLost', { callback = function() timer:stop() end })
 end
 

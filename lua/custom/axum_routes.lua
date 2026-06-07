@@ -77,8 +77,17 @@ end
 
 -- Keywords that end the attribute block by starting the documented item.
 local ITEM_KW = {
-  fn = true, struct = true, enum = true, union = true, trait = true,
-  impl = true, type = true, const = true, static = true, mod = true, use = true,
+  fn = true,
+  struct = true,
+  enum = true,
+  union = true,
+  trait = true,
+  impl = true,
+  type = true,
+  const = true,
+  static = true,
+  mod = true,
+  use = true,
 }
 
 -- First keyword of a line, ignoring visibility/async/unsafe/default modifiers.

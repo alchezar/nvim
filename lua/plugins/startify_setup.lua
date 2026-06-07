@@ -116,11 +116,11 @@ end
 function _G.startify_cow_render()
   local pool = vim.g.startify_custom_header_quotes or {}
   if #pool == 0 then return {} end
-  shown = pool[math.random(#pool)]
+  shown       = pool[math.random(#pool)]
   local total = vim.o.columns
   local boxed = vim.fn['startify#fortune#boxed'](shown)
   local full  = vim.fn['startify#fortune#cowsay'](shown)
-  local cow = {}
+  local cow   = {}
   for i = #boxed + 1, #full do cow[#cow + 1] = full[i] end
   local out = center(boxed, total)
   vim.list_extend(out, center(dedent(cow), total))
@@ -215,7 +215,7 @@ local function apply_layout(win_col)
   vim.g.startify_custom_header = "luaeval('_G.startify_cow_render()')"
   vim.g.startify_files_number  = 100 - total_projects(projects)
 
-  local items = {}
+  local items                  = {}
   for i, name in ipairs(groups) do
     table.insert(items, string.format(
       "{ 'type': function('g:StartifyProjects_%d'), 'header': ['%s   %s'] }",
@@ -250,7 +250,7 @@ local function cursor_to_recent_files()
       for j = i + 1, math.min(i + 30, #lines) do
         local col = lines[j]:find('%[')
         if col then
-          vim.api.nvim_win_set_cursor(0, { j, col })  -- land on the digit, not the `[`
+          vim.api.nvim_win_set_cursor(0, { j, col }) -- land on the digit, not the `[`
           return
         end
       end
@@ -266,14 +266,16 @@ local function align_entries(buf, pad_n)
   local changed = false
   for i, line in ipairs(lines) do
     local rest = line:match('^%s*(%[.*)$')
-    if rest then lines[i] = pad .. rest; changed = true end
+    if rest then
+      lines[i] = pad .. rest; changed = true
+    end
   end
   if not changed then return end
   local mod = vim.bo[buf].modifiable
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = mod
-  vim.bo[buf].modified = false  -- else the next Startify's enew aborts with E37
+  vim.bo[buf].modified = false -- else the next Startify's enew aborts with E37
 end
 
 -- Replace the plugin's CursorMoved (it pins to a frozen s:fixed_column that our
@@ -290,7 +292,7 @@ local function setup_cursor(buf)
       local dir = (prev_row and row < prev_row) and -1 or 1
       local r   = row
       while r >= 1 and r <= #lines and not col_at(r) do r = r + dir end
-      if r < 1 or r > #lines then       -- past an edge: walk back to the nearest entry
+      if r < 1 or r > #lines then -- past an edge: walk back to the nearest entry
         r = row
         repeat r = r - dir until r < 1 or r > #lines or col_at(r)
       end

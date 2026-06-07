@@ -1,122 +1,37 @@
-vim.opt.termguicolors = true
-vim.opt.guifont = "Iosevka Chill Nerd:h12"
-vim.cmd("colorscheme kinder_theme")
-vim.opt.clipboard = "unnamedplus"
-vim.o.winborder = 'rounded'
--- Relative line numbers
-vim.opt.number = true
-vim.opt.relativenumber = true
--- Force 80 even when bundled ftplugins (e.g. rust.vim sets 100) override it.
-vim.opt.textwidth = 80
-vim.api.nvim_create_autocmd('FileType', {
-  callback = function() vim.opt_local.textwidth = 80 end,
-})
-vim.opt.scrolloff = 2
--- Tabs / indent settings
-vim.opt.tabstop = 4
-vim.opt.shiftwidth = 4
-vim.opt.softtabstop = 4
-vim.opt.expandtab = true
--- Case-insensitive search; uppercase in pattern -> case-sensitive (smartcase)
-vim.opt.ignorecase = true
-vim.opt.smartcase = true
--- Whitespace display: trailing dots always; full whitespace in visual/insert modes
-vim.opt.list = true
-vim.opt.listchars = { trail = '·', tab = '  ' }
--- Blank out vertical split separators (between editor splits, nvim-tree, dbui).
-vim.opt.fillchars:append({ vert = ' ' })
-vim.api.nvim_create_autocmd('ModeChanged', {
-  callback = function()
-    local mode = vim.v.event.new_mode
-    local show_all = mode:match('^[vV\22]') ~= nil or mode:match('^[iR]') ~= nil
-    if show_all then
-      local sw = vim.bo.shiftwidth
-      if sw <= 0 then sw = vim.bo.tabstop end
-      local lead = '│' .. string.rep('·', math.max(sw - 1, 0))
-      vim.opt.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = lead }
-    else
-      vim.opt.listchars = { trail = '·', tab = '  ' }
-    end
-    local ok, vc = pcall(require, 'virt-column')
-    if ok then vc.update({ enabled = show_all }) end
-  end,
-})
--- Apply tab_spaces from rustfmt.toml to *.rs buffers
-vim.api.nvim_create_autocmd('FileType', {
-  pattern = 'rust',
-  callback = function(args)
-    require('config.utils').apply_rustfmt_indent(args.buf)
-  end,
-})
--- Visual lines move (for lines longer than terminal width)
-vim.keymap.set('n', 'j', 'gj')
-vim.keymap.set('n', 'k', 'gk')
--- Transparent background
-vim.api.nvim_set_hl(0, "Normal", { bg = "NONE" })
-vim.api.nvim_set_hl(0, "NormalFloat", { bg = "NONE" })
--- Transparent status line
-vim.api.nvim_set_hl(0, "StatusLine", { bg = "NONE", fg = "#a0a0a0" })
-vim.api.nvim_set_hl(0, "StatusLineNC", { bg = "NONE", fg = "#606060" })
--- Move the current line up/down
-vim.api.nvim_set_keymap('n', '<C-k>', ":m .-2<Enter>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<C-j>', ":m .+1<Enter>", { noremap = true, silent = true })
--- Move selected lines up/down
-vim.api.nvim_set_keymap('v', '<C-k>', ":m '<-2<CR>gv", { noremap = true, silent = true })
-vim.api.nvim_set_keymap('v', '<C-j>', ":m '>+1<CR>gv", { noremap = true, silent = true })
-
--- Vim UI2
-require('vim._core.ui2').enable({
-  enable = true,
-  msg = {
-    target = "cmd",
-    pager = { height = 0.5 },
-    dialog = { height = 0.5 },
-    cmd = { height = 0.5 },
-    msg = { height = 0.5, timeout = 4500 },
-  },
-})
-
--- Neovide related settings
-require("config.neovide")
--- Multi-cursor (vim-visual-multi) - must be set before plugins load
-require('plugins.visual_multi_setup')
-
--- Plugins
-require("config.plugins")
--- Before any keymaps: hack_keymap wraps vim.keymap.set to add Ukrainian twins.
-require("plugins.langmapper_setup")
-require("config.autosave")
-require("config.keys")
-require("plugins.telescope_setup")
-require("plugins.lsp")
-require("plugins.completion_setup")
-require("plugins.treesitter")
-require("plugins.debugging")
-require("plugins.formatting")
-require("plugins.translate_setup")
-require("plugins.axum_routes")
-require('plugins.autopairs_setup')
-require('Comment').setup()
-require('gitsigns').setup()
-require('todo-comments').setup()
-require('trouble').setup()
-require('plugins.fidget_setup')
-require('plugins.file-tree')
-require('config.tree_icons').setup()
-require('virt-column').setup({ enabled = false, char = '▕', virtcolumn = '80,100', highlight = 'VirtColumn' })
-require('nvim-highlight-colors').setup({ render = 'background' })
-require('plugins.bookmarks')
-require('plugins.markdown')
-require('plugins.csvview_setup')
-require('plugins.fishbone_setup')
-require('plugins.dbee')
-require('plugins.blame_setup')
-require('plugins.diffview_setup')
-require('plugins.startify_setup')
-require('plugins.crates_setup')
-require('plugins.hex_setup')
-require('config.filetypes')
-require('plugins.easymotion_setup')
-
--- Must run last: scans every keymap set above and adds the Ukrainian variant.
-require('langmapper').automapping({ global = true, buffer = true })
+require("config.options")                 -- Editor settings: numbers, indent, search, listchars
+require("config.neovide")                 -- Neovide GUI: font, opacity, title bar
+require('plugins.visual_multi_setup')     -- Multi-cursor; must load before plugins
+require("config.plugins")                 -- Bootstrap plugin manager and plugin list
+require("plugins.langmapper_setup")       -- Ukrainian layout twins; before any keymaps
+require("config.autosave")                -- Auto-save buffers on change/focus loss
+require("config.keys")                    -- Global keymaps
+require("plugins.telescope_setup")        -- Fuzzy finder
+require("plugins.lsp")                    -- Language servers + LSP keymaps
+require("plugins.completion_setup")       -- Autocompletion engine
+require("plugins.treesitter")             -- Syntax parsing and highlighting
+require("plugins.debugging")              -- DAP debug adapters + UI
+require("plugins.formatting")             -- Format-on-save (conform)
+require("plugins.translate_setup")        -- Translate text in the buffer
+require("custom.axum_routes")             -- Telescope picker for axum/utoipa routes
+require('plugins.autopairs_setup')        -- Auto-close brackets and quotes
+require('Comment').setup()                -- gc/gcc comment toggling
+require('gitsigns').setup()               -- Git change signs in the gutter
+require('todo-comments').setup()          -- Highlight TODO/FIXME/HACK
+require('trouble').setup()                -- Diagnostics/quickfix list UI
+require('plugins.fidget_setup')           -- LSP progress spinner
+require('plugins.file-tree')              -- File explorer sidebar
+require('config.tree_icons').setup()      -- Custom file-tree icons by filename
+require('plugins.virt_column_setup')      -- Column rulers at 80/100 (visual/insert)
+require('plugins.highlight_colors_setup') -- Color literals as background swatches
+require('custom.bookmarks')               -- Line bookmarks as extmarks
+require('plugins.markdown')               -- Markdown in-buffer rendering
+require('plugins.csvview_setup')          -- Render CSV as aligned tables
+require('plugins.fishbone_setup')         -- Bookmark mark layer in the gutter
+require('plugins.dbee')                   -- Database client UI
+require('plugins.blame_setup')            -- Inline git blame
+require('plugins.diffview_setup')         -- Git diff and history viewer
+require('plugins.startify_setup')         -- Start screen / dashboard
+require('plugins.crates_setup')           -- Cargo.toml crate versions
+require('plugins.hex_setup')              -- Open binaries in xxd hex view
+require('config.filetypes')               -- Custom filetype detection
+require('plugins.easymotion_setup')       -- Jump to motions via labels

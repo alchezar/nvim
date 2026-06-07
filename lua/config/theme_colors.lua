@@ -1,7 +1,8 @@
 -- Shared color palette used by `colors/kinder_theme.lua` and other configs.
--- Split into `editor` (neutral UI tones) and `syntax` (accent colors). The
--- metatable below keeps flat access (`palette.red`, `palette.bg`) working so
--- existing consumers need no changes.
+-- Split into `editor` (neutral UI tones), `syntax` (accent colors) and `diff`
+-- (muted backgrounds for diffs). The metatable below keeps flat access
+-- (`palette.red`, `palette.bg`) working so existing consumers need no changes;
+-- `diff` is accessed nested (`palette.diff.add`).
 local editor = {
   bg     = "#262626",
   fg     = "#DCDCDC",
@@ -29,7 +30,14 @@ local syntax = {
   purple  = "#948AE3",
 }
 
-return setmetatable({ editor = editor, syntax = syntax }, {
+local diff = {
+  add    = "#1f3a2a",
+  delete = "#3a1f1f",
+  change = "#2a2f3a",
+  text   = "#3a3520",
+}
+
+return setmetatable({ editor = editor, syntax = syntax, diff = diff }, {
   __index = function(_, key)
     return editor[key] or syntax[key]
   end,
