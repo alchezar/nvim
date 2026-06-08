@@ -1,5 +1,9 @@
 -- nvim-tree: file explorer sidebar. Keymaps in lua/keys.lua.
 
+-- Shared glyph for both diagnostic and bookmark gutter signs; change here to try others.
+-- ◆ ■ ▰ ▸ ◉ ⬤ ● •
+local gutter_dot = '*'
+
 -- Natural sort: `9` before `10`, not lexicographic `10, 4, 9`.
 local function natural_lt(a, b)
   local ai, bi = 1, 1
@@ -69,10 +73,10 @@ require('nvim-tree').setup({
     enable = true,
     show_on_dirs = true,
     icons = {
-      hint = '●',
-      info = '●',
-      warning = '●',
-      error = '●',
+      hint = gutter_dot,
+      info = gutter_dot,
+      warning = gutter_dot,
+      error = gutter_dot,
     },
   },
   renderer = {
@@ -85,10 +89,10 @@ require('nvim-tree').setup({
       show = { git = false },
       glyphs = {
         folder = {
-          default    = '\u{F07B}',
-          open       = '\u{F115}',
-          empty      = '\u{F114}',
-          empty_open = '\u{F115}',
+          default    = '\u{F024B}',
+          open       = '\u{F0770}',
+          empty      = '\u{F0256}',
+          empty_open = '\u{F0DCF}',
         },
       },
     },
@@ -334,6 +338,75 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
     end
   end
 end)
+
+-- Yellow bookmark dot in the signcolumn, mirroring how diagnostics mark the gutter.
+-- A file in custom/bookmarks.lua's store gets one; so does any directory on the path to it.
+local bookmark_ns = vim.api.nvim_create_namespace('nvim_tree_bookmark_sign')
+-- Own group name; NvimTreeBookmarkIcon is nvim-tree's built-in marks sign.
+vim.api.nvim_set_hl(0, 'NvimTreeUserBookmarkIcon', { fg = require('config.theme_colors').yellow })
+
+local function place_bookmark_signs(bufnr)
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
+  vim.api.nvim_buf_clear_namespace(bufnr, bookmark_ns, 0, -1)
+
+  local store = require('custom.bookmarks').store
+  if not store or not next(store) then return end
+
+  local explorer = require('nvim-tree.core').get_explorer()
+  if not explorer then return end
+
+  -- Marked when the node is a bookmarked file, or a directory holding one beneath it.
+  local function has_bookmark(node)
+    if not node or not node.absolute_path then return false end
+    if node.type ~= 'directory' then return store[node.absolute_path] ~= nil end
+    local prefix = node.absolute_path .. '/'
+    for path in pairs(store) do
+      if path:sub(1, #prefix) == prefix then return true end
+    end
+    return false
+  end
+
+  local start_line = require('nvim-tree.core').get_nodes_starting_line()
+  for line, node in pairs(explorer:get_nodes_by_line(start_line)) do
+    if has_bookmark(node) then
+      vim.api.nvim_buf_set_extmark(bufnr, bookmark_ns, line - 1, 0, {
+        sign_text = ' ' .. gutter_dot, -- leading space nudges the dot off the window edge into the 2nd gutter cell
+        sign_hl_group = 'NvimTreeUserBookmarkIcon',
+        priority = 5,                  -- below diagnostics (sign_place default 10) so hint/warn/error win the gutter cell
+      })
+    end
+  end
+end
+
+-- nvim-tree defines its diagnostic signs with the glyph in the 1st gutter cell (hard against
+-- the window edge); re-point them to ' ●' so they line up with the bookmark dot. It redefines
+-- them every render, so we re-apply last, after place_bookmark_signs, on each TreeRendered.
+local function align_diagnostic_signs()
+  for _, name in ipairs({ 'Error', 'Warn', 'Info', 'Hint' }) do
+    local hl = 'NvimTreeDiagnostic' .. name .. 'Icon'
+    if not vim.tbl_isempty(vim.fn.sign_getdefined(hl)) then
+      vim.fn.sign_define(hl, { text = ' ' .. gutter_dot, texthl = hl })
+    end
+  end
+end
+
+require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
+  place_bookmark_signs(payload and payload.bufnr)
+  align_diagnostic_signs()
+end)
+
+-- Re-sign live when a bookmark is toggled, without a full tree reload (custom/bookmarks.lua
+-- fires this after writing its store). Repaints only our namespace on the open tree buffer.
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'BookmarksChanged',
+  callback = function()
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+      if vim.api.nvim_buf_is_valid(buf) and vim.bo[buf].filetype == 'NvimTree' then
+        place_bookmark_signs(buf)
+      end
+    end
+  end,
+})
 
 -- Auto-cd to project root based on common markers. nested = true so the global cd's
 -- DirChanged reaches nvim-tree (sync_root_with_cwd), re-rooting the tree on project change.

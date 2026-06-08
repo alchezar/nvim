@@ -49,6 +49,8 @@ end
 
 local function save_store()
   pcall(vim.fn.writefile, { vim.json.encode(M.store) }, store_path)
+  -- Let listeners (the file-tree gutter signs) repaint without polling the store.
+  pcall(vim.api.nvim_exec_autocmds, 'User', { pattern = 'BookmarksChanged' })
 end
 
 local function abspath(buf)
