@@ -281,33 +281,30 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   end
 end)
 
--- Tint the expand arrow by folder name: src -> blue, tests -> green, crate(s)/module(s) -> purple,
--- migrations -> red, docs/spec -> yellow, frontend -> cyan, deploy -> orange, dot-folders -> brown. Colors the first non-blank token (the arrow).
+-- Tint the folder expand arrow by name. Add name variations to a group's `names` list;
+-- dot-folders fall back to brown by prefix. Colors the first non-blank token (the arrow).
 local folder_ns = vim.api.nvim_create_namespace('nvim_tree_folder_color')
 local folder_theme = require('config.theme_colors')
-vim.api.nvim_set_hl(0, 'NvimTreeFolderSrcIcon', { fg = folder_theme.blue })
-vim.api.nvim_set_hl(0, 'NvimTreeFolderTestsIcon', { fg = folder_theme.green })
-vim.api.nvim_set_hl(0, 'NvimTreeFolderCrateIcon', { fg = folder_theme.purple })
-vim.api.nvim_set_hl(0, 'NvimTreeFolderMigrationsIcon', { fg = folder_theme.red })
-vim.api.nvim_set_hl(0, 'NvimTreeFolderDocsIcon', { fg = folder_theme.yellow })
-vim.api.nvim_set_hl(0, 'NvimTreeFolderFrontendIcon', { fg = folder_theme.cyan })
-vim.api.nvim_set_hl(0, 'NvimTreeFolderDeployIcon', { fg = folder_theme.orange })
-vim.api.nvim_set_hl(0, 'NvimTreeFolderHiddenIcon', { fg = folder_theme.brown })
 
-local folder_arrow_hl = {
-  src             = 'NvimTreeFolderSrcIcon',
-  tests           = 'NvimTreeFolderTestsIcon',
-  crate           = 'NvimTreeFolderCrateIcon',
-  crates          = 'NvimTreeFolderCrateIcon',
-  module          = 'NvimTreeFolderCrateIcon',
-  modules         = 'NvimTreeFolderCrateIcon',
-  migrations      = 'NvimTreeFolderMigrationsIcon',
-  migrations_down = 'NvimTreeFolderMigrationsIcon',
-  docs            = 'NvimTreeFolderDocsIcon',
-  spec            = 'NvimTreeFolderDocsIcon',
-  frontend        = 'NvimTreeFolderFrontendIcon',
-  deploy          = 'NvimTreeFolderDeployIcon',
+local folder_groups = {
+  { hl = 'NvimTreeFolderSrcIcon',        color = folder_theme.blue,   names = { 'src' } },
+  { hl = 'NvimTreeFolderTestsIcon',      color = folder_theme.green,  names = { 'tests' } },
+  { hl = 'NvimTreeFolderCrateIcon',      color = folder_theme.purple, names = { 'crate', 'crates', 'module', 'modules' } },
+  { hl = 'NvimTreeFolderMigrationsIcon', color = folder_theme.red,    names = { 'migrations', 'migrations_down' } },
+  { hl = 'NvimTreeFolderDocsIcon',       color = folder_theme.yellow, names = { 'docs', 'spec', 'task' } },
+  { hl = 'NvimTreeFolderFrontendIcon',   color = folder_theme.cyan,   names = { 'frontend' } },
+  { hl = 'NvimTreeFolderDeployIcon',     color = folder_theme.orange, names = { 'deploy', 'nginx' } },
+  { hl = 'NvimTreeFolderHiddenIcon',     color = folder_theme.brown,  names = {} }, -- dot-folders, matched by prefix below
 }
+
+-- Register each group's highlight and flatten its names into the lookup map.
+local folder_arrow_hl = {}
+for _, group in ipairs(folder_groups) do
+  vim.api.nvim_set_hl(0, group.hl, { fg = group.color })
+  for _, name in ipairs(group.names) do
+    folder_arrow_hl[name] = group.hl
+  end
+end
 
 require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   local bufnr = payload and payload.bufnr
