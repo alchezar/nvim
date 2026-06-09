@@ -114,9 +114,10 @@ local function anchor_over_utoipa(file, anchor_lnum)
 end
 
 local function collect_anchored(file)
-  -- Match `METHOD /path` anywhere in a `//`/`///` comment - covers bare
-  -- `// GET /x`, doc `/// GET /x`, and banners `// Foo - GET /x`. Skip tests/
-  -- only on a project-wide scan; a single explicit file is always searched.
+  -- Grab `METHOD /path` from any `//`/`///` comment; collect_all keeps only
+  -- anchors whose route agrees with the handler's utoipa attr, so a prose
+  -- mention of another endpoint is filtered there. Skip tests/ only on a
+  -- project-wide scan; a single explicit file is always searched.
   local pattern = [[^\s*//.*\b(]] .. METHODS .. [[)\s+/]]
   local extra = file and {} or { '-g', '!**/tests/**' }
   local paths = file and { file } or nil
@@ -129,9 +130,7 @@ local function collect_anchored(file)
       local meth, path
       for _, mm in ipairs(METHOD_LIST) do
         local p = m.text:match(mm .. '%s+`?(/[^`%s),]*)')
-        if p then
-          meth, path = mm, p; break
-        end
+        if p then meth, path = mm, p; break end
       end
       if meth and path then
         local handler, hlnum, doc = find_handler_after(m.file, m.lnum, 120)
@@ -194,10 +193,11 @@ local function collect_utoipa(file)
 end
 
 local function collect_all(file)
-  local anchored          = collect_anchored(file)
-  local utoipa            = collect_utoipa(file)
+  local anchored = collect_anchored(file)
+  local utoipa   = collect_utoipa(file)
 
-  -- Index utoipa entries by handler position so we can cross-check anchors.
+  -- Index utoipa entries by handler position so an anchor can be checked
+  -- against the route its handler actually declares.
   local utoipa_by_handler = {}
   for _, e in ipairs(utoipa) do
     if e.handler_lnum then
@@ -205,23 +205,19 @@ local function collect_all(file)
     end
   end
 
-  local seen = {}
+  -- An anchor supplies the full URL, but trust it only when it agrees with the
+  -- handler's utoipa route: same method, and the full path ends with the
+  -- relative one (`path = "/"` is the router root - skip the suffix check). A
+  -- mismatch means the comment merely mentions another endpoint in prose.
+  local items, seen = {}, {}
   for _, e in ipairs(anchored) do
-    if e.handler_lnum then
-      seen[e.file .. ':' .. e.handler_lnum] = true
-      local u = utoipa_by_handler[e.file .. ':' .. e.handler_lnum]
-      if u then
-        if u.method ~= e.method then e.mismatch_method = u.method end
-        -- `path = "/"` is the router-root case; anchor's full URL ends with the parent prefix.
-        if u.path ~= '/' and e.path:sub(- #u.path) ~= u.path then
-          e.mismatch_path = u.path
-        end
-      end
+    local key = e.handler_lnum and (e.file .. ':' .. e.handler_lnum)
+    local u = key and utoipa_by_handler[key]
+    if u and u.method == e.method and (u.path == '/' or e.path:sub(- #u.path) == u.path) then
+      seen[key] = true
+      table.insert(items, e)
     end
   end
-
-  local items = {}
-  for _, e in ipairs(anchored) do table.insert(items, e) end
   for _, e in ipairs(utoipa) do
     local key = e.handler_lnum and (e.file .. ':' .. e.handler_lnum)
     if not (key and seen[key]) then table.insert(items, e) end
