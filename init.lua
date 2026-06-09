@@ -16,7 +16,7 @@ require("custom.axum_routes")             -- Telescope picker for axum/utoipa ro
 require('plugins.autopairs_setup')        -- Auto-close brackets and quotes
 require('Comment').setup()                -- gc/gcc comment toggling
 require('gitsigns').setup()               -- Git change signs in the gutter
-require('todo-comments').setup()          -- Highlight TODO/FIXME/HACK
+require('plugins.todo_comments_setup')    -- Highlight TODO/NOTE; tag colors from palette
 require('trouble').setup()                -- Diagnostics/quickfix list UI
 require('plugins.fidget_setup')           -- LSP progress spinner
 require('plugins.file-tree')              -- File explorer sidebar
