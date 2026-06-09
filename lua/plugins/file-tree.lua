@@ -1,8 +1,9 @@
 -- nvim-tree: file explorer sidebar. Keymaps in lua/keys.lua.
 
--- Shared glyph for both diagnostic and bookmark gutter signs; change here to try others.
--- ◆ ■ ▰ ▸ ◉ ⬤ ● •
-local gutter_dot = '*'
+-- Gutter sign glyphs for diagnostics and bookmarks. Filled dot marks the node that carries
+-- the marker; hollow dot marks the folders containing it. Glyph alts: ◆ ■ ▰ ▸ ◉ ⬤ • ◦
+local file_dot = '●'
+local dir_dot = '○'
 
 -- Natural sort: `9` before `10`, not lexicographic `10, 4, 9`.
 local function natural_lt(a, b)
@@ -71,13 +72,7 @@ require('nvim-tree').setup({
   },
   diagnostics = {
     enable = true,
-    show_on_dirs = true,
-    icons = {
-      hint = gutter_dot,
-      info = gutter_dot,
-      warning = gutter_dot,
-      error = gutter_dot,
-    },
+    show_on_dirs = true, -- keeps get_diag_status returning severity for folders; we draw the signs
   },
   renderer = {
     highlight_git = 'name',
@@ -86,7 +81,7 @@ require('nvim-tree').setup({
       -- nvim-tree docs type padding as string; bundled stub says table -> false positive.
       ---@diagnostic disable-next-line: assign-type-mismatch
       padding = '  ',
-      show = { git = false },
+      show = { git = false, diagnostics = false }, -- diagnostic signs drawn manually (file vs folder glyph)
       glyphs = {
         folder = {
           default    = '\u{F024B}',
@@ -369,30 +364,53 @@ local function place_bookmark_signs(bufnr)
   local start_line = require('nvim-tree.core').get_nodes_starting_line()
   for line, node in pairs(explorer:get_nodes_by_line(start_line)) do
     if has_bookmark(node) then
+      local glyph = node.type == 'directory' and dir_dot or file_dot
       vim.api.nvim_buf_set_extmark(bufnr, bookmark_ns, line - 1, 0, {
-        sign_text = ' ' .. gutter_dot, -- leading space nudges the dot off the window edge into the 2nd gutter cell
+        sign_text = ' ' .. glyph, -- leading space nudges the dot off the window edge into the 2nd gutter cell
         sign_hl_group = 'NvimTreeUserBookmarkIcon',
-        priority = 5,                  -- below diagnostics (sign_place default 10) so hint/warn/error win the gutter cell
+        priority = 5,             -- below diagnostics (priority 10) so hint/warn/error win the gutter cell
       })
     end
   end
 end
 
--- nvim-tree defines its diagnostic signs with the glyph in the 1st gutter cell (hard against
--- the window edge); re-point them to ' ●' so they line up with the bookmark dot. It redefines
--- them every render, so we re-apply last, after place_bookmark_signs, on each TreeRendered.
-local function align_diagnostic_signs()
-  for _, name in ipairs({ 'Error', 'Warn', 'Info', 'Hint' }) do
-    local hl = 'NvimTreeDiagnostic' .. name .. 'Icon'
-    if not vim.tbl_isempty(vim.fn.sign_getdefined(hl)) then
-      vim.fn.sign_define(hl, { text = ' ' .. gutter_dot, texthl = hl })
+-- Diagnostic gutter signs drawn by us (renderer's own are off): a folder containing a
+-- diagnostic gets the hollow dot, the offending file the filled one. Color reuses nvim-tree's.
+local diag_ns = vim.api.nvim_create_namespace('nvim_tree_diag_sign')
+local diag_hl = {
+  [vim.diagnostic.severity.ERROR] = 'NvimTreeDiagnosticErrorIcon',
+  [vim.diagnostic.severity.WARN]  = 'NvimTreeDiagnosticWarnIcon',
+  [vim.diagnostic.severity.INFO]  = 'NvimTreeDiagnosticInfoIcon',
+  [vim.diagnostic.severity.HINT]  = 'NvimTreeDiagnosticHintIcon',
+}
+
+local function place_diagnostic_signs(bufnr)
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
+  vim.api.nvim_buf_clear_namespace(bufnr, diag_ns, 0, -1)
+
+  local diagnostics = require('nvim-tree.diagnostics')
+  local core = require('nvim-tree.core')
+  local explorer = core.get_explorer()
+  if not explorer then return end
+
+  for line, node in pairs(explorer:get_nodes_by_line(core.get_nodes_starting_line())) do
+    local status = node and diagnostics.get_diag_status(node)
+    local severity = status and status.value
+    if severity then
+      local glyph = node.type == 'directory' and dir_dot or file_dot
+      vim.api.nvim_buf_set_extmark(bufnr, diag_ns, line - 1, 0, {
+        sign_text = ' ' .. glyph, -- leading space mirrors the bookmark dot's 2nd-cell placement
+        sign_hl_group = diag_hl[severity] or 'NvimTreeDiagnosticErrorIcon',
+        priority = 10,            -- above bookmarks (5) so a diagnostic wins a shared gutter cell
+      })
     end
   end
 end
 
 require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
-  place_bookmark_signs(payload and payload.bufnr)
-  align_diagnostic_signs()
+  local bufnr = payload and payload.bufnr
+  place_diagnostic_signs(bufnr)
+  place_bookmark_signs(bufnr)
 end)
 
 -- Re-sign live when a bookmark is toggled, without a full tree reload (custom/bookmarks.lua
