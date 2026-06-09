@@ -20,5 +20,9 @@ vim.api.nvim_create_autocmd('BufWinEnter', {
     if vim.w.sqlx_for_match then return end
     vim.w.sqlx_for_match = vim.fn.matchadd('@keyword.sql',
       [[\v(\/\/.*)@<!<FOR\s+(NO\s+KEY\s+UPDATE|KEY\s+SHARE|UPDATE|SHARE)>]])
+    -- `$` sigil: metavariable nodes are atomic, so treesitter paints the whole
+    -- `$name` one color (orange). Force just the `$` to teal so it matches the
+    -- `$(...)` repetition sigil. Lookahead keeps `$` in strings/prices untouched.
+    vim.fn.matchadd('@function.macro.rust', [==[\$\ze[A-Za-z_(]]==], 200)
   end,
 })

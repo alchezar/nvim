@@ -195,16 +195,22 @@ end
 local function rust_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]               = { fg = colors.red },
-		["@keyword.storate." .. lang]       = { fg = colors.red },
+		["@keyword.storage." .. lang]       = { fg = colors.red },
 		["@function." .. lang]              = { fg = colors.green },
 		["@function.call." .. lang]         = { fg = colors.green },
+		["@function.method." .. lang]       = { fg = colors.green },
+		["@function.method.call." .. lang]  = { fg = colors.green },
 		["@macro." .. lang]                 = { fg = colors.brown },
 		["@function.macro." .. lang]        = { fg = colors.teal },
 		["@type." .. lang]                  = { fg = colors.blue },
 		["@type.builtin." .. lang]          = { fg = colors.cyan },
+		["@type.fragment." .. lang]         = { fg = colors.teal },
+		["@type.enum." .. lang]             = { fg = colors.cyan },
+		["@type.variant." .. lang]          = { fg = colors.pink },
 		["@field." .. lang]                 = { fg = colors.gray },
 		["@variable." .. lang]              = { fg = colors.white },
 		["@variable.parameter." .. lang]    = { fg = colors.orange },
+		["@variable.member." .. lang]       = { fg = colors.gray },
 		["@comment." .. lang]               = { fg = colors.silver },
 		["@string." .. lang]                = { fg = colors.yellow },
 		["@number." .. lang]                = { fg = colors.purple },
@@ -213,6 +219,7 @@ local function rust_treesitter_highlights(lang)
 		["@punctuation.delimiter." .. lang] = { fg = colors.gray },
 		["@attribute." .. lang]             = { fg = colors.cyan },
 		["@namespace." .. lang]             = { fg = colors.blue },
+		["@module." .. lang]                = { fg = colors.dark },
 		["@constructor." .. lang]           = { fg = colors.green },
 	}
 end

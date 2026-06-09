@@ -277,3 +277,24 @@
  (#set! injection.language "lua")
  (#set! injection.priority 110))
 
+; ------------------------------------------------------------------------------
+; Generic macro bodies as rust (the upstream catch-all we dropped above).
+; Re-injecting the token_tree is what gives macro contents real highlighting
+; (keywords, calls, types) instead of bare lexical tokens. We exclude the sqlx
+; query family so it stays SQL, and slint/html/json/xml (handled by name above).
+((macro_invocation
+   macro: [
+     (scoped_identifier name: (_) @_macro_name)
+     (identifier) @_macro_name
+   ]
+   (token_tree) @injection.content)
+ (#not-any-of? @_macro_name
+   "slint" "html" "json" "xml"
+   "query" "query_as" "query_scalar"
+   "query_unchecked" "query_as_unchecked" "query_scalar_unchecked")
+ (#set! injection.language "rust")
+ (#set! injection.include-children))
+
+; macro_rules! BODIES are intentionally not injected: `$meta`/`$(...)+` break rust
+; parsing (ERROR -> all @variable). Main tree + overlay rules in highlights.scm color them.
+
