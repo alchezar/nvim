@@ -12,7 +12,18 @@ end
 
 local SEP = '  '
 
-local function lsp_entry_maker(_)
+-- Read/write usage markers (RustRover-style green/red access arrows).
+local theme = require('config.theme_colors')
+vim.api.nvim_set_hl(0, 'TelescopeUsageRead', { fg = theme.green })
+vim.api.nvim_set_hl(0, 'TelescopeUsageWrite', { fg = theme.red })
+local MARK = {
+  read  = { '↑', 'TelescopeUsageRead' },
+  write = { '↓', 'TelescopeUsageWrite' },
+}
+
+-- `mark` adds an access-kind arrow column; used by lsp_references only.
+local function lsp_entry_maker(opts)
+  opts = opts or {}
   return function(item)
     if not item or not item.filename then return nil end
     local path     = relpath(item.filename)
@@ -22,6 +33,10 @@ local function lsp_entry_maker(_)
     local p1       = #path
     local p2       = p1 + #SEP + #line_col
     local p3       = p2 + #SEP + #text
+    -- Classify once here; `display` may re-run on every redraw/scroll.
+    local kind     = opts.mark
+        and require('config.usage_kind').classify(item.filename, item.lnum, item.col)
+        or nil
     return {
       value    = item,
       ordinal  = item.filename .. ' ' .. text,
@@ -30,11 +45,23 @@ local function lsp_entry_maker(_)
       col      = item.col,
       text     = text,
       display  = function()
-        return line, {
-          { { 0, p1 },         'TelescopeResultsFileName' },
-          { { p1 + #SEP, p2 }, 'TelescopeResultsLineNr' },
-          { { p2 + #SEP, p3 }, 'TelescopeResultsNormal' },
+        if not opts.mark then
+          return line, {
+            { { 0, p1 },         'TelescopeResultsFileName' },
+            { { p1 + #SEP, p2 }, 'TelescopeResultsLineNr' },
+            { { p2 + #SEP, p3 }, 'TelescopeResultsNormal' },
+          }
+        end
+        local mark = MARK[kind]
+        local prefix = mark and (mark[1] .. ' ') or '  ' -- align unmarked rows
+        local off = #prefix
+        local hls = {
+          { { off, off + p1 },             'TelescopeResultsFileName' },
+          { { off + p1 + #SEP, off + p2 }, 'TelescopeResultsLineNr' },
+          { { off + p2 + #SEP, off + p3 }, 'TelescopeResultsNormal' },
         }
+        if mark then table.insert(hls, 1, { { 0, #mark[1] }, mark[2] }) end
+        return prefix .. line, hls
       end,
     }
   end
@@ -47,7 +74,7 @@ require('telescope').setup({
     path_display = { 'truncate' },
   },
   pickers = {
-    lsp_references                = { entry_maker = lsp_entry_maker() },
+    lsp_references                = { entry_maker = lsp_entry_maker({ mark = true }) },
     lsp_implementations           = { entry_maker = lsp_entry_maker() },
     lsp_definitions               = { entry_maker = lsp_entry_maker() },
     lsp_type_definitions          = { entry_maker = lsp_entry_maker() },
