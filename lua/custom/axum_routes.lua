@@ -213,7 +213,10 @@ local function collect_all(file)
   for _, e in ipairs(anchored) do
     local key = e.handler_lnum and (e.file .. ':' .. e.handler_lnum)
     local u = key and utoipa_by_handler[key]
-    if u and u.method == e.method and (u.path == '/' or e.path:sub(- #u.path) == u.path) then
+    -- Strip the anchor's `?query`: utoipa's `path` is the route only, so a
+    -- documented query string would otherwise break the suffix match.
+    local epath = e.path:gsub('%?.*$', '')
+    if u and u.method == e.method and (u.path == '/' or epath:sub(- #u.path) == u.path) then
       seen[key] = true
       table.insert(items, e)
     end
