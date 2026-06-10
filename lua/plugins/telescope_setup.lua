@@ -72,6 +72,14 @@ local kind_highlights = require('config.lsp_icons').symbol_highlights()
 require('telescope').setup({
   defaults = {
     path_display = { 'truncate' },
+    -- Prompt on top with preview to the side; `ascending` keeps the best match
+    -- right under the prompt instead of at the bottom of the list.
+    sorting_strategy = 'ascending',
+    layout_strategy = 'horizontal',
+    layout_config = {
+      prompt_position = 'top',
+      preview_width = 0.55,
+    },
   },
   pickers = {
     lsp_references                = { entry_maker = lsp_entry_maker({ mark = true }) },
