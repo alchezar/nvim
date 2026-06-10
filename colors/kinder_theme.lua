@@ -175,6 +175,10 @@ vim.api.nvim_set_hl(0, "yamlPlainScalar", { fg = colors.blue })
 vim.api.nvim_set_hl(0, "yamlFlowString", { fg = colors.yellow })
 vim.api.nvim_set_hl(0, "yamlInteger", { fg = colors.purple })
 
+-- MAKE
+vim.api.nvim_set_hl(0, "makeCommands", { fg = colors.red })
+vim.api.nvim_set_hl(0, "makeCmdNextLine", { fg = colors.purple })
+
 -- RUST (treesitter + rust-analyzer LSP).
 local rust_legacy_highlights = {
 	rustStorage       = { fg = colors.red },
