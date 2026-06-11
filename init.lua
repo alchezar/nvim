@@ -24,6 +24,7 @@ require('config.tree_icons').setup()      -- Custom file-tree icons by filename
 require('plugins.virt_column_setup')      -- Column rulers at 80/100 (visual/insert)
 require('plugins.highlight_colors_setup') -- Color literals as background swatches
 require('custom.bookmarks')               -- Line bookmarks as extmarks
+require('custom.trailing_whitespace')     -- Trailing whitespace as HINT diagnostics
 require('plugins.markdown')               -- Markdown in-buffer rendering
 require('plugins.csvview_setup')          -- Render CSV as aligned tables
 require('plugins.fishbone_setup')         -- Bookmark mark layer in the gutter

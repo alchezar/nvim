@@ -241,7 +241,6 @@ local function rust_lsp_highlights(lang)
 		["@lsp.type.parameter." .. lang]               = { fg = colors.orange },
 		["@lsp.type.builtinAttribute." .. lang]        = { fg = colors.dark },
 		["@lsp.type.deriveHelper." .. lang]            = { fg = colors.dark },
-		["@lsp.mode.attribute." .. lang]               = { fg = colors.dark },
 		["@lsp.typemod.generic.attribute." .. lang]    = { fg = colors.dark },
 		["@lsp.type.namespace." .. lang]               = { fg = colors.dark },
 		["@lsp.type.macro." .. lang]                   = { fg = colors.brown, bold = true },
@@ -261,6 +260,9 @@ local function rust_lsp_highlights(lang)
 		["@lsp.typemod.variable.declaration." .. lang] = { fg = colors.gray },
 		["@lsp.typemod.property.declaration." .. lang] = { fg = colors.white },
 		["@lsp.typemod.property.public." .. lang]      = { fg = colors.white },
+		["@lsp.typemod.enum.attribute." .. lang]       = { fg = colors.cyan },
+		["@lsp.typemod.method.attribute." .. lang]     = { fg = colors.green },
+		["@lsp.typemod.function.attribute." .. lang]   = { fg = colors.teal },
 	}
 end
 
