@@ -24,7 +24,7 @@ vim.api.nvim_create_autocmd('FileType', {
   callback = function() vim.cmd('CsvViewEnable') end,
 })
 
--- Raw cursor line, render-markdown style. csvview aligns via inline virt_text and
+-- Raw cursor line, markview hybrid-mode style. csvview aligns via inline virt_text and
 -- draws │ via conceal extmarks; neither is reverted by Vim's concealcursor. We drop
 -- only the layout (padding + │) on the cursor line so its raw text shows, while the
 -- per-column field highlights still run and keep the columns colored like other rows.

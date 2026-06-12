@@ -90,7 +90,7 @@ local function set_mark(buf, group, lnum)
   return vim.api.nvim_buf_set_extmark(buf, ns, lnum - 1, 0, {
     sign_text = text,
     sign_hl_group = hl,
-    priority = 200, -- outrank render-markdown's heading sign so it stays visible
+    priority = 200, -- outrank diagnostic/other signs so the bookmark stays visible
   })
 end
 
