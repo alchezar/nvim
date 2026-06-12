@@ -92,8 +92,10 @@ map('n', '<leader>gr', function()
 end, { desc = 'Reset hunk under cursor and save (no autoformat)' })
 map({ 'n', 'x' }, '<leader>ga', ':Gitsigns stage_hunk<CR>', { desc = 'Stage hunk or selected lines', silent = true })
 map('n', '<leader>gm', ':DiffviewOpen<CR>', { desc = 'Open diffview (3-way merge / diff)', silent = true })
-map('n', '<leader>gM', ':DiffviewClose<CR>', { desc = 'Close diffview', silent = true })
+map('n', '<leader>gc', ':DiffviewClose<CR>', { desc = 'Close diffview', silent = true })
 map('n', '<leader>gh', ':DiffviewFileHistory %<CR>', { desc = 'File history (current file)', silent = true })
+map('n', '<leader>gv', utils.branch_review_toggle,
+  { desc = 'Toggle branch review (count = last N commits, else whole branch)' })
 map('n', '<leader>gl', utils.open_lazygit, { desc = 'Open lazygit (floating)', silent = true })
 -- Database (nvim-dbee). DBUIOpen is the wrapper that reloads .env first.
 map('n', '<leader>du', ':DBUIOpen<CR>', { desc = 'Toggle Dbee UI (reload .env)', silent = true })

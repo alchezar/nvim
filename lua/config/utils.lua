@@ -615,4 +615,10 @@ function M.search_visual(forward)
   vim.cmd('normal! ' .. (forward and 'n' or 'N'))
 end
 
+-- A count reviews the last N commits (7<leader>gv -> HEAD~7); no count toggles the whole branch.
+function M.branch_review_toggle()
+  local n = vim.v.count
+  require('custom.branch_review').toggle(n > 0 and ('HEAD~' .. n) or nil)
+end
+
 return M

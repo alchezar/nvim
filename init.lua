@@ -31,6 +31,7 @@ require('plugins.fishbone_setup')         -- Bookmark mark layer in the gutter
 require('plugins.dbee')                   -- Database client UI
 require('plugins.blame_setup')            -- Inline git blame
 require('plugins.diffview_setup')         -- Git diff and history viewer
+require('custom.branch_review')           -- :ReviewMode - gutter + tree marks vs branch base
 require('plugins.startify_setup')         -- Start screen / dashboard
 require('plugins.crates_setup')           -- Cargo.toml crate versions
 require('plugins.hex_setup')              -- Open binaries in xxd hex view
