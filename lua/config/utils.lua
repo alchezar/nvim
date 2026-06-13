@@ -621,6 +621,81 @@ function M.branch_review_toggle()
   require('custom.branch_review').toggle(n > 0 and ('HEAD~' .. n) or nil)
 end
 
+-- M.document_symbols kind column: palette color per kind, matching how the theme
+-- paints each one in Rust code (see colors/kinder_theme.lua).
+local SYMBOL_KIND_COLORS = {
+  Function = 'green',
+  Method = 'emerald',
+  Constructor = 'emerald',
+  Struct = 'blue',
+  Class = 'blue',
+  Object = 'silver',
+  Interface = 'teal',
+  TypeParameter = 'blue',
+  Enum = 'cyan',
+  EnumMember = 'pink',
+  Field = 'gray',
+  Property = 'gray',
+  Constant = 'lime',
+  Variable = 'white',
+  Module = 'dark',
+  Namespace = 'dark',
+  Package = 'dark',
+}
+local function set_symbol_hl()
+  vim.api.nvim_set_hl(0, 'TelescopeSymbolPublic', { fg = colors.green })
+  vim.api.nvim_set_hl(0, 'TelescopeSymbolPrivate', { fg = colors.silver })
+  for kind, color in pairs(SYMBOL_KIND_COLORS) do
+    vim.api.nvim_set_hl(0, 'TelescopeSymbolKind' .. kind, { fg = colors[color] --[[@as string]] })
+  end
+end
+set_symbol_hl()
+vim.api.nvim_create_autocmd('ColorScheme', { callback = set_symbol_hl })
+
+-- Telescope stores the kind icon-prefixed; map that exact string to our hl group.
+local symbol_kind_hl = {}
+do
+  local icons = require('config.lsp_icons').icons
+  for kind in pairs(SYMBOL_KIND_COLORS) do
+    symbol_kind_hl[(icons[kind] or '') .. kind] = 'TelescopeSymbolKind' .. kind
+  end
+end
+
+-- File structure (Telescope). Rust only: prefix each symbol with a visibility
+-- marker read off the `pub` keyword on its source line.
+function M.document_symbols()
+  local builtin = require('telescope.builtin')
+  local bufnr = vim.api.nvim_get_current_buf()
+  if vim.bo[bufnr].filetype ~= 'rust' then
+    return builtin.lsp_document_symbols()
+  end
+  -- Own displayer: name, then the visibility marker, then the kind column.
+  local displayer = require('telescope.pickers.entry_display').create({
+    separator = ' ',
+    items = { { width = 30 }, { width = 2 }, { remaining = true } },
+  })
+  -- path_display hidden: every symbol lives in this one buffer, so drop the column.
+  local opts = { bufnr = bufnr, path_display = { 'hidden' } }
+  local default = require('telescope.make_entry').gen_from_lsp_symbols(opts)
+  opts.entry_maker = function(line)
+    local entry = default(line)
+    if not entry then return entry end
+    local src = vim.api.nvim_buf_get_lines(bufnr, entry.lnum - 1, entry.lnum, false)[1] or ''
+    local pub = src:match('^%s*pub') ~= nil
+    local icon = pub and '\u{ea70}' or '\u{eae7}' -- 󰈈 eye / 󰈉 eye-closed
+    local hl = pub and 'TelescopeSymbolPublic' or 'TelescopeSymbolPrivate'
+    entry.display = function(e)
+      return displayer({
+        e.symbol_name,
+        { icon,                  hl },
+        { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] },
+      })
+    end
+    return entry
+  end
+  builtin.lsp_document_symbols(opts)
+end
+
 -- One GitHub entry point: pick a snacks source for the current repo.
 function M.github_menu()
   local picker = require('snacks').picker

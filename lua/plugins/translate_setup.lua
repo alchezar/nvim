@@ -118,7 +118,8 @@ local function floating_cmd(lines)
   vim.api.nvim_set_option_value('linebreak', true, { win = win })
 
   _float = { win = win, buf = buf }
-  vim.api.nvim_create_autocmd('CursorMoved', { callback = close_float, once = true })
+  -- nested: let the close emit WinClosed so the float backdrop clears its blur
+  vim.api.nvim_create_autocmd('CursorMoved', { callback = close_float, once = true, nested = true })
 end
 
 require('translate').setup({
