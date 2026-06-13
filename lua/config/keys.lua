@@ -97,6 +97,12 @@ map('n', '<leader>gh', ':DiffviewFileHistory %<CR>', { desc = 'File history (cur
 map('n', '<leader>gv', utils.branch_review_toggle,
   { desc = 'Toggle branch review (count = last N commits, else whole branch)' })
 map('n', '<leader>gl', utils.open_lazygit, { desc = 'Open lazygit (floating)', silent = true })
+-- GitHub: snacks picker for triage, own pr_review for in-buffer review comments
+map('n', '<leader>gi', utils.github_menu, { desc = 'GitHub: PRs / issues (snacks)' })
+map({ 'n', 'x' }, '<leader>gRc', function() require('custom.pr_review').add_comment() end,
+  { desc = 'PR review: add comment on line/selection' })
+map('n', '<leader>gRs', function() require('custom.pr_review').push() end,
+  { desc = 'PR review: push comments as a pending draft' })
 -- Database (nvim-dbee). DBUIOpen is the wrapper that reloads .env first.
 map('n', '<leader>du', ':DBUIOpen<CR>', { desc = 'Toggle Dbee UI (reload .env)', silent = true })
 map('n', '<leader>de', function() require('plugins.dbee').show_editor() end,

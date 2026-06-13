@@ -621,4 +621,19 @@ function M.branch_review_toggle()
   require('custom.branch_review').toggle(n > 0 and ('HEAD~' .. n) or nil)
 end
 
+-- One GitHub entry point: pick a snacks source for the current repo.
+function M.github_menu()
+  local picker = require('snacks').picker
+  local items = {
+    { label = 'Pull Requests', open = picker.gh_pr },
+    { label = 'Issues', open = picker.gh_issue },
+  }
+  vim.ui.select(items, {
+    prompt = 'GitHub',
+    format_item = function(item) return item.label end,
+  }, function(choice)
+    if choice then choice.open() end
+  end)
+end
+
 return M

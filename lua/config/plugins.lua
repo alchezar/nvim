@@ -46,6 +46,7 @@ vim.pack.add({
   'https://github.com/sindrets/diffview.nvim',              -- Diff / 3-way merge conflict resolution
   'https://github.com/RaafatTurki/hex.nvim',                -- Hex view for binary files (images, .bin, etc.)
   'https://github.com/kdheepak/lazygit.nvim',               -- Lazygit integration (floating terminal)
+  'https://github.com/folke/snacks.nvim',                   -- GitHub PR/issue picker (gh_pr/gh_issue/gh_diff)
   'https://github.com/Wansmer/langmapper.nvim',             -- Vim motions with Ukrainian keyboard layout
 })
 
