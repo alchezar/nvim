@@ -27,10 +27,13 @@ local function qualifies(win)
 end
 
 local function any_dialog()
+  local dialog = false
   for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if qualifies(win) then return true end
+    -- Trouble (<leader>xx) is a normal split; never dim while it is open.
+    if vim.bo[vim.api.nvim_win_get_buf(win)].filetype == 'trouble' then return false end
+    if qualifies(win) then dialog = true end
   end
-  return false
+  return dialog
 end
 
 -- Close every backdrop window (matched by marker), not just the tracked one, so

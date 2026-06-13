@@ -20,6 +20,10 @@ vim.g.rustaceanvim = {
           enable = true,
           references = { adt = { enable = true }, enumVariant = { enable = true }, method = { enable = true }, trait = { enable = true } },
         },
+        -- Full, named-parameter signatures in completion docs (closer to hover).
+        completion = {
+          fullFunctionSignatures = { enable = true },
+        },
       },
     },
   },
