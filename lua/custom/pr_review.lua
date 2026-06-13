@@ -234,8 +234,13 @@ function M.add_comment(opts)
     if body == '' then return end
     local id = set_mark(buf, s, e)
     table.insert(M.comments, {
-      path = path, start_line = s, end_line = e, side = 'RIGHT',
-      body = body, bufnr = buf, extmark_id = id,
+      path = path,
+      start_line = s,
+      end_line = e,
+      side = 'RIGHT',
+      body = body,
+      bufnr = buf,
+      extmark_id = id,
     })
     vim.notify(('Review comment added (%d total)'):format(#M.comments), vim.log.levels.INFO)
   end)

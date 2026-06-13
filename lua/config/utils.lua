@@ -626,7 +626,7 @@ function M.github_menu()
   local picker = require('snacks').picker
   local items = {
     { label = 'Pull Requests', open = picker.gh_pr },
-    { label = 'Issues', open = picker.gh_issue },
+    { label = 'Issues',        open = picker.gh_issue },
   }
   vim.ui.select(items, {
     prompt = 'GitHub',
