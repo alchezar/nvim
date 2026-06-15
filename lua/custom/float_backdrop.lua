@@ -36,38 +36,67 @@ local function any_dialog()
   return dialog
 end
 
+local group = vim.api.nvim_create_augroup('FloatBackdrop', { clear = true })
+local refresh   -- forward-declared; show()'s cursor watcher calls it
+local cursor_au -- CursorMoved listener, live only while the backdrop is up
+
 -- Close every backdrop window (matched by marker), not just the tracked one, so
--- a lost reference can never leave a stuck overlay.
+-- a lost reference can never leave a stuck overlay. Also drop the cursor watcher.
 local function hide()
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     if vim.w[win].float_backdrop and vim.api.nvim_win_is_valid(win) then
       vim.api.nvim_win_close(win, true)
     end
   end
+  if cursor_au then
+    pcall(vim.api.nvim_del_autocmd, cursor_au)
+    cursor_au = nil
+  end
 end
 
 local function show()
+  -- Overscan past the edges so Neovide's blur halo falls off-screen.
+  local cfg = {
+    relative = 'editor',
+    row = -1,
+    col = -1,
+    width = vim.o.columns + 2,
+    height = vim.o.lines + 2,
+    focusable = false,
+    zindex = Z,
+    style = 'minimal',
+    border = 'none',
+  }
+  -- Reuse a live backdrop, but resync geometry: the editor may have been resized
+  -- or re-laid-out while a dialog stayed open, leaving the old size off-screen.
   for _, win in ipairs(vim.api.nvim_list_wins()) do
-    if vim.w[win].float_backdrop and vim.api.nvim_win_is_valid(win) then return end
+    if vim.w[win].float_backdrop and vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_set_config(win, cfg)
+      return
+    end
   end
   local buf = vim.api.nvim_create_buf(false, true)
-  -- Overscan past the edges so Neovide's blur halo falls off-screen.
-  local win = vim.api.nvim_open_win(buf, false, {
-    relative = 'editor', row = -1, col = -1,
-    width = vim.o.columns + 2, height = vim.o.lines + 2,
-    focusable = false, zindex = Z, style = 'minimal', noautocmd = true, border = 'none',
-  })
+  cfg.noautocmd = true
+  local win = vim.api.nvim_open_win(buf, false, cfg)
   vim.w[win].float_backdrop = true
   vim.wo[win].winblend = BLEND
   vim.wo[win].winhighlight = 'Normal:FloatBackdrop,NormalFloat:FloatBackdrop'
   vim.bo[buf].bufhidden = 'wipe'
+  -- Auto-close floats (gitsigns preview_hunk) close on cursor move from a
+  -- non-nested autocmd, so their WinClosed never reaches us. Watch the cursor
+  -- only while dimmed, so the backdrop tears down together with them.
+  if not cursor_au then
+    cursor_au = vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+      group = group,
+      callback = vim.schedule_wrap(function() refresh() end),
+    })
+  end
 end
 
-local function refresh()
+refresh = function()
   if any_dialog() then show() else hide() end
 end
 
-local group = vim.api.nvim_create_augroup('FloatBackdrop', { clear = true })
 vim.api.nvim_create_autocmd({ 'WinNew', 'WinClosed', 'WinEnter', 'WinLeave', 'BufEnter', 'VimResized' }, {
   group = group,
   callback = vim.schedule_wrap(refresh),

@@ -554,7 +554,9 @@ function M.gitsigns_preview_hunk()
   vim.schedule(function()
     local max_w = math.max(20, math.floor(vim.o.columns * 0.8))
     for _, win in ipairs(vim.api.nvim_list_wins()) do
-      if not prior[win] then
+      -- Only the gitsigns popup, never the full-screen backdrop float that pops
+      -- up alongside it (it is also "new" and wider than max_w).
+      if not prior[win] and vim.w[win].gitsigns_preview ~= nil then
         local cfg = vim.api.nvim_win_get_config(win)
         if cfg.relative ~= '' and cfg.width and cfg.width > max_w then
           cfg.width = max_w
