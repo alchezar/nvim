@@ -68,6 +68,7 @@ local function lsp_entry_maker(opts)
 end
 
 local kind_highlights = require('config.lsp_icons').symbol_highlights()
+local actions = require('telescope.actions')
 
 require('telescope').setup({
   defaults = {
@@ -82,6 +83,8 @@ require('telescope').setup({
     },
   },
   pickers = {
+    -- `dd` in normal mode closes the buffer under the cursor without leaving the picker.
+    buffers                       = { mappings = { n = { dd = actions.delete_buffer } } },
     lsp_references                = { entry_maker = lsp_entry_maker({ mark = true }) },
     lsp_implementations           = { entry_maker = lsp_entry_maker() },
     lsp_definitions               = { entry_maker = lsp_entry_maker() },
