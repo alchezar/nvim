@@ -3,7 +3,7 @@
 --   `[0-9]    jump to next bookmark of group N in the project (cyclic)
 --   dm[0-9]   delete group N in the current buffer
 --   <M-m>     on a clean line: add a plain bookmark; otherwise clear the line
---   <leader>m list bookmarks of the current project (Telescope)
+--   <leader>m list project bookmarks (Telescope); dd on a row deletes it
 --   m{a-zA-Z} / dm{a-zA-Z}  set / delete vim letter marks (signs via marks.nvim)
 --   <leader>M list vim letter marks a-z/A-Z (Telescope)
 --
@@ -171,6 +171,35 @@ local function delete_group(group)
   sync_buffer(buf); save_store()
 end
 
+-- Delete one bookmark by its store identity. Unlike delete_group this reaches
+-- bookmarks in files that aren't open - e.g. left on another branch - so the
+-- picker can drop them without first visiting the file.
+local function delete_entry(item)
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if M.placed[buf] and abspath(buf) == item.file then
+      for id, g in pairs(M.placed[buf]) do
+        local pos = vim.api.nvim_buf_get_extmark_by_id(buf, ns, id, {})
+        if g == item.group and pos[1] and pos[1] + 1 == item.line then
+          vim.api.nvim_buf_del_extmark(buf, ns, id)
+          M.placed[buf][id] = nil
+        end
+      end
+      sync_buffer(buf); save_store()
+      return
+    end
+  end
+  -- File not loaded: edit the store record directly.
+  local recs = M.store[item.file]
+  if not recs then return end
+  for i, rec in ipairs(recs) do
+    if rec.group == item.group and rec.line == item.line then
+      table.remove(recs, i); break
+    end
+  end
+  if #recs == 0 then M.store[item.file] = nil end
+  save_store()
+end
+
 -- Is a vim letter mark (a-z / A-Z) sitting on this line of the buffer?
 local function line_has_letter_mark(buf, lnum)
   for _, m in ipairs(vim.fn.getmarklist(buf)) do
@@ -271,6 +300,7 @@ local function list()
   local pickers = require('telescope.pickers')
   local finders = require('telescope.finders')
   local conf = require('telescope.config').values
+  local action_state = require('telescope.actions.state')
 
   pickers.new({}, {
     prompt_title = root and 'Bookmarks (project)' or 'Bookmarks (all)',
@@ -303,6 +333,17 @@ local function list()
     }),
     sorter = conf.generic_sorter({}),
     previewer = conf.grep_previewer({}),
+    -- `dd` removes the bookmark under the cursor without closing the picker.
+    attach_mappings = function(prompt_bufnr, map)
+      map('n', 'dd', function()
+        local picker = action_state.get_current_picker(prompt_bufnr)
+        picker:delete_selection(function(selection)
+          delete_entry(selection.value)
+          return true
+        end)
+      end)
+      return true
+    end,
   }):find()
 end
 
