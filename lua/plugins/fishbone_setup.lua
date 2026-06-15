@@ -26,5 +26,6 @@ require('fishbone').setup({
     git_change = theme.blue,
     git_delete = theme.red,
     base       = theme.dark,
+    divider    = theme.dark,
   },
 })
