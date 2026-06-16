@@ -177,7 +177,8 @@ vim.api.nvim_set_hl(0, "yamlInteger", { fg = colors.purple })
 
 -- MAKE
 vim.api.nvim_set_hl(0, "makeCommands", { fg = colors.red })
-vim.api.nvim_set_hl(0, "makeCmdNextLine", { fg = colors.purple })
+vim.api.nvim_set_hl(0, "makeCmdNextLine", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "makeNextLine", { fg = colors.dark })
 
 -- RUST (treesitter + rust-analyzer LSP).
 local rust_legacy_highlights = {

@@ -663,13 +663,51 @@ do
   end
 end
 
+-- Preview the live, LSP-attached buffer instead of a disk copy, so the code
+-- keeps its real treesitter + semantic-token highlighting and diagnostics.
+local function live_buffer_previewer(bufnr)
+  return require('telescope.previewers').new({
+    title = 'File structure',
+    preview_fn = function(self, entry, status)
+      local win = status.layout.preview and status.layout.preview.winid
+      if not win or not vim.api.nvim_win_is_valid(win) or not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+      end
+      self.state = self.state or {}
+      self.state.winid = win
+      if vim.api.nvim_win_get_buf(win) ~= bufnr then
+        vim.api.nvim_win_set_buf(win, bufnr)
+      end
+      vim.wo[win].number, vim.wo[win].cursorline, vim.wo[win].wrap = true, true, false
+      pcall(vim.api.nvim_win_set_cursor, win, { entry.lnum or 1, math.max((entry.col or 1) - 1, 0) })
+      vim.api.nvim_win_call(win, function() vim.cmd('normal! zz') end)
+    end,
+    -- <C-d>/<C-u> scroll the preview via Ctrl-E/Ctrl-Y on its window.
+    scroll_fn = function(self, direction)
+      if not (self.state and self.state.winid) then return end
+      local key = direction > 0 and '\5' or '\25'
+      pcall(vim.api.nvim_win_call, self.state.winid, function()
+        vim.cmd('normal! ' .. math.abs(direction) .. key)
+      end)
+    end,
+    -- Telescope wipes whatever buffer sits in the preview window on close; swap
+    -- the live buffer out for a scratch first so the real one survives.
+    teardown = function(self)
+      local win = self.state and self.state.winid
+      if win and vim.api.nvim_win_is_valid(win) then
+        pcall(vim.api.nvim_win_set_buf, win, vim.api.nvim_create_buf(false, true))
+      end
+    end,
+  })
+end
+
 -- File structure (Telescope). Rust only: prefix each symbol with a visibility
 -- marker read off the `pub` keyword on its source line.
 function M.document_symbols()
   local builtin = require('telescope.builtin')
   local bufnr = vim.api.nvim_get_current_buf()
   if vim.bo[bufnr].filetype ~= 'rust' then
-    return builtin.lsp_document_symbols()
+    return builtin.lsp_document_symbols({ previewer = live_buffer_previewer(bufnr) })
   end
   -- Own displayer: name, then the visibility marker, then the kind column.
   local displayer = require('telescope.pickers.entry_display').create({
@@ -677,7 +715,7 @@ function M.document_symbols()
     items = { { width = 30 }, { width = 2 }, { remaining = true } },
   })
   -- path_display hidden: every symbol lives in this one buffer, so drop the column.
-  local opts = { bufnr = bufnr, path_display = { 'hidden' } }
+  local opts = { bufnr = bufnr, path_display = { 'hidden' }, previewer = live_buffer_previewer(bufnr) }
   local default = require('telescope.make_entry').gen_from_lsp_symbols(opts)
   opts.entry_maker = function(line)
     local entry = default(line)
