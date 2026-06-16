@@ -21,6 +21,8 @@ local function qualifies(win)
   if vim.w[win].float_backdrop then return false end
   local cfg = vim.api.nvim_win_get_config(win)
   if cfg.relative == '' or not cfg.focusable then return false end
+  -- Hidden floats (dbee's pre-built editor/result) still list as wins; don't dim behind them.
+  if cfg.hide then return false end
   if cfg.zindex and cfg.zindex > 100 then return false end
   local ft = vim.bo[vim.api.nvim_win_get_buf(win)].filetype
   return not (ft:match('^snacks') or ft:match('^cmp'))

@@ -9,11 +9,11 @@ vim.g.neovide_opacity = 0.9
 vim.g.neovide_normal_opacity = 0.9
 vim.g.neovide_input_macos_option_key_is_meta = "both"
 vim.g.neovide_hide_mouse_when_typing = true
-vim.g.neovide_cursor_trail_size = 0.8
-
+vim.g.neovide_scale_factor = 0.995
 vim.g.neovide_cursor_smooth_blink = false
 vim.g.neovide_cursor_animate_in_insert_mode = true
 vim.g.neovide_cursor_animate_command_line = true
+vim.g.neovide_cursor_trail_size = 0.8
 
 -- vim.g.neovide_position_animation_length = 0
 vim.g.neovide_floating_shadow = false
