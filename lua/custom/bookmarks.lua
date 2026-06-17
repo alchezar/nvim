@@ -22,14 +22,19 @@ M.store = {}
 -- bufnr -> { [extmark_id] = group }
 M.placed = {}
 
--- All bookmark signs share the theme's yellow accent; the digit tells groups apart.
-for g = 0, 9 do
-  vim.api.nvim_set_hl(0, 'UserBookmark' .. g, { fg = theme.yellow, bold = true })
-end
 -- Plain (unnumbered) bookmark: a bookmark glyph instead of a digit.
 local PLAIN = 'plain'
 local PLAIN_SIGN = vim.fn.nr2char(0xF00C0)
-vim.api.nvim_set_hl(0, 'UserBookmarkPlain', { fg = theme.yellow, bold = true })
+-- All bookmark signs share the theme's yellow accent; the digit tells groups apart.
+-- Re-applied on ColorScheme: :colorscheme runs :hi clear, else marks grey out.
+local function apply_bookmark_hl()
+  for g = 0, 9 do
+    vim.api.nvim_set_hl(0, 'UserBookmark' .. g, { fg = theme.yellow, bold = true })
+  end
+  vim.api.nvim_set_hl(0, 'UserBookmarkPlain', { fg = theme.yellow, bold = true })
+end
+vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_bookmark_hl })
+apply_bookmark_hl()
 
 -- Sign text + highlight for a group: a digit for 0-9, the glyph for a plain mark.
 local function sign_for(group)

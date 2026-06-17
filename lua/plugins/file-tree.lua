@@ -338,7 +338,12 @@ end)
 -- A file in custom/bookmarks.lua's store gets one; so does any directory on the path to it.
 local bookmark_ns = vim.api.nvim_create_namespace('nvim_tree_bookmark_sign')
 -- Own group name; NvimTreeBookmarkIcon is nvim-tree's built-in marks sign.
-vim.api.nvim_set_hl(0, 'NvimTreeUserBookmarkIcon', { fg = require('config.theme_colors').yellow })
+-- Re-applied on ColorScheme: :colorscheme runs :hi clear, else the dot greys out.
+local function apply_bookmark_hl()
+  vim.api.nvim_set_hl(0, 'NvimTreeUserBookmarkIcon', { fg = require('config.theme_colors').yellow })
+end
+vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_bookmark_hl })
+apply_bookmark_hl()
 
 local function place_bookmark_signs(bufnr)
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
