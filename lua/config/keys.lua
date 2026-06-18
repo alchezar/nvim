@@ -48,6 +48,8 @@ map('n', '<leader>o', utils.document_symbols, { desc = 'File structure (Telescop
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
 map('n', '<leader>rl', utils.restart_buf_lsp, { desc = 'Reload LSP for current buffer' })
 map('n', '<leader>rb', utils.reload_buf, { desc = 'Reload current buffer (wipe and reopen)' })
+map('n', '<leader>rL', '<cmd>RustAnalyzer restart<cr>', { desc = 'Restart rust-analyzer (whole process)' })
+map('n', '<leader>rB', '<cmd>RustLsp reloadWorkspace<cr>', { desc = 'Reload rust-analyzer workspace' })
 -- Telescope
 map('n', '<Tab>', '<C-^>', { desc = 'Switch to alternate file' })
 map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })
