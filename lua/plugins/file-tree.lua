@@ -46,6 +46,13 @@ local function tree_sorter(nodes)
 end
 
 require('nvim-tree').setup({
+  -- Keep nvim-tree's default maps, but route `s` to EasyMotion 2-char search like everywhere else
+  -- (its built-in buffer-local `s` would otherwise shadow the global mapping).
+  on_attach = function(bufnr)
+    local api = require('nvim-tree.api')
+    api.config.mappings.default_on_attach(bufnr)
+    vim.keymap.set('n', 's', '<Plug>(easymotion-s2)', { buffer = bufnr, desc = 'EasyMotion 2-char search' })
+  end,
   -- Tree follows the global cwd (set to the project root by auto_cd_to_project_root).
   -- Re-roots on a real project change; within a project getcwd == root so focus never reloads.
   sync_root_with_cwd = true,
