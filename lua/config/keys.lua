@@ -19,8 +19,6 @@ map('x', '<D-/>', "gc'>j", { desc = 'Toggle comment on selection (Cmd+/)', remap
 map('x', '<D-C-u>', function() translate.translate_selection('UK') end, { desc = 'Translate selection to Ukrainian' }) -- Translate selected text (Cmd+Ctrl+U: -> Ukrainian)
 map('x', '<D-C-S-u>', function() translate.translate_selection('EN') end, { desc = 'Translate selection to English' }) -- Translate selected text (Cmd+Ctrl+Shift+U: -> English)
 map('n', '<leader>n', ':noh<CR>', { desc = 'Clear search highlight', silent = true })                                  -- Disable search highlight
-map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
-map('n', '<leader>sl', [[/\vlet (mut )?\w*:<CR>]], { desc = 'Search let/let mut bindings' })                           -- Highlight Rust let / let mut declarations
 map('n', '<leader>p', '"_dP', { desc = 'Paste without overwriting register' })                                         -- Keep register on paste
 map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })                                                         -- Open yazi file manager
 map('n', '<leader>i', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })                                       -- Toggle inlay hints
@@ -30,6 +28,12 @@ map('n', '<leader>wj', '<C-w>j', { desc = 'Go to window below', silent = true })
 map('n', '<leader>wk', '<C-w>k', { desc = 'Go to window above', silent = true })                                       -- Window above
 map('n', '<leader>wl', '<C-w>l', { desc = 'Go to window right', silent = true })                                       -- Window right
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })                     -- Trouble
+map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
+-- Highlight Rust let/let mut bindings and module-qualified types
+map('n', '<leader>sl',
+  [[/\C\vlet (mut )?\w*:]] ..
+  [[|%(::)@<!%(use )@<!<[a-z]\w*::[A-Z]\w*[a-z]\w*><CR>]],
+  { desc = 'Search let/let mut bindings' })
 -- LSP (matching .ideavimrc bindings)
 map('n', 'gd', builtin.lsp_definitions, { desc = 'Go to definition (Telescope)' })
 map('n', 'gD', builtin.lsp_type_definitions, { desc = 'Go to type definition (Telescope)' })
