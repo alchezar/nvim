@@ -104,8 +104,8 @@ require('nvim-tree').setup({
 local function apply_tree_hl()
   local theme = require('config.theme_colors')
   vim.api.nvim_set_hl(0, 'NvimTreeNormal', { fg = theme.gray })
-  vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL', { fg = theme.brown })
-  vim.api.nvim_set_hl(0, 'NvimTreeGitFolderIgnoredHL', { fg = theme.brown })
+  vim.api.nvim_set_hl(0, 'NvimTreeGitFileIgnoredHL', { fg = theme.teal })
+  vim.api.nvim_set_hl(0, 'NvimTreeGitFolderIgnoredHL', { fg = theme.teal })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFileDirtyHL', { fg = theme.blue })
   vim.api.nvim_set_hl(0, 'NvimTreeGitFolderDirtyHL', { fg = theme.blue })
   vim.api.nvim_set_hl(0, 'NvimTreeFolderName', { fg = theme.silver, bold = true })
@@ -300,7 +300,7 @@ local folder_groups = {
   { hl = 'NvimTreeFolderDocsIcon',       color = folder_theme.yellow, names = { 'docs', 'spec', 'task' } },
   { hl = 'NvimTreeFolderFrontendIcon',   color = folder_theme.cyan,   names = { 'frontend' } },
   { hl = 'NvimTreeFolderDeployIcon',     color = folder_theme.orange, names = { 'deploy', 'nginx' } },
-  { hl = 'NvimTreeFolderHiddenIcon',     color = folder_theme.brown,  names = {} }, -- dot-folders, matched by prefix below
+  { hl = 'NvimTreeFolderHiddenIcon',     color = folder_theme.teal,   names = {} }, -- dot-folders, matched by prefix below
 }
 
 -- Register each group's highlight and flatten its names into the lookup map.

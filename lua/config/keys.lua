@@ -83,6 +83,8 @@ map('n', '<leader>cP', function() utils.yank_to_clipboard(vim.fn.expand('%:p') .
   { desc = 'Copy absolute path:line' })
 map('n', '<leader>cf', function() utils.yank_to_clipboard(vim.fn.expand('%:t') .. ':' .. vim.fn.line('.')) end,
   { desc = 'Copy filename:line' })
+map('n', '<leader>cn', function() utils.yank_to_clipboard(vim.fn.expand('%:t:r')) end,
+  { desc = 'Copy filename without extension' })
 map('n', '<leader>cr', function() utils.yank_to_clipboard(vim.fn.expand('%')) end, { desc = 'Copy relative path' })
 -- Nvim-tree
 map('n', '<D-S-e>', ':NvimTreeFindFileToggle<CR>', { desc = 'Toggle file tree (reveal current file)', silent = true })
