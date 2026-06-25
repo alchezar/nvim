@@ -121,7 +121,7 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_tree_hl })
 apply_tree_hl()
 
--- Annotate mod.rs / README.md (case-insensitive) with `[parent]` virtual text.
+-- Annotate mod.rs / README.md with `[parent]`, and `foo.rs` next to `foo/` with `[mod]`.
 local mod_ns = vim.api.nvim_create_namespace('nvim_tree_mod_rs_parent')
 vim.api.nvim_set_hl(0, 'NvimTreeModRsParent', { fg = require('config.theme_colors').silver, bold = true })
 
@@ -138,6 +138,21 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   local start_line = core.get_nodes_starting_line()
   local nodes_by_line = explorer:get_nodes_by_line(start_line)
   for line, node in pairs(nodes_by_line) do
+    -- Module declared as a sibling file: `custom.rs` next to a `custom/` dir.
+    if node and node.name and node.name ~= 'mod.rs' and node.name:match('%.rs$')
+        and node.parent and node.parent.nodes then
+      local stem = node.name:sub(1, -4) -- strip '.rs'
+      for _, sibling in ipairs(node.parent.nodes) do
+        if sibling.type == 'directory' and sibling.name == stem then
+          vim.api.nvim_buf_set_extmark(bufnr, mod_ns, line - 1, 0, {
+            virt_text = { { '[mod]', 'NvimTreeModRsParent' } },
+            virt_text_pos = 'eol',
+          })
+          break
+        end
+      end
+    end
+
     local is_special = node and node.name
         and (node.name == 'mod.rs' or node.name:lower() == 'readme.md')
     if is_special and node.parent and node.parent.name and node.parent.nodes then
