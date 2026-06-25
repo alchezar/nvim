@@ -647,6 +647,7 @@ local SYMBOL_KIND_COLORS = {
 local function set_symbol_hl()
   vim.api.nvim_set_hl(0, 'TelescopeSymbolPublic', { fg = colors.green })
   vim.api.nvim_set_hl(0, 'TelescopeSymbolPrivate', { fg = colors.silver })
+  vim.api.nvim_set_hl(0, 'TelescopeSymbolKindTest', { fg = colors.emerald })
   for kind, color in pairs(SYMBOL_KIND_COLORS) do
     vim.api.nvim_set_hl(0, 'TelescopeSymbolKind' .. kind, { fg = colors[color] --[[@as string]] })
   end
@@ -701,6 +702,22 @@ local function live_buffer_previewer(bufnr)
   })
 end
 
+-- A #[test] / #[*::test] (sqlx, tokio, ...) attribute above a fn relabels its
+-- kind column "test"; scan upward past attrs and doc comments to the real code.
+local function fn_is_test(bufnr, lnum)
+  for ln = lnum - 1, math.max(lnum - 15, 1), -1 do
+    local trimmed = (vim.api.nvim_buf_get_lines(bufnr, ln - 1, ln, false)[1] or ''):match('^%s*(.-)%s*$')
+    if trimmed == '' or trimmed:match('^//') then -- blank or comment: keep scanning
+    elseif trimmed:match('^#!?%[') then
+      local attr = trimmed:match('^#!?%[%s*([%w_:]+)')
+      if attr and attr:match('[%w_]+$') == 'test' then return true end
+    else
+      return false -- hit real code before any test attr
+    end
+  end
+  return false
+end
+
 -- File structure (Telescope). Rust only: prefix each symbol with a visibility
 -- marker read off the `pub` keyword on its source line.
 function M.document_symbols()
@@ -712,7 +729,7 @@ function M.document_symbols()
   -- Own displayer: name, then the visibility marker, then the kind column.
   local displayer = require('telescope.pickers.entry_display').create({
     separator = ' ',
-    items = { { width = 30 }, { width = 2 }, { remaining = true } },
+    items = { { width = 60 }, { width = 2 }, { remaining = true } },
   })
   -- path_display hidden: every symbol lives in this one buffer, so drop the column.
   local opts = { bufnr = bufnr, path_display = { 'hidden' }, previewer = live_buffer_previewer(bufnr) }
@@ -724,12 +741,14 @@ function M.document_symbols()
     local pub = src:match('^%s*pub') ~= nil
     local icon = pub and '\u{ea70}' or '\u{eae7}' -- 󰈈 eye / 󰈉 eye-closed
     local hl = pub and 'TelescopeSymbolPublic' or 'TelescopeSymbolPrivate'
+    -- symbol_type carries an icon prefix (lsp_icons patches SymbolKind), so match
+    -- the trailing kind word and relabel "function" -> "test", keeping the icon.
+    local is_test = entry.symbol_type:match('Function$') ~= nil and fn_is_test(bufnr, entry.lnum)
     entry.display = function(e)
-      return displayer({
-        e.symbol_name,
-        { icon,                  hl },
-        { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] },
-      })
+      local kind_col = is_test
+          and { (e.symbol_type:lower():gsub('function$', 'test')), 'TelescopeSymbolKindTest' }
+          or { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] }
+      return displayer({ e.symbol_name, { icon, hl }, kind_col })
     end
     return entry
   end
