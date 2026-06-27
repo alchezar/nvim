@@ -718,13 +718,36 @@ local function fn_is_test(bufnr, lnum)
   return false
 end
 
+-- Land the picker on the symbol enclosing the cursor (greatest start line <=
+-- the cursor) instead of the first row; runs once after results first load.
+local function focus_symbol_at_cursor(opts)
+  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+  local placed = false
+  opts.on_complete = {
+    function(picker)
+      if placed then return end
+      placed = true
+      local best_index, best_lnum
+      for index = 1, picker.manager:num_results() do
+        local lnum = (picker.manager:get_entry(index) or {}).lnum
+        if lnum and lnum <= cursor_line and (not best_lnum or lnum > best_lnum) then
+          best_index, best_lnum = index, lnum
+        end
+      end
+      if best_index then picker:set_selection(picker:get_row(best_index)) end
+    end,
+  }
+end
+
 -- File structure (Telescope). Rust only: prefix each symbol with a visibility
 -- marker read off the `pub` keyword on its source line.
 function M.document_symbols()
   local builtin = require('telescope.builtin')
   local bufnr = vim.api.nvim_get_current_buf()
   if vim.bo[bufnr].filetype ~= 'rust' then
-    return builtin.lsp_document_symbols({ previewer = live_buffer_previewer(bufnr) })
+    local opts = { previewer = live_buffer_previewer(bufnr) }
+    focus_symbol_at_cursor(opts)
+    return builtin.lsp_document_symbols(opts)
   end
   -- Own displayer: name, then the visibility marker, then the kind column.
   local displayer = require('telescope.pickers.entry_display').create({
@@ -752,6 +775,7 @@ function M.document_symbols()
     end
     return entry
   end
+  focus_symbol_at_cursor(opts)
   builtin.lsp_document_symbols(opts)
 end
 
