@@ -40,11 +40,13 @@ cmp.setup({
           vim_item.abbr = vim_item.abbr .. '  ' .. ld.description
         end
       end
-      vim_item.abbr = truncate(vim_item.abbr, math.max(40, math.floor(vim.o.columns * 0.5)))
+      -- Fixed caps so one long signature can't stretch the menu across the screen
+      -- and crowd out the docs window (which then overlaps the names).
+      vim_item.abbr = truncate(vim_item.abbr, 50)
       -- Menu = origin (trait/module) only, teal; empty for inherent methods.
       local origin = ld and ld.detail and ld.detail:match('^%(') and ld.detail or nil
       if origin then
-        vim_item.menu = truncate(origin, math.max(20, math.floor(vim.o.columns * 0.25)))
+        vim_item.menu = truncate(origin, 30)
         vim_item.menu_hl_group = 'CmpItemMenuOrigin'
       else
         vim_item.menu = nil
@@ -80,7 +82,7 @@ cmp.setup({
   window = {
     completion = cmp.config.window.bordered(),
     documentation = cmp.config.window.bordered({
-      max_width = math.floor(vim.o.columns * 0.5),
+      max_width = math.min(80, math.floor(vim.o.columns * 0.4)),
       max_height = math.floor(vim.o.lines * 0.4),
     }),
   },
