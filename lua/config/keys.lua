@@ -76,6 +76,8 @@ map('n', '<leader>fE', ':AxumRoutes<CR>', { desc = 'Axum/utoipa endpoints', sile
 map('n', '<leader>fe', ':AxumRoutesFile<CR>', { desc = 'Axum/utoipa endpoints (file)', silent = true })
 map('n', '<leader>fr', function() builtin.oldfiles({ cwd_only = true }) end, { desc = 'Recent files (project)' })
 map('n', '<leader>fR', builtin.oldfiles, { desc = 'Recent files' })
+-- Type declarations project-wide via LSP; fuzzy/case-insensitive, jumps to the decl site
+map('n', '<leader>ft', utils.type_declarations, { desc = 'Find type declarations (project)' })
 -- Copy file path / location to system clipboard
 map('n', '<leader>cp', function() utils.yank_to_clipboard(vim.fn.expand('%') .. ':' .. vim.fn.line('.')) end,
   { desc = 'Copy relative path:line' })

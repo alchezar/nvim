@@ -779,6 +779,16 @@ function M.document_symbols()
   builtin.lsp_document_symbols(opts)
 end
 
+-- Project-wide type declarations (struct/enum/trait/alias/class) via LSP. The
+-- `symbols` filter must use icon-prefixed kind names since lsp_icons patches them.
+function M.type_declarations()
+  local icons = require('config.lsp_icons').icons
+  local kinds = { 'Struct', 'Enum', 'Interface', 'TypeParameter', 'Class' }
+  local symbols = vim.tbl_map(function(k) return icons[k] .. k end, kinds)
+  -- path_display hidden: drop the file column so only the name + kind show.
+  require('telescope.builtin').lsp_dynamic_workspace_symbols({ symbols = symbols })
+end
+
 -- One GitHub entry point: pick a snacks source for the current repo.
 function M.github_menu()
   local picker = require('snacks').picker
