@@ -29,11 +29,12 @@ map('n', '<leader>wk', '<C-w>k', { desc = 'Go to window above', silent = true })
 map('n', '<leader>wl', '<C-w>l', { desc = 'Go to window right', silent = true })                                       -- Window right
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })                     -- Trouble
 map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
--- Highlight Rust let/let mut bindings and module-qualified types
+-- Highlight Rust let/let mut bindings, module-qualified types and &mut *tx reborrows
 map('n', '<leader>sl',
   [[/\C\vlet (mut )?\w*:]] ..
-  [[|%(::)@<!%(use )@<!<[a-z]\w*::[A-Z]\w*[a-z]\w*><CR>]],
-  { desc = 'Search let/let mut bindings' })
+  [[|%(::)@<!%(use )@<!<%([a-z]\w*::)+[A-Z]\w*[a-z]\w*>]] ..
+  [[|\&mut \*\*?\w+<CR>]],
+  { desc = 'Search let bindings / qualified types / tx reborrows' })
 -- LSP (matching .ideavimrc bindings)
 map('n', 'gd', builtin.lsp_definitions, { desc = 'Go to definition (Telescope)' })
 map('n', 'gD', builtin.lsp_type_definitions, { desc = 'Go to type definition (Telescope)' })
