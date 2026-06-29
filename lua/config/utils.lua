@@ -357,11 +357,17 @@ function M.format()
 end
 
 -- Stop all LSP clients on the buffer, wait for full exit, then re-fire FileType to re-attach.
+-- With zero clients (server died / buffer detached on return) re-fire FileType to re-attach.
 function M.restart_buf_lsp()
   local bufnr = vim.api.nvim_get_current_buf()
   local clients = vim.lsp.get_clients({ bufnr = bufnr })
   if #clients == 0 then
-    vim.notify('No LSP clients attached to this buffer', vim.log.levels.WARN)
+    if vim.bo[bufnr].buftype ~= '' or vim.bo[bufnr].filetype == '' then
+      vim.notify('No LSP clients attached to this buffer', vim.log.levels.WARN)
+      return
+    end
+    vim.notify('No LSP clients - re-attaching')
+    vim.api.nvim_exec_autocmds('FileType', { buffer = bufnr, modeline = false })
     return
   end
   local names, ids = {}, {}
