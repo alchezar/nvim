@@ -791,8 +791,27 @@ function M.type_declarations()
   local icons = require('config.lsp_icons').icons
   local kinds = { 'Struct', 'Enum', 'Interface', 'TypeParameter', 'Class' }
   local symbols = vim.tbl_map(function(k) return icons[k] .. k end, kinds)
-  -- path_display hidden: drop the file column so only the name + kind show.
-  require('telescope.builtin').lsp_dynamic_workspace_symbols({ symbols = symbols })
+  -- Own displayer: symbol name, then its kind (palette-colored like document_symbols),
+  -- then the file path last - so the name leads and the long path trails.
+  local displayer = require('telescope.pickers.entry_display').create({
+    separator = '  ',
+    items = { { width = 50 }, { width = 18 }, { remaining = true } },
+  })
+  local opts = { symbols = symbols }
+  local default = require('telescope.make_entry').gen_from_lsp_symbols(opts)
+  opts.entry_maker = function(line)
+    local entry = default(line)
+    if not entry then return entry end
+    entry.display = function(e)
+      return displayer({
+        e.symbol_name,
+        { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] },
+        { vim.fn.fnamemodify(e.filename, ':~:.'), 'TelescopeResultsComment' },
+      })
+    end
+    return entry
+  end
+  require('telescope.builtin').lsp_dynamic_workspace_symbols(opts)
 end
 
 -- One GitHub entry point: pick a snacks source for the current repo.
