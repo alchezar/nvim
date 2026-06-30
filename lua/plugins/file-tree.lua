@@ -356,13 +356,17 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   end
 end)
 
--- Yellow bookmark dot in the signcolumn, mirroring how diagnostics mark the gutter.
--- A file in custom/bookmarks.lua's store gets one; so does any directory on the path to it.
+-- Bookmark dot in the signcolumn, mirroring how diagnostics mark the gutter. A file
+-- in custom/bookmarks.lua's store gets one, as does any directory on the path to it;
+-- cyan when only letter marks are in scope, yellow when a numbered/plain mark is too.
 local bookmark_ns = vim.api.nvim_create_namespace('nvim_tree_bookmark_sign')
 -- Own group name; NvimTreeBookmarkIcon is nvim-tree's built-in marks sign.
 -- Re-applied on ColorScheme: :colorscheme runs :hi clear, else the dot greys out.
 local function apply_bookmark_hl()
-  vim.api.nvim_set_hl(0, 'NvimTreeUserBookmarkIcon', { fg = require('config.theme_colors').yellow })
+  local theme = require('config.theme_colors')
+  vim.api.nvim_set_hl(0, 'NvimTreeUserBookmarkIcon', { fg = theme.yellow })
+  -- Letter-only dot tracks the buffer a-z sign color (one source in bookmarks.lua).
+  vim.api.nvim_set_hl(0, 'NvimTreeUserBookmarkLetterIcon', { fg = require('custom.bookmarks').letter_color })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_bookmark_hl })
 apply_bookmark_hl()
@@ -377,24 +381,44 @@ local function place_bookmark_signs(bufnr)
   local explorer = require('nvim-tree.core').get_explorer()
   if not explorer then return end
 
-  -- Marked when the node is a bookmarked file, or a directory holding one beneath it.
-  local function has_bookmark(node)
-    if not node or not node.absolute_path then return false end
-    if node.type ~= 'directory' then return store[node.absolute_path] ~= nil end
-    local prefix = node.absolute_path .. '/'
-    for path in pairs(store) do
-      if path:sub(1, #prefix) == prefix then return true end
+  -- All records are letter marks (a-z/A-Z); numbered and plain marks aren't.
+  local function all_letters(recs)
+    for _, rec in ipairs(recs) do
+      if type(rec.group) ~= 'string' or not rec.group:match('^%a$') then return false end
     end
-    return false
+    return true
+  end
+
+  -- Dot color for a node, or nil when it carries no bookmark. A file or the
+  -- directory above it goes cyan only when every bookmark in scope is a letter
+  -- mark; any numbered/plain mark makes it yellow.
+  local function dot_hl(node)
+    if not node or not node.absolute_path then return nil end
+    if node.type ~= 'directory' then
+      local recs = store[node.absolute_path]
+      if not recs then return nil end
+      return all_letters(recs) and 'NvimTreeUserBookmarkLetterIcon' or 'NvimTreeUserBookmarkIcon'
+    end
+    local prefix = node.absolute_path .. '/'
+    local found, letters_only = false, true
+    for path, recs in pairs(store) do
+      if path:sub(1, #prefix) == prefix then
+        found = true
+        if not all_letters(recs) then letters_only = false end
+      end
+    end
+    if not found then return nil end
+    return letters_only and 'NvimTreeUserBookmarkLetterIcon' or 'NvimTreeUserBookmarkIcon'
   end
 
   local start_line = require('nvim-tree.core').get_nodes_starting_line()
   for line, node in pairs(explorer:get_nodes_by_line(start_line)) do
-    if has_bookmark(node) then
+    local hl = dot_hl(node)
+    if hl then
       local glyph = node.type == 'directory' and dir_dot or file_dot
       vim.api.nvim_buf_set_extmark(bufnr, bookmark_ns, line - 1, 0, {
         sign_text = ' ' .. glyph, -- leading space nudges the dot off the window edge into the 2nd gutter cell
-        sign_hl_group = 'NvimTreeUserBookmarkIcon',
+        sign_hl_group = hl,
         priority = 5,             -- below diagnostics (priority 10) so hint/warn/error win the gutter cell
       })
     end

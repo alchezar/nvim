@@ -23,14 +23,17 @@ M.placed = {}
 -- Plain (unnumbered) bookmark: a bookmark glyph instead of a digit.
 local PLAIN = 'plain'
 local PLAIN_SIGN = vim.fn.nr2char(0xF00C0)
--- All bookmark signs share the theme's yellow accent; the digit tells groups apart.
+-- Single source for the letter-mark accent: buffer signs, the picker and the
+-- file-tree dot all read this, so re-coloring a-z marks is a one-line change.
+M.letter_color = theme.cyan
+-- Digits/plain share the theme's yellow accent; the digit tells groups apart.
 -- Re-applied on ColorScheme: :colorscheme runs :hi clear, else marks grey out.
 local function apply_bookmark_hl()
   for g = 0, 9 do
     vim.api.nvim_set_hl(0, 'UserBookmark' .. g, { fg = theme.yellow, bold = true })
   end
   vim.api.nvim_set_hl(0, 'UserBookmarkPlain', { fg = theme.yellow, bold = true })
-  vim.api.nvim_set_hl(0, 'UserBookmarkLetter', { fg = theme.yellow, bold = true })
+  vim.api.nvim_set_hl(0, 'UserBookmarkLetter', { fg = M.letter_color, bold = true })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_bookmark_hl })
 apply_bookmark_hl()
