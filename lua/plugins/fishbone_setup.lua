@@ -8,9 +8,9 @@ end
 local theme = require('config.theme_colors')
 
 require('fishbone').setup({
-  -- Numbered/plain bookmarks live as extmarks in this namespace (see
-  -- custom/bookmarks.lua), not in marks.nvim - point fishbone at it so they
-  -- light up the yellow mark layer.
+  -- All bookmarks (numbered, letter, plain) live as extmarks in this namespace
+  -- (see custom/bookmarks.lua) - point fishbone at it so they light up the
+  -- yellow mark layer.
   mark_namespaces = { 'user_bookmarks' },
   colors = {
     cursor     = theme.white,

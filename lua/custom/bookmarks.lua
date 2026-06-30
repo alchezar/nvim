@@ -1,11 +1,9 @@
--- Persistent numbered bookmarks (own module, replaces marks.nvim).
---   m[0-9]    toggle bookmark of group N on the current line
---   `[0-9]    jump to next bookmark of group N in the project (cyclic)
---   dm[0-9]   delete group N in the current buffer
+-- Persistent bookmarks (own module, replaces marks.nvim).
+--   m{0-9,a-z,A-Z}      toggle a bookmark of that group on the current line
+--   `{group} / '{group} jump to the group's next bookmark in the project (cyclic)
+--   dm{group}           delete the group in the current buffer
 --   <M-m>     on a clean line: add a plain bookmark; otherwise clear the line
 --   <leader>m list project bookmarks (Telescope); dd on a row deletes it
---   m{a-zA-Z} / dm{a-zA-Z}  set / delete vim letter marks (signs via marks.nvim)
---   <leader>M list vim letter marks a-z/A-Z (Telescope)
 --
 -- Bookmarks live as extmarks (so they follow edits in-session) and are saved
 -- to a JSON store keyed by absolute path. Each record keeps the line text, so
@@ -32,13 +30,16 @@ local function apply_bookmark_hl()
     vim.api.nvim_set_hl(0, 'UserBookmark' .. g, { fg = theme.yellow, bold = true })
   end
   vim.api.nvim_set_hl(0, 'UserBookmarkPlain', { fg = theme.yellow, bold = true })
+  vim.api.nvim_set_hl(0, 'UserBookmarkLetter', { fg = theme.yellow, bold = true })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_bookmark_hl })
 apply_bookmark_hl()
 
--- Sign text + highlight for a group: a digit for 0-9, the glyph for a plain mark.
+-- Sign text + highlight for a group: a digit (0-9), a letter (a-z/A-Z mark), or
+-- the glyph for a plain mark.
 local function sign_for(group)
   if group == PLAIN then return PLAIN_SIGN, 'UserBookmarkPlain' end
+  if type(group) == 'string' then return group, 'UserBookmarkLetter' end
   return tostring(group), 'UserBookmark' .. group
 end
 
@@ -205,19 +206,8 @@ local function delete_entry(item)
   save_store()
 end
 
--- Is a vim letter mark (a-z / A-Z) sitting on this line of the buffer?
-local function line_has_letter_mark(buf, lnum)
-  for _, m in ipairs(vim.fn.getmarklist(buf)) do
-    if m.mark:match("^'%a$") and m.pos[2] == lnum then return true end
-  end
-  for _, m in ipairs(vim.fn.getmarklist()) do
-    if m.mark:match("^'%a$") and m.pos[1] == buf and m.pos[2] == lnum then return true end
-  end
-  return false
-end
-
--- <M-m>: clear every bookmark/letter mark on the line, or - if it's clean -
--- drop a plain (unnumbered) bookmark.
+-- <M-m>: clear every bookmark on the line, or - if it's clean - drop a plain
+-- (unnumbered) bookmark.
 local function plain_or_delete()
   local buf = vim.api.nvim_get_current_buf()
   if not abspath(buf) then return end
@@ -225,12 +215,11 @@ local function plain_or_delete()
   local mine = M.placed[buf]
       and vim.api.nvim_buf_get_extmarks(buf, ns, { lnum - 1, 0 }, { lnum - 1, -1 }, {})
       or {}
-  if #mine > 0 or line_has_letter_mark(buf, lnum) then
+  if #mine > 0 then
     for _, ext in ipairs(mine) do
       vim.api.nvim_buf_del_extmark(buf, ns, ext[1])
       M.placed[buf][ext[1]] = nil
     end
-    pcall(function() require('marks').delete_line() end)
   else
     M.placed[buf] = M.placed[buf] or {}
     M.placed[buf][set_mark(buf, PLAIN, lnum)] = PLAIN
@@ -294,7 +283,12 @@ local function list()
     vim.notify('No bookmarks', vim.log.levels.INFO)
     return
   end
-  local function gkey(g) return type(g) == 'number' and g or 99 end -- plain sorts last
+  -- Order: digits 0-9, then letters, then plain marks last.
+  local function gkey(g)
+    if type(g) == 'number' then return '0' .. g end
+    if g == PLAIN then return '2' end
+    return '1' .. g
+  end
   table.sort(entries, function(a, b)
     local ga, gb = gkey(a.group), gkey(b.group)
     if ga ~= gb then return ga < gb end
@@ -352,26 +346,25 @@ local function list()
   }):find()
 end
 
--- marks.nvim is kept ONLY for vim letter marks a-z/A-Z: gutter signs, set with
--- `m{mark}`, delete with `dm{mark}`. All numbered-group mappings are off so they
--- never clash with our own m0-9 / dm0-9 above.
-require('marks').setup({
-  default_mappings = false,
-  signs = true,
-  mappings = { set = 'm', delete = 'dm' },
-})
-
 -- keymaps & autocmds ----------------------------------------------------------
 
-for i = 0, 9 do
-  vim.keymap.set('n', 'm' .. i, function() toggle(i) end, { desc = 'Toggle bookmark ' .. i })
-  vim.keymap.set('n', '`' .. i, function() jump(i) end, { desc = 'Jump to bookmark ' .. i })
-  vim.keymap.set('n', 'dm' .. i, function() delete_group(i) end, { desc = 'Delete bookmark group ' .. i })
+-- Numbered, letter (a-z/A-Z) and plain marks all share our store. Letter groups
+-- also answer the classic vim `'{mark}` jump besides the `` ` `` form.
+local function map_group(group, jump_keys)
+  local g = tostring(group)
+  vim.keymap.set('n', 'm' .. g, function() toggle(group) end, { desc = 'Toggle bookmark ' .. g })
+  vim.keymap.set('n', 'dm' .. g, function() delete_group(group) end, { desc = 'Delete bookmark group ' .. g })
+  for _, k in ipairs(jump_keys) do
+    vim.keymap.set('n', k .. g, function() jump(group) end, { desc = 'Jump to bookmark ' .. g })
+  end
 end
+
+for i = 0, 9 do map_group(i, { '`' }) end
+for c = string.byte('a'), string.byte('z') do map_group(string.char(c), { '`', "'" }) end
+for c = string.byte('A'), string.byte('Z') do map_group(string.char(c), { '`', "'" }) end
+
 vim.keymap.set('n', '<M-m>', plain_or_delete, { desc = 'Toggle plain bookmark / clear marks on line' })
 vim.keymap.set('n', '<leader>m', list, { desc = 'List all bookmarks (Telescope)', silent = true })
-vim.keymap.set('n', '<leader>M', function() require('telescope.builtin').marks() end,
-  { desc = 'List letter marks (Telescope)', silent = true })
 
 local group = vim.api.nvim_create_augroup('UserBookmarks', { clear = true })
 vim.api.nvim_create_autocmd('BufReadPost', {
