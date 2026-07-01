@@ -68,7 +68,8 @@ require('nvim-tree').setup({
     },
   },
   root_dirs = {},
-  git = { enable = true },
+  -- 400ms default is too tight here: a slow startup git status disables integration for the session.
+  git = { enable = true, timeout = 2000 },
   filesystem_watchers = { enable = true },
 
   filters = {
