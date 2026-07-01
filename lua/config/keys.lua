@@ -106,7 +106,7 @@ map('n', '<leader>gm', ':DiffviewOpen<CR>', { desc = 'Open diffview (3-way merge
 map('n', '<leader>gc', ':DiffviewClose<CR>', { desc = 'Close diffview', silent = true })
 map('n', '<leader>gh', ':DiffviewFileHistory %<CR>', { desc = 'File history (current file)', silent = true })
 map('n', '<leader>gv', utils.branch_review_toggle,
-  { desc = 'Toggle branch review (count = last N commits, else whole branch)' })
+  { desc = 'Branch review (count = last N commits, else prompt: number/branch)' })
 map('n', '<leader>gl', utils.open_lazygit, { desc = 'Open lazygit (floating)', silent = true })
 -- GitHub: snacks picker for triage, own pr_review for in-buffer review comments
 map('n', '<leader>gi', utils.github_menu, { desc = 'GitHub: PRs / issues (snacks)' })

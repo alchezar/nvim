@@ -623,10 +623,18 @@ function M.search_visual(forward)
   vim.cmd('normal! ' .. (forward and 'n' or 'N'))
 end
 
--- A count reviews the last N commits (7<leader>gv -> HEAD~7); no count toggles the whole branch.
+-- Digits before gv are a native count (7<leader>gv -> HEAD~7). With none, prompt for a base:
+-- a number is HEAD~N, other text is a branch, empty toggles off / falls back to origin/HEAD.
 function M.branch_review_toggle()
+  local br = require('custom.branch_review')
   local n = vim.v.count
-  require('custom.branch_review').toggle(n > 0 and ('HEAD~' .. n) or nil)
+  if n > 0 then return br.toggle('HEAD~' .. n) end
+  vim.ui.input({ prompt = 'Review base (num=commits, text=branch): ' }, function(input)
+    if input == nil then return end
+    input = vim.trim(input)
+    if input == '' then return br.toggle() end
+    br.toggle(tonumber(input) and ('HEAD~' .. input) or input)
+  end)
 end
 
 -- M.document_symbols kind column: palette color per kind, matching how the theme
