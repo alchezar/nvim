@@ -763,10 +763,10 @@ function M.document_symbols()
     focus_symbol_at_cursor(opts)
     return builtin.lsp_document_symbols(opts)
   end
-  -- Own displayer: name, then the visibility marker, then the kind column.
+  -- Own displayer: line number first, then name, the visibility marker, and the kind column.
   local displayer = require('telescope.pickers.entry_display').create({
     separator = ' ',
-    items = { { width = 60 }, { width = 2 }, { remaining = true } },
+    items = { { width = 5, right_justify = true }, { width = 60 }, { width = 2 }, { remaining = true } },
   })
   -- path_display hidden: every symbol lives in this one buffer, so drop the column.
   local opts = { bufnr = bufnr, path_display = { 'hidden' }, previewer = live_buffer_previewer(bufnr) }
@@ -785,7 +785,7 @@ function M.document_symbols()
       local kind_col = is_test
           and { (e.symbol_type:lower():gsub('function$', 'test')), 'TelescopeSymbolKindTest' }
           or { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] }
-      return displayer({ e.symbol_name, { icon, hl }, kind_col })
+      return displayer({ { tostring(e.lnum), 'TelescopeResultsLineNr' }, e.symbol_name, { icon, hl }, kind_col })
     end
     return entry
   end
@@ -814,7 +814,7 @@ function M.type_declarations()
       return displayer({
         e.symbol_name,
         { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] },
-        { vim.fn.fnamemodify(e.filename, ':~:.'), 'TelescopeResultsComment' },
+        { vim.fn.fnamemodify(e.filename, ':~:.') .. ':' .. e.lnum, 'TelescopeResultsComment' },
       })
     end
     return entry
