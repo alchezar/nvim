@@ -533,6 +533,17 @@ function M.dbee_run()
   pcall(function() require('plugins.dbee').show_result() end)
 end
 
+-- Jump straight to the feature-tree panel in the sidebar, if it's open.
+function M.focus_feature_panel()
+  for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+    if vim.bo[vim.api.nvim_win_get_buf(w)].filetype == 'FeatureTree' then
+      vim.api.nvim_set_current_win(w)
+      return
+    end
+  end
+  vim.notify('Feature panel is not open', vim.log.levels.INFO)
+end
+
 -- Toggle focus: normal -> first focusable float, float -> previous window.
 function M.focus_floating()
   if vim.api.nvim_win_get_config(0).relative ~= '' then
@@ -813,7 +824,7 @@ function M.type_declarations()
     entry.display = function(e)
       return displayer({
         e.symbol_name,
-        { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] },
+        { e.symbol_type:lower(),                                   symbol_kind_hl[e.symbol_type] },
         { vim.fn.fnamemodify(e.filename, ':~:.') .. ':' .. e.lnum, 'TelescopeResultsComment' },
       })
     end
@@ -838,8 +849,9 @@ function M.github_menu()
 end
 
 -- Neovide smears cursorline into ghost bands during smooth (touchpad) scroll. Hide cursorline
--- in any window while it is actively scrolling and restore it once scrolling settles; windows
--- without cursorline (normal buffers) are left untouched. Terminal Vim redraws cleanly.
+-- while a window is actively scrolling and restore it once scrolling settles. Only special
+-- windows (tree, feature panel, blame - buftype ~= '') own a cursorline; normal file buffers
+-- keep theirs off, so we never touch them and never freeze an inherited one on. Neovide-only.
 function M.dim_cursorline_while_scrolling()
   local timers = {} -- winid -> reused uv debounce timer
   local hidden = {} -- winid -> true while we have hidden its cursorline
@@ -847,15 +859,22 @@ function M.dim_cursorline_while_scrolling()
     callback = function()
       for id in pairs(vim.v.event) do
         local win = tonumber(id) -- keys are window ids (+ 'all', which tonumber drops)
-        if win and vim.api.nvim_win_is_valid(win) and (hidden[win] or vim.wo[win].cursorline) then
-          vim.wo[win].cursorline = false
-          hidden[win] = true
-          timers[win] = timers[win] or vim.uv.new_timer()
-          timers[win]:stop()
-          timers[win]:start(180, 0, vim.schedule_wrap(function()
-            hidden[win] = nil
-            if vim.api.nvim_win_is_valid(win) then vim.wo[win].cursorline = true end
-          end))
+        if win and vim.api.nvim_win_is_valid(win) then
+          local buf = vim.api.nvim_win_get_buf(win)
+          if hidden[win] or (vim.bo[buf].buftype ~= '' and vim.wo[win].cursorline) then
+            vim.wo[win].cursorline = false
+            hidden[win] = true
+            timers[win] = timers[win] or vim.uv.new_timer()
+            timers[win]:stop()
+            timers[win]:start(180, 0, vim.schedule_wrap(function()
+              hidden[win] = nil
+              if not vim.api.nvim_win_is_valid(win) then return end
+              -- Respect a window that asked to keep cursorline off (e.g. feature panel on a
+              -- file not in its tree); don't restore it against that wish.
+              local ok, suppressed = pcall(vim.api.nvim_win_get_var, win, 'ft_no_cursorline')
+              if not (ok and suppressed) then vim.wo[win].cursorline = true end
+            end))
+          end
         end
       end
     end,

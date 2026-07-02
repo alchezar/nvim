@@ -23,6 +23,7 @@ map('n', '<leader>p', '"_dP', { desc = 'Paste without overwriting register' })  
 map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })                                                         -- Open yazi file manager
 map('n', '<leader>i', utils.toggle_inlay_hints, { desc = 'Toggle inlay hints' })                                       -- Toggle inlay hints
 map('n', '<leader>wf', utils.focus_floating, { desc = 'Focus floating window (toggle)' })                              -- Focus floating window (toggle)
+map('n', '<leader>wv', utils.focus_feature_panel, { desc = 'Focus feature-tree panel' })                               -- Jump to feature-tree panel
 map('n', '<leader>wh', '<C-w>h', { desc = 'Go to window left', silent = true })                                        -- Window left
 map('n', '<leader>wj', '<C-w>j', { desc = 'Go to window below', silent = true })                                       -- Window below
 map('n', '<leader>wk', '<C-w>k', { desc = 'Go to window above', silent = true })                                       -- Window above
@@ -75,6 +76,8 @@ map('n', '<leader>fp', utils.open_clipboard_path, { desc = 'Open file path from 
 map('n', '<leader>fa', utils.find_files_in_home, { desc = 'Find files everywhere ($HOME)' })
 map('n', '<leader>fE', ':AxumRoutes<CR>', { desc = 'Axum/utoipa endpoints', silent = true })
 map('n', '<leader>fe', ':AxumRoutesFile<CR>', { desc = 'Axum/utoipa endpoints (file)', silent = true })
+map('n', '<leader>fv', function() require('custom.feature_tree').open() end,
+  { desc = 'Feature view (transpose layer/feature tree)' })
 map('n', '<leader>fr', function() builtin.oldfiles({ cwd_only = true }) end, { desc = 'Recent files (project)' })
 map('n', '<leader>fR', builtin.oldfiles, { desc = 'Recent files' })
 -- Type declarations project-wide via LSP; fuzzy/case-insensitive, jumps to the decl site

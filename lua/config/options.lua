@@ -25,8 +25,16 @@ vim.opt.smartcase = true
 -- Whitespace display: trailing dots always; full whitespace in visual/insert modes
 vim.opt.list = true
 vim.opt.listchars = { trail = '·', tab = '  ' }
--- Blank out vertical split separators (between editor splits, nvim-tree, dbui).
-vim.opt.fillchars:append({ vert = ' ' })
+-- Blank out split separators (between editor splits, nvim-tree, dbui) - both directions.
+vim.opt.fillchars:append({
+  vert = ' ',
+  horiz = ' ',
+  horizup = ' ',
+  horizdown = ' ',
+  vertleft = ' ',
+  vertright = ' ',
+  verthoriz = ' ',
+})
 vim.api.nvim_create_autocmd('ModeChanged', {
   callback = function()
     local mode = vim.v.event.new_mode
