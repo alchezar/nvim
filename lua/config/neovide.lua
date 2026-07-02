@@ -55,3 +55,6 @@ vim.api.nvim_create_autocmd({ "ColorScheme" }, {
 })
 apply_neovide_theme()
 update_cursor_color()
+
+-- Kill cursorline ghost bands left by Neovide's smooth (touchpad) scroll in tree/blame windows.
+require("config.utils").dim_cursorline_while_scrolling()

@@ -837,4 +837,39 @@ function M.github_menu()
   end)
 end
 
+-- Neovide smears cursorline into ghost bands during smooth (touchpad) scroll. Hide cursorline
+-- in any window while it is actively scrolling and restore it once scrolling settles; windows
+-- without cursorline (normal buffers) are left untouched. Terminal Vim redraws cleanly.
+function M.dim_cursorline_while_scrolling()
+  local timers = {} -- winid -> reused uv debounce timer
+  local hidden = {} -- winid -> true while we have hidden its cursorline
+  vim.api.nvim_create_autocmd('WinScrolled', {
+    callback = function()
+      for id in pairs(vim.v.event) do
+        local win = tonumber(id) -- keys are window ids (+ 'all', which tonumber drops)
+        if win and vim.api.nvim_win_is_valid(win) and (hidden[win] or vim.wo[win].cursorline) then
+          vim.wo[win].cursorline = false
+          hidden[win] = true
+          timers[win] = timers[win] or vim.uv.new_timer()
+          timers[win]:stop()
+          timers[win]:start(180, 0, vim.schedule_wrap(function()
+            hidden[win] = nil
+            if vim.api.nvim_win_is_valid(win) then vim.wo[win].cursorline = true end
+          end))
+        end
+      end
+    end,
+  })
+  vim.api.nvim_create_autocmd('WinClosed', {
+    callback = function(args)
+      local win = tonumber(args.match)
+      if win and timers[win] then
+        timers[win]:stop()
+        timers[win]:close()
+        timers[win], hidden[win] = nil, nil
+      end
+    end,
+  })
+end
+
 return M
