@@ -891,4 +891,85 @@ function M.dim_cursorline_while_scrolling()
   })
 end
 
+-- git-diff tint for buffer names in the buffers picker: modified=blue, added=green,
+-- untracked=red - same overlay as the feature tree. Re-applied on ColorScheme.
+local BUF_GIT_HL = {
+  dirty = 'TelescopeBufferGitDirty',
+  new = 'TelescopeBufferGitNew',
+  untracked = 'TelescopeBufferGitUntracked',
+}
+local function apply_buffer_git_hl()
+  vim.api.nvim_set_hl(0, 'TelescopeBufferGitDirty', { fg = colors.blue })
+  vim.api.nvim_set_hl(0, 'TelescopeBufferGitNew', { fg = colors.green })
+  vim.api.nvim_set_hl(0, 'TelescopeBufferGitUntracked', { fg = colors.red })
+end
+vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_buffer_git_hl })
+apply_buffer_git_hl()
+
+-- Working-tree state ('dirty'|'new'|'untracked') per absolute path, from the cwd repo.
+local function buffer_git_status()
+  local dotgit = vim.fs.find('.git', { path = vim.uv.cwd(), upward = true })[1]
+  local root = dotgit and vim.fs.dirname(dotgit)
+  if not root then return {} end
+  local out = vim.fn.systemlist({ 'git', '-C', root, 'status', '--porcelain', '--no-renames' })
+  if vim.v.shell_error ~= 0 then return {} end
+  local map = {}
+  for _, line in ipairs(out) do
+    local code, rel = line:sub(1, 2), line:sub(4)
+    local st = code == '??' and 'untracked'
+        or (code:find('A') and 'new')
+        or (code:find('[MDC]') and 'dirty')
+        or nil
+    if st then map[vim.fs.normalize(root .. '/' .. rel)] = st end
+  end
+  return map
+end
+
+-- builtin.buffers with each file name tinted by its git-diff state. Wraps the stock
+-- entry_maker so the bufnr/flags/icon/path layout stays identical; only touched files recolor.
+function M.buffers(opts)
+  opts = opts or {}
+  local telutils = require('telescope.utils')
+  local strings = require('plenary.strings')
+  local status = buffer_git_status()
+  local icon_width = strings.strdisplaywidth((telutils.get_devicons('fname', opts.disable_devicons)))
+  -- builtin.buffers merges pickers config into a *new* opts table before setting bufnr_width;
+  -- our entry_maker closes over this one, so seed the width here or the displayer gets nil.
+  local cur = vim.api.nvim_get_current_buf()
+  local max_bufnr = 1
+  for _, b in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.fn.buflisted(b) == 1 and not (opts.ignore_current_buffer and b == cur) then
+      max_bufnr = math.max(max_bufnr, b)
+    end
+  end
+  opts.bufnr_width = opts.bufnr_width or #tostring(max_bufnr)
+  local displayer -- built lazily on the first colored entry, once bufnr_width is known
+  local default
+  opts.entry_maker = function(element)
+    default = default or require('telescope.make_entry').gen_from_buffer(opts)
+    local entry = default(element)
+    if not entry then return entry end
+    local st = entry.path and status[vim.fs.normalize(entry.path)]
+    if not st then return entry end -- unchanged files keep the stock display
+    displayer = displayer or require('telescope.pickers.entry_display').create({
+      separator = ' ',
+      items = { { width = opts.bufnr_width }, { width = 4 }, { width = icon_width }, { remaining = true } },
+    })
+    entry.display = function(e)
+      opts.__prefix = opts.bufnr_width + 4 + icon_width + 3 + 1 + #tostring(e.lnum)
+      local name = telutils.transform_path(opts, e.filename)
+      if not opts.disable_coordinates then name = name .. ':' .. e.lnum end
+      local icon, icon_hl = telutils.get_devicons(e.filename, opts.disable_devicons)
+      return displayer({
+        { e.bufnr,     'TelescopeResultsNumber' },
+        { e.indicator, 'TelescopeResultsComment' },
+        { icon,        icon_hl },
+        { name,        BUF_GIT_HL[st] },
+      })
+    end
+    return entry
+  end
+  require('telescope.builtin').buffers(opts)
+end
+
 return M

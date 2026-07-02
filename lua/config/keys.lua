@@ -59,7 +59,7 @@ map('n', '<leader>rB', '<cmd>RustLsp reloadWorkspace<cr>', { desc = 'Reload rust
 -- Telescope
 map('n', '<Tab>', '<C-^>', { desc = 'Switch to alternate file' })
 map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })
-map('n', '<D-e>', function() builtin.buffers({ sort_mru = true, ignore_current_buffer = true }) end,
+map('n', '<D-e>', function() utils.buffers({ sort_mru = true, ignore_current_buffer = true }) end,
   { desc = 'Open buffers (MRU)' })
 map('n', '<C-p>', builtin.find_files, { desc = 'Find files' })
 map('n', '<leader>ff', builtin.find_files, { desc = 'Find files (fuzzy)' })
