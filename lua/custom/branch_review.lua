@@ -117,6 +117,8 @@ local function repaint_all()
       paint(buf)
     end
   end
+  -- Let other panels (feature_tree) recolor to the new review state.
+  vim.api.nvim_exec_autocmds('User', { pattern = 'BranchReviewChanged', modeline = false })
 end
 
 -- Re-apply on every tree render so the marks survive reloads.

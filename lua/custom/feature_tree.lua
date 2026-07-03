@@ -46,6 +46,9 @@ local function apply_hl()
   vim.api.nvim_set_hl(0, 'FeatureTreeGitNew', { fg = theme.green })
   vim.api.nvim_set_hl(0, 'FeatureTreeGitUntracked', { fg = theme.red })
   vim.api.nvim_set_hl(0, 'FeatureTreeGitRenamed', { fg = theme.yellow })
+  -- Branch-review overlay, matching the real tree's BranchReviewFile/Folder.
+  vim.api.nvim_set_hl(0, 'FeatureTreeReviewFile', { fg = theme.purple, bold = true })
+  vim.api.nvim_set_hl(0, 'FeatureTreeReviewFolder', { fg = theme.purple })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_hl })
 apply_hl()
@@ -242,9 +245,34 @@ local function node_git(node, status)
   return best
 end
 
+-- Branch-review state (custom/branch_review), or nil when the module is absent or review is off.
+-- Loaded lazily on first paint so feature_tree doesn't force it at startup. Its `changed` set is
+-- keyed by the same absolute paths as git_status, so f.path lookups match directly.
+local review_mod
+local function get_review()
+  if review_mod == nil then
+    local ok, m = pcall(require, 'custom.branch_review')
+    review_mod = ok and m or false
+  end
+  return review_mod or nil
+end
+
+-- Any file under this node changed since the review base?
+local function node_reviewed(node, changed)
+  for _, f in ipairs(node.files) do
+    if changed[f.path] then return true end
+  end
+  for _, child in pairs(node.children) do
+    if node_reviewed(child, changed) then return true end
+  end
+  return false
+end
+
 -- Trie -> buffer lines + per-line meta. No crate header: it's already in the statusline path.
 local function render(root, status)
   local lines, hls, meta = {}, {}, {} -- meta: 1-indexed line -> node
+  local review = get_review()
+  if review and not review.active then review = nil end -- overlay only while review is on
 
   -- One node row + its files. label = bare name (nested) or full key (flat). Caller recurses.
   local function emit_line(node, depth, label)
@@ -261,7 +289,8 @@ local function render(root, status)
       line = ln - 1,
       col = name_col,
       len = #label,
-      hl = GIT_HL[node_git(node, status)] or 'FeatureTreeFolderName'
+      hl = (review and node_reviewed(node, review.changed) and 'FeatureTreeReviewFolder')
+          or GIT_HL[node_git(node, status)] or 'FeatureTreeFolderName'
     }
     meta[ln] = { kind = 'node', key = node.key }
     if not open then return end
@@ -284,7 +313,8 @@ local function render(root, status)
         line = fln - 1,
         col = find + #icon_prefix,
         len = #text,
-        hl = GIT_HL[status[f.path]] or 'FeatureTreeFile'
+        hl = (review and review.changed[f.path] and 'FeatureTreeReviewFile')
+            or GIT_HL[status[f.path]] or 'FeatureTreeFile'
       }
       meta[fln] = { kind = 'file', path = f.path, node = node.key }
     end
@@ -551,6 +581,12 @@ local function follow(bufnr)
 end
 
 vim.api.nvim_create_autocmd('BufEnter', { callback = function(args) follow(args.buf) end })
+
+-- Branch review toggled on/off: recolor the panel to match the real tree (no structure change).
+vim.api.nvim_create_autocmd('User', {
+  pattern = 'BranchReviewChanged',
+  callback = function() if active then repaint(active) end end,
+})
 
 -- git status is a snapshot; refresh it on save/external-edit/commit while the panel is open.
 local function status_changed(a, b)
