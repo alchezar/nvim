@@ -45,13 +45,19 @@ local function apply_hl()
   vim.api.nvim_set_hl(0, 'FeatureTreeGitDirty', { fg = theme.blue })
   vim.api.nvim_set_hl(0, 'FeatureTreeGitNew', { fg = theme.green })
   vim.api.nvim_set_hl(0, 'FeatureTreeGitUntracked', { fg = theme.red })
+  vim.api.nvim_set_hl(0, 'FeatureTreeGitRenamed', { fg = theme.yellow })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_hl })
 apply_hl()
 
--- A folder's aggregate takes the highest priority among its files (untracked > new > dirty).
-local GIT_HL = { dirty = 'FeatureTreeGitDirty', new = 'FeatureTreeGitNew', untracked = 'FeatureTreeGitUntracked' }
-local GIT_PRIORITY = { untracked = 3, new = 2, dirty = 1 }
+-- A folder's aggregate takes the highest priority among its files (untracked > new > renamed > dirty).
+local GIT_HL = {
+  dirty = 'FeatureTreeGitDirty',
+  new = 'FeatureTreeGitNew',
+  untracked = 'FeatureTreeGitUntracked',
+  renamed = 'FeatureTreeGitRenamed',
+}
+local GIT_PRIORITY = { untracked = 4, new = 3, renamed = 2, dirty = 1 }
 
 M.collapsed = {} -- node key -> true; folded state persists across reopens
 local active     -- open panel's state, for the follow/refresh autocmds; nil when closed
@@ -69,17 +75,22 @@ local function crate_src(bufnr)
   return src, vim.fs.basename(dir)
 end
 
--- Per-file git state ('dirty'|'new'|'untracked') for the color overlay.
+-- Per-file git state ('dirty'|'new'|'untracked'|'renamed') for the color overlay. Renames are
+-- detected (like nvim-tree) and keyed at the new path, so a moved file gets its own color instead
+-- of a spurious green 'new' from the added half of a delete+add pair.
 local function git_status(src)
   local dotgit = vim.fs.find('.git', { path = src, upward = true })[1]
   local root = dotgit and vim.fs.dirname(dotgit)
   if not root then return {} end
-  local out = vim.fn.systemlist({ 'git', '-C', root, 'status', '--porcelain', '--no-renames' })
+  local out = vim.fn.systemlist({ 'git', '-C', root, 'status', '--porcelain' })
   if vim.v.shell_error ~= 0 then return {} end
   local map = {}
   for _, line in ipairs(out) do
     local code, rel = line:sub(1, 2), line:sub(4)
+    local s, e = rel:find(' %-> ') -- rename shows `old -> new`; the file now lives at new
+    if s then rel = rel:sub(e + 1) end
     local st = code == '??' and 'untracked'
+        or (code:find('R') and 'renamed')
         or (code:find('A') and 'new')
         or (code:find('[MDC]') and 'dirty')
         or nil
@@ -422,6 +433,19 @@ local function reveal(state, path)
   return line_of_path(state, path)
 end
 
+-- Fingerprint of the tree's shape (owner keys + file paths), to spot files added/removed/renamed
+-- on disk without diffing node-by-node.
+local function tree_sig(node)
+  local acc = {}
+  local function walk(n)
+    for _, f in ipairs(n.files) do acc[#acc + 1] = (n.key or '') .. '=' .. f.path end
+    for _, c in pairs(n.children) do walk(c) end
+  end
+  walk(node)
+  table.sort(acc)
+  return table.concat(acc, '\n')
+end
+
 -- Toggle a panel split below nvim-tree: real file tree on top, virtual feature tree below.
 function M.open()
   local existing = win_by_ft('FeatureTree')
@@ -469,7 +493,7 @@ function M.open()
   vim.wo[win].winfixheight = true
   vim.wo[win].list = false -- no listchars, like the tree
 
-  local state = { buf = buf, win = win, src = src, root = root, status = git_status(src) }
+  local state = { buf = buf, win = win, src = src, root = root, status = git_status(src), sig = tree_sig(root) }
 
   repaint(state) -- meta ready before `active` is published to follow
   active = state
@@ -509,6 +533,7 @@ local function follow(bufnr)
     local src = crate_src(bufnr)
     if src and src ~= st.src then
       st.src, st.root, st.status = src, build_tree(src), git_status(src)
+      st.sig = tree_sig(st.root)
       repaint(st)
     end
   end
@@ -534,26 +559,41 @@ local function status_changed(a, b)
   return false
 end
 
-local refresh_timer
-local function refresh_status()
+-- Rebuild both structure (files added/removed/renamed) and git colors; repaint only on real change.
+local function refresh()
   local st = active
   if not st or not st.win or not vim.api.nvim_win_is_valid(st.win) then return end
-  local fresh = git_status(st.src)
-  if status_changed(st.status, fresh) then
-    st.status = fresh
+  local root = build_tree(st.src)
+  local sig, status = tree_sig(root), git_status(st.src)
+  if sig ~= st.sig or status_changed(st.status, status) then
+    st.root, st.sig, st.status = root, sig, status
     repaint(st)
   end
 end
 
+local refresh_timer
+local function schedule_refresh()
+  if not active then return end
+  refresh_timer = refresh_timer or vim.uv.new_timer()
+  if not refresh_timer then return end
+  refresh_timer:stop()
+  refresh_timer:start(150, 0, vim.schedule_wrap(refresh))
+end
+
 vim.api.nvim_create_autocmd({ 'BufWritePost', 'FocusGained', 'FileChangedShellPost' }, {
-  callback = function()
-    if not active then return end
-    refresh_timer = refresh_timer or vim.uv.new_timer()
-    if not refresh_timer then return end
-    refresh_timer:stop()
-    refresh_timer:start(150, 0, vim.schedule_wrap(refresh_status))
-  end,
+  callback = schedule_refresh,
 })
+
+-- nvim-tree emits these when it creates/removes/renames on disk (keys a/d/r) and when its
+-- filesystem watcher catches external changes; mirror the change into our tree.
+do
+  local ok_api, tree_api = pcall(require, 'nvim-tree.api')
+  if ok_api then
+    for _, ev in ipairs({ 'FileCreated', 'FileRemoved', 'FolderCreated', 'FolderRemoved', 'NodeRenamed' }) do
+      pcall(function() tree_api.events.subscribe(tree_api.events.Event[ev], schedule_refresh) end)
+    end
+  end
+end
 
 vim.api.nvim_create_user_command('FeatureTree', M.open, { desc = 'Feature view: transpose layer/feature tree' })
 
