@@ -356,6 +356,18 @@ function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end
 
+-- A restarted server's stale diagnostics linger in every OTHER buffer until it re-analyzes; clear
+-- this client's push+pull namespaces (nvim.lsp.<name>.<id>[.<pull>]) across all buffers so phantom
+-- errors vanish everywhere at once, not just the focused file.
+local function reset_client_diagnostics(client_id, client_name)
+  local prefix = ('nvim.lsp.%s.%d'):format(client_name, client_id)
+  for ns_id, ns in pairs(vim.diagnostic.get_namespaces()) do
+    if ns.name and (ns.name == prefix or vim.startswith(ns.name, prefix .. '.')) then
+      vim.diagnostic.reset(ns_id) -- nil bufnr == all buffers
+    end
+  end
+end
+
 -- Stop all LSP clients on the buffer, wait for full exit, then re-fire FileType to re-attach.
 -- With zero clients (server died / buffer detached on return) re-fire FileType to re-attach.
 function M.restart_buf_lsp()
@@ -375,9 +387,9 @@ function M.restart_buf_lsp()
     table.insert(names, c.name)
     table.insert(ids, c.id)
     c:stop()
+    reset_client_diagnostics(c.id, c.name) -- wipe phantom errors in every file, not just this one
   end
   vim.notify('Restarting LSP: ' .. table.concat(names, ', '))
-  vim.diagnostic.reset(nil, bufnr)
 
   local function wait_and_reattach(attempt)
     for _, id in ipairs(ids) do
