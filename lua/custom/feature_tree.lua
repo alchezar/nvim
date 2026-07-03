@@ -13,6 +13,14 @@ local ns = vim.api.nvim_create_namespace('feature_tree')
 -- true: flat rows with full path (templates/day); false: nested folder groups. Reopen to apply.
 local FLAT_LAYOUT = true
 
+-- true: fold a lone single-layer sub-feature (itineraries/duplicate.rs) into its parent as one
+-- file named after the sub-feature (duplicate.rs), instead of a folder of its own. Reopen to apply.
+local INLINE_SINGLETONS = true
+
+-- true: gather top-level lone single-layer features (audit, auth, validators...) into one virtual
+-- `root` folder, each labelled `<layer>/<feature>.rs`, instead of a folder apiece. Reopen to apply.
+local GROUP_ROOT_SINGLETONS = true
+
 -- Match nvim-tree: its expander arrows + our folder icons.
 local ARROW_CLOSED, ARROW_OPEN = '\u{F460}', '\u{F47C}'
 local FOLDER_CLOSED, FOLDER_OPEN = '\u{F024B}', '\u{F0770}'
@@ -130,11 +138,48 @@ local function real_layers(layers)
   return out
 end
 
+-- Fold a lone single-layer sub-feature (itineraries/duplicate.rs) into its parent as one file
+-- labelled `<layer>/<feature>` (api/duplicate), so it shows its layer without earning its own
+-- folder. Multi-layer or non-leaf sub-features keep their node; top-level singles too (root has no
+-- key, grouped later). Leaf-ness is tested before recursing, so a fold never cascades up a chain.
+local function inline_singletons(node)
+  for name, child in pairs(node.children) do
+    if next(child.children) == nil and #child.files == 1 and node.key then
+      local f = child.files[1]
+      node.files[#node.files + 1] = { layer = f.layer, path = f.path, label = f.layer .. '/' .. name }
+      node.children[name] = nil
+    else
+      inline_singletons(child)
+    end
+  end
+end
+
+-- Sorts last (0xFF byte) so the catch-all folder sinks to the tree's bottom; never a real path key.
+local ROOT_GROUP_KEY = '\255root'
+
+-- Gather top-level lone single-layer features (a leaf with one file, directly under root) into one
+-- virtual `root` folder, each file labelled `<layer>/<feature>` so its layer stays visible. Stops
+-- the tree sprouting a folder per orphan. Runs after inline, so parents that absorbed a singleton
+-- now carry >1 file and are correctly left alone.
+local function group_root_singletons(root)
+  local group
+  for name, child in pairs(root.children) do
+    if next(child.children) == nil and #child.files == 1 then
+      -- display: shown in the flat layout instead of key, whose 0xFF sort byte renders as <ff>.
+      group = group or { name = 'root', key = ROOT_GROUP_KEY, display = 'root', files = {}, children = {} }
+      local f = child.files[1]
+      group.files[#group.files + 1] = { layer = f.layer, path = f.path, label = f.layer .. '/' .. name }
+      root.children[name] = nil
+    end
+  end
+  if group then root.children[ROOT_GROUP_KEY] = group end -- added after the loop, not mid-iteration
+end
+
 -- Trie keyed by path within the layer, so per-layer variants of one feature merge into
--- a shared node. A node is { name, key, files = {{layer, path}}, children = { name -> node } }.
+-- a shared node. A node is { name, key, files = {{layer, path, label?}}, children = { name -> node } }.
 local function build_tree(src)
   local layers = real_layers(scan_layers(src))
-  local root = { children = {} }
+  local root = { children = {}, files = {} } -- files=[] keeps the shape uniform for owner_key's walk
   for layer, files in pairs(layers) do
     for key, path in pairs(files) do
       local node, prefix = root, ''
@@ -146,6 +191,8 @@ local function build_tree(src)
       node.files[#node.files + 1] = { layer = layer, path = path }
     end
   end
+  if INLINE_SINGLETONS then inline_singletons(root) end
+  if GROUP_ROOT_SINGLETONS then group_root_singletons(root) end
   return root
 end
 
@@ -210,9 +257,13 @@ local function render(root, status)
 
     local find = ind + 6 -- files indent under the node
     local icon_prefix = FILE_ICON ~= '' and (FILE_ICON .. ICON_PAD) or ''
-    table.sort(node.files, function(a, b) return a.layer < b.layer end)
+    -- Real layer files first (by layer), then folded-in singletons (by name).
+    table.sort(node.files, function(a, b)
+      if (a.label ~= nil) ~= (b.label ~= nil) then return a.label == nil end
+      return (a.label or a.layer) < (b.label or b.layer)
+    end)
     for _, f in ipairs(node.files) do
-      local text = f.layer .. '.rs'
+      local text = (f.label or f.layer) .. '.rs'
       lines[#lines + 1] = (' '):rep(find) .. icon_prefix .. text
       local fln = #lines
       if FILE_ICON ~= '' then
@@ -229,7 +280,7 @@ local function render(root, status)
   end
 
   if FLAT_LAYOUT then
-    for _, node in ipairs(flat_nodes(root)) do emit_line(node, 0, node.key) end
+    for _, node in ipairs(flat_nodes(root)) do emit_line(node, 0, node.display or node.key) end
   else
     local function emit(node, depth)
       emit_line(node, depth, node.name)
@@ -340,14 +391,25 @@ local function line_of_path(state, path)
   end
 end
 
--- Unfold path's ancestors and return its line; repaint only if a fold actually opened. nil
--- when the path isn't a layer file of this crate.
+-- Key of the node whose files include `path` (normalized); nil if no node owns it. Walks the actual
+-- trie, so inlined/grouped files resolve to their real owner rather than their on-disk path.
+local function owner_key(node, path)
+  for _, f in ipairs(node.files) do
+    if vim.fs.normalize(f.path) == path then return node.key end
+  end
+  for _, child in pairs(node.children) do
+    local k = owner_key(child, path)
+    if k then return k end
+  end
+end
+
+-- Unfold the owning node's ancestors and return path's line; repaint only if a fold actually
+-- opened. nil when the path isn't a file of this crate's tree.
 local function reveal(state, path)
-  if path == '' or path:sub(1, #state.src + 1) ~= state.src .. '/' then return end
-  local rel = path:sub(#state.src + 2):match('^[^/]+/(.+%.rs)$')
-  if not rel or rel == 'mod.rs' then return end -- non-layer file, or the layer-root mod.rs
-  -- mod.rs keys to its dir (sync/mod.rs -> `sync`); other files just drop the extension.
-  local key = rel:match('/mod%.rs$') and rel:sub(1, -8) or rel:sub(1, -4)
+  if path == '' then return end
+  path = vim.fs.normalize(path)
+  local key = owner_key(state.root, path)
+  if not key then return end
   local changed, prefix = false, ''
   for comp in key:gmatch('[^/]+') do
     prefix = prefix == '' and comp or (prefix .. '/' .. comp)
