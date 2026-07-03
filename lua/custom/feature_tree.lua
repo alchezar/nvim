@@ -80,13 +80,19 @@ local function git_status(src)
   return map
 end
 
--- Files keyed by path within the layer (no ext); mod.rs is structural, not a feature.
+-- Files keyed by path within the layer (no ext). mod.rs is the dir's own module: it keys to its
+-- containing dir (sync/mod.rs -> `sync`), so a feature dir shows across layers. The layer-root
+-- mod.rs (api/mod.rs, empty prefix) is the layer itself, not a feature - skip it.
 local function scan_layer(dir, prefix, out)
   for name, ty in vim.fs.dir(dir) do
     if ty == 'directory' then
       scan_layer(dir .. '/' .. name, prefix .. name .. '/', out)
-    elseif ty == 'file' and name:match('%.rs$') and name ~= 'mod.rs' then
-      out[prefix .. name:sub(1, -4)] = dir .. '/' .. name
+    elseif ty == 'file' and name:match('%.rs$') then
+      if name == 'mod.rs' then
+        if prefix ~= '' then out[prefix:sub(1, -2)] = dir .. '/' .. name end
+      else
+        out[prefix .. name:sub(1, -4)] = dir .. '/' .. name
+      end
     end
   end
 end
@@ -339,8 +345,9 @@ end
 local function reveal(state, path)
   if path == '' or path:sub(1, #state.src + 1) ~= state.src .. '/' then return end
   local rel = path:sub(#state.src + 2):match('^[^/]+/(.+%.rs)$')
-  local key = rel and rel:sub(1, -4)
-  if not key then return end
+  if not rel or rel == 'mod.rs' then return end -- non-layer file, or the layer-root mod.rs
+  -- mod.rs keys to its dir (sync/mod.rs -> `sync`); other files just drop the extension.
+  local key = rel:match('/mod%.rs$') and rel:sub(1, -8) or rel:sub(1, -4)
   local changed, prefix = false, ''
   for comp in key:gmatch('[^/]+') do
     prefix = prefix == '' and comp or (prefix .. '/' .. comp)
