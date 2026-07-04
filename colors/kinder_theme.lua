@@ -542,6 +542,38 @@ vim.api.nvim_set_hl(0, "GitSignsAdd", { fg = colors.green })
 vim.api.nvim_set_hl(0, "GitSignsChange", { fg = colors.blue })
 vim.api.nvim_set_hl(0, "GitSignsDelete", { fg = colors.red })
 
+-- ZSH (.zshrc uses vim syntax, no treesitter/LSP)
+local zsh_legacy_highlights = {
+	zshComment         = { fg = colors.silver },
+	zshString          = { fg = colors.yellow },
+	zshPOSIXString     = { fg = colors.yellow },
+	zshStringDelimiter = { fg = colors.yellow },
+	zshQuoted          = { fg = colors.purple },
+	zshSubstDelim      = { fg = colors.purple },
+	zshSubstQuoted     = { fg = colors.purple },
+	zshNumber          = { fg = colors.purple },
+	zshKeyword         = { fg = colors.red },
+	zshConditional     = { fg = colors.red },
+	zshException       = { fg = colors.red },
+	zshOptStart        = { fg = colors.red },
+	zshTypes           = { fg = colors.red },
+	zshPrecommand      = { fg = colors.red },
+	zshOperator        = { fg = colors.red },
+	zshRedir           = { fg = colors.red },
+	zshCommands        = { fg = colors.emerald },
+	zshFunction        = { fg = colors.green },
+	zshKSHFunction     = { fg = colors.green },
+	zshVariableDef     = { fg = colors.lime },
+	zshDeref           = { fg = colors.teal },
+	zshShortDeref      = { fg = colors.orange },
+	zshOption          = { fg = colors.lime },
+	zshBrackets        = { fg = colors.gray },
+	zshParentheses     = { fg = colors.gray },
+}
+for group, color in pairs(zsh_legacy_highlights) do
+	vim.api.nvim_set_hl(0, group, color)
+end
+
 -- ANSI palette for :terminal (used by yazi-in-nvim, etc.).
 vim.g.terminal_color_0  = colors.bg
 vim.g.terminal_color_1  = colors.red
