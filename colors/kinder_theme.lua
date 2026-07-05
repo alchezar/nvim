@@ -65,7 +65,47 @@ vim.api.nvim_set_hl(0, "@punctuation.special", { fg = colors.dark })
 vim.api.nvim_set_hl(0, "@tag.delimiter", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "MarkSignHL", { fg = colors.yellow })
 
--- C / C++ (treesitter + clangd LSP).
+-- Treesitter equivalents
+vim.api.nvim_set_hl(0, "@tag.xml", { fg = colors.red })
+vim.api.nvim_set_hl(0, "@tag.delimiter.xml", { fg = colors.silver })
+vim.api.nvim_set_hl(0, "@tag.attribute.xml", { fg = colors.orange })
+vim.api.nvim_set_hl(0, "@string.xml", { fg = colors.yellow })
+vim.api.nvim_set_hl(0, "@comment.xml", { fg = colors.silver, italic = true })
+
+-- LSP diagnostics
+vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
+vim.api.nvim_set_hl(0, "DiagnosticWarn", { fg = colors.orange })
+vim.api.nvim_set_hl(0, "DiagnosticInfo", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "DiagnosticHint", { fg = colors.gray })
+vim.api.nvim_set_hl(0, "DiagnosticOk", { fg = colors.green })
+
+-- Telescope borders match yazi's darkgray
+vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopePromptBorder", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopeResultsBorder", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "TelescopePreviewBorder", { fg = colors.dark })
+
+-- nvim-tree folders
+vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = colors.gray })
+vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.gray, bold = true })
+vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName", { fg = colors.gray })
+vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "NvimTreeRootFolder", { fg = colors.blue, bold = true })
+
+-- nvim-tree git status on file names
+vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL", { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL", { fg = colors.red })
+vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL", { fg = colors.cyan })
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL", { fg = colors.red })
+vim.api.nvim_set_hl(0, "NvimTreeGitFolderStagedHL", { fg = colors.blue })
+
+-- gitsigns sign column
+vim.api.nvim_set_hl(0, "GitSignsAdd", { fg = colors.green })
+vim.api.nvim_set_hl(0, "GitSignsChange", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "GitSignsDelete", { fg = colors.red })
+
+-- C++ -------------------------------------------------------------------------
 local function cpp_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]                  = { fg = colors.red },
@@ -162,25 +202,7 @@ for _, lang in ipairs({ "cpp", "c" }) do
 	end
 end
 
--- JSON
-vim.api.nvim_set_hl(0, "jsonBoolean", { fg = colors.red })
-vim.api.nvim_set_hl(0, "jsonEscape", { fg = colors.purple })
-vim.api.nvim_set_hl(0, "jsonKeyword", { fg = colors.green })
-vim.api.nvim_set_hl(0, "jsonString", { fg = colors.yellow })
-
--- YAML
-vim.api.nvim_set_hl(0, "yamlBool", { fg = colors.red })
-vim.api.nvim_set_hl(0, "yamlBlockMappingKey", { fg = colors.green })
-vim.api.nvim_set_hl(0, "yamlPlainScalar", { fg = colors.blue })
-vim.api.nvim_set_hl(0, "yamlFlowString", { fg = colors.yellow })
-vim.api.nvim_set_hl(0, "yamlInteger", { fg = colors.purple })
-
--- MAKE
-vim.api.nvim_set_hl(0, "makeCommands", { fg = colors.red })
-vim.api.nvim_set_hl(0, "makeCmdNextLine", { fg = colors.dark })
-vim.api.nvim_set_hl(0, "makeNextLine", { fg = colors.dark })
-
--- RUST (treesitter + rust-analyzer LSP).
+-- RUST ------------------------------------------------------------------------
 local rust_legacy_highlights = {
 	rustStorage       = { fg = colors.red },
 	rustMacro         = { fg = colors.red },
@@ -279,7 +301,7 @@ for _, lang in ipairs({ "rust" }) do
 	end
 end
 
--- TS / JS / TSX (treesitter + LSP).
+-- TS / JS / TSX ---------------------------------------------------------------
 local function ts_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]               = { fg = colors.red },
@@ -367,7 +389,7 @@ for _, lang in ipairs({ "typescript", "typescriptreact", "javascript", "javascri
 	end
 end
 
--- SQL (sqlx::query! injections and standalone .sql).
+-- SQL -------------------------------------------------------------------------
 local function sql_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]               = { fg = colors.red },
@@ -399,10 +421,7 @@ for _, lang in ipairs({ "sql" }) do
 	end
 end
 
--- LUA.
-vim.api.nvim_set_hl(0, "@function.builtin.lua", { fg = colors.emerald })
-
--- PYTHON (treesitter + pyright LSP).
+-- PYTHON ----------------------------------------------------------------------
 local function python_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]               = { fg = colors.red },
@@ -482,7 +501,73 @@ for _, lang in ipairs({ "python" }) do
 	end
 end
 
--- XML: default syntax links tags to Function (everything green); split by role.
+-- LUA -------------------------------------------------------------------------
+vim.api.nvim_set_hl(0, "@function.builtin.lua", { fg = colors.emerald })
+
+-- MAKE ------------------------------------------------------------------------
+vim.api.nvim_set_hl(0, "makeCommands", { fg = colors.red })
+vim.api.nvim_set_hl(0, "makeCmdNextLine", { fg = colors.dark })
+vim.api.nvim_set_hl(0, "makeNextLine", { fg = colors.dark })
+
+-- JSON ------------------------------------------------------------------------
+local function json_treesitter_highlights(lang)
+	return {
+		["@property." .. lang]              = { fg = colors.green },
+		["@string." .. lang]                = { fg = colors.yellow },
+		["@string.escape." .. lang]         = { fg = colors.purple },
+		["@number." .. lang]                = { fg = colors.purple },
+		["@number.float." .. lang]          = { fg = colors.purple },
+		["@boolean." .. lang]               = { fg = colors.purple },
+		["@constant.builtin." .. lang]      = { fg = colors.pink },
+		["@punctuation.bracket." .. lang]   = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang] = { fg = colors.gray },
+		["@comment." .. lang]               = { fg = colors.silver },
+	}
+end
+
+for _, lang in ipairs({ "json", "jsonc", "json5" }) do
+	for group, color in pairs(json_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+-- JSON regex-syntax fallback, used until the json parser is installed.
+vim.api.nvim_set_hl(0, "jsonBoolean", { fg = colors.purple })
+vim.api.nvim_set_hl(0, "jsonEscape", { fg = colors.purple })
+vim.api.nvim_set_hl(0, "jsonKeyword", { fg = colors.green })
+vim.api.nvim_set_hl(0, "jsonString", { fg = colors.yellow })
+
+-- TOML ------------------------------------------------------------------------
+local function toml_treesitter_highlights(lang)
+	return {
+		["@property." .. lang]              = { fg = colors.green },
+		["@string." .. lang]                = { fg = colors.yellow },
+		["@string.escape." .. lang]         = { fg = colors.purple },
+		["@string.special." .. lang]        = { fg = colors.purple },
+		["@number." .. lang]                = { fg = colors.purple },
+		["@number.float." .. lang]          = { fg = colors.purple },
+		["@boolean." .. lang]               = { fg = colors.purple },
+		["@operator." .. lang]              = { fg = colors.red },
+		["@punctuation.bracket." .. lang]   = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang] = { fg = colors.gray },
+		["@comment." .. lang]               = { fg = colors.silver },
+	}
+end
+
+for _, lang in ipairs({ "toml" }) do
+	for group, color in pairs(toml_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+-- YAML ------------------------------------------------------------------------
+vim.api.nvim_set_hl(0, "yamlBool", { fg = colors.red })
+vim.api.nvim_set_hl(0, "yamlBlockMappingKey", { fg = colors.green })
+vim.api.nvim_set_hl(0, "yamlPlainScalar", { fg = colors.blue })
+vim.api.nvim_set_hl(0, "yamlFlowString", { fg = colors.yellow })
+vim.api.nvim_set_hl(0, "yamlInteger", { fg = colors.purple })
+
+-- XML -------------------------------------------------------------------------
 vim.api.nvim_set_hl(0, "xmlTag", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "xmlEndTag", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "xmlTagName", { fg = colors.red })
@@ -502,47 +587,7 @@ vim.api.nvim_set_hl(0, "xmlCdataEnd", { fg = colors.silver })
 vim.api.nvim_set_hl(0, "xmlDocType", { fg = colors.purple })
 vim.api.nvim_set_hl(0, "xmlDocTypeKeyword", { fg = colors.red })
 
--- Treesitter equivalents (tree-sitter-xml uses @tag.* / @string).
-vim.api.nvim_set_hl(0, "@tag.xml", { fg = colors.red })
-vim.api.nvim_set_hl(0, "@tag.delimiter.xml", { fg = colors.silver })
-vim.api.nvim_set_hl(0, "@tag.attribute.xml", { fg = colors.orange })
-vim.api.nvim_set_hl(0, "@string.xml", { fg = colors.yellow })
-vim.api.nvim_set_hl(0, "@comment.xml", { fg = colors.silver, italic = true })
-
--- LSP diagnostics.
-vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
-vim.api.nvim_set_hl(0, "DiagnosticWarn", { fg = colors.orange })
-vim.api.nvim_set_hl(0, "DiagnosticInfo", { fg = colors.blue })
-vim.api.nvim_set_hl(0, "DiagnosticHint", { fg = colors.gray })
-vim.api.nvim_set_hl(0, "DiagnosticOk", { fg = colors.green })
-
--- Telescope borders match yazi's darkgray.
-vim.api.nvim_set_hl(0, "TelescopeBorder", { fg = colors.dark })
-vim.api.nvim_set_hl(0, "TelescopePromptBorder", { fg = colors.dark })
-vim.api.nvim_set_hl(0, "TelescopeResultsBorder", { fg = colors.dark })
-vim.api.nvim_set_hl(0, "TelescopePreviewBorder", { fg = colors.dark })
-
--- nvim-tree folders.
-vim.api.nvim_set_hl(0, "NvimTreeFolderName", { fg = colors.gray })
-vim.api.nvim_set_hl(0, "NvimTreeOpenedFolderName", { fg = colors.gray, bold = true })
-vim.api.nvim_set_hl(0, "NvimTreeEmptyFolderName", { fg = colors.gray })
-vim.api.nvim_set_hl(0, "NvimTreeFolderIcon", { fg = colors.blue })
-vim.api.nvim_set_hl(0, "NvimTreeRootFolder", { fg = colors.blue, bold = true })
-
--- nvim-tree git status on file names.
-vim.api.nvim_set_hl(0, "NvimTreeGitFileDirtyHL", { fg = colors.cyan })
-vim.api.nvim_set_hl(0, "NvimTreeGitFileNewHL", { fg = colors.red })
-vim.api.nvim_set_hl(0, "NvimTreeGitFileStagedHL", { fg = colors.blue })
-vim.api.nvim_set_hl(0, "NvimTreeGitFolderDirtyHL", { fg = colors.cyan })
-vim.api.nvim_set_hl(0, "NvimTreeGitFolderNewHL", { fg = colors.red })
-vim.api.nvim_set_hl(0, "NvimTreeGitFolderStagedHL", { fg = colors.blue })
-
--- gitsigns sign column (also reused by nvim-scrollbar).
-vim.api.nvim_set_hl(0, "GitSignsAdd", { fg = colors.green })
-vim.api.nvim_set_hl(0, "GitSignsChange", { fg = colors.blue })
-vim.api.nvim_set_hl(0, "GitSignsDelete", { fg = colors.red })
-
--- ZSH (.zshrc uses vim syntax, no treesitter/LSP)
+-- ZSH -------------------------------------------------------------------------
 local zsh_legacy_highlights = {
 	zshComment         = { fg = colors.silver },
 	zshString          = { fg = colors.yellow },
@@ -574,7 +619,7 @@ for group, color in pairs(zsh_legacy_highlights) do
 	vim.api.nvim_set_hl(0, group, color)
 end
 
--- ANSI palette for :terminal (used by yazi-in-nvim, etc.).
+-- ANSI palette for :terminal (used by yazi-in-nvim, etc.) ---------------------
 vim.g.terminal_color_0  = colors.bg
 vim.g.terminal_color_1  = colors.red
 vim.g.terminal_color_2  = colors.green
