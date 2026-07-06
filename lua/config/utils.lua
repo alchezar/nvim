@@ -776,13 +776,19 @@ local function focus_symbol_at_cursor(opts)
   }
 end
 
+-- Struct/enum fields swell the symbol list; hide them by default. Flip to true to show them.
+local SHOW_STRUCT_FIELDS = false
+
 -- File structure (Telescope). Rust only: prefix each symbol with a visibility
 -- marker read off the `pub` keyword on its source line.
 function M.document_symbols()
   local builtin = require('telescope.builtin')
   local bufnr = vim.api.nvim_get_current_buf()
+  -- nil key = no filter; icon-prefixed kind name matches how lsp_icons patched it.
+  local ignore_symbols = SHOW_STRUCT_FIELDS and nil
+      or { require('config.lsp_icons').icons.Field .. 'Field' }
   if vim.bo[bufnr].filetype ~= 'rust' then
-    local opts = { previewer = live_buffer_previewer(bufnr) }
+    local opts = { previewer = live_buffer_previewer(bufnr), ignore_symbols = ignore_symbols }
     focus_symbol_at_cursor(opts)
     return builtin.lsp_document_symbols(opts)
   end
@@ -792,7 +798,7 @@ function M.document_symbols()
     items = { { width = 5, right_justify = true }, { width = 60 }, { width = 2 }, { remaining = true } },
   })
   -- path_display hidden: every symbol lives in this one buffer, so drop the column.
-  local opts = { bufnr = bufnr, path_display = { 'hidden' }, previewer = live_buffer_previewer(bufnr) }
+  local opts = { bufnr = bufnr, path_display = { 'hidden' }, previewer = live_buffer_previewer(bufnr), ignore_symbols = ignore_symbols }
   local default = require('telescope.make_entry').gen_from_lsp_symbols(opts)
   opts.entry_maker = function(line)
     local entry = default(line)
