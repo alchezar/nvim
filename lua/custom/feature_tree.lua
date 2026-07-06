@@ -62,7 +62,7 @@ local GIT_HL = {
 }
 local GIT_PRIORITY = { untracked = 4, new = 3, renamed = 2, dirty = 1 }
 
-M.collapsed = {} -- node key -> true; folded state persists across reopens
+M.collapsed = {} -- node key -> true (folded). Re-seeded on open: clean folders fold, changed stay open.
 local active     -- open panel's state, for the follow/refresh autocmds; nil when closed
 
 -- Nearest crate's src/, walking up to its Cargo.toml.
@@ -243,6 +243,15 @@ local function node_git(node, status)
   for _, f in ipairs(node.files) do bump(status[f.path]) end
   for _, child in pairs(node.children) do bump(node_git(child, status)) end
   return best
+end
+
+-- Seed folds on (re)open: collapse folders whose subtree is git-clean, leave changed ones open, so a
+-- clean diff starts fully folded. Caller resets M.collapsed first; reveals/unfolds then only ever open.
+local function seed_folds(node, status)
+  for _, child in pairs(node.children) do
+    if not node_git(child, status) then M.collapsed[child.key] = true end
+    seed_folds(child, status)
+  end
 end
 
 -- Branch-review state (custom/branch_review), or nil when the module is absent or review is off.
@@ -525,6 +534,8 @@ function M.open()
 
   local state = { buf = buf, win = win, src = src, root = root, status = git_status(src), sig = tree_sig(root) }
 
+  M.collapsed = {} -- fresh window: fold clean folders, keep changed ones open
+  seed_folds(root, state.status)
   repaint(state) -- meta ready before `active` is published to follow
   active = state
   -- Drop the follow reference on any close (buffer is wipe-on-hide).
@@ -564,6 +575,8 @@ local function follow(bufnr)
     if src and src ~= st.src then
       st.src, st.root, st.status = src, build_tree(src), git_status(src)
       st.sig = tree_sig(st.root)
+      M.collapsed = {} -- new crate == new tree: re-seed folds
+      seed_folds(st.root, st.status)
       repaint(st)
     end
   end
