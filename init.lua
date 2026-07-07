@@ -9,6 +9,7 @@ require("plugins.telescope_setup")        -- Fuzzy finder
 require("plugins.lsp")                    -- Language servers + LSP keymaps
 require("plugins.completion_setup")       -- Autocompletion engine
 require("plugins.treesitter")             -- Syntax parsing and highlighting
+require("plugins.plpgsql_highlight")      -- Lexical fallback highlight inside $$...$$ bodies
 require("plugins.debugging")              -- DAP debug adapters + UI
 require("plugins.formatting")             -- Format-on-save (conform)
 require("plugins.translate_setup")        -- Translate text in the buffer
