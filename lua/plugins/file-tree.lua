@@ -52,6 +52,8 @@ require('nvim-tree').setup({
     local api = require('nvim-tree.api')
     api.config.mappings.default_on_attach(bufnr)
     vim.keymap.set('n', 's', '<Plug>(easymotion-s2)', { buffer = bufnr, desc = 'EasyMotion 2-char search' })
+    -- Match `gh`-on-code: hover the file's //! module doc in a float.
+    vim.keymap.set('n', 'gh', require('config.utils').tree_module_doc, { buffer = bufnr, desc = 'Module //! doc' })
   end,
   -- Tree follows the global cwd (set to the project root by auto_cd_to_project_root).
   -- Re-roots on a real project change; within a project getcwd == root so focus never reloads.

@@ -417,6 +417,12 @@ local function toggle_fold(state)
   repaint(state)
 end
 
+-- Hover the file-under-cursor's //! module doc in a float, like `gh` on code / in nvim-tree.
+local function module_doc(state)
+  local node = state.meta[vim.api.nvim_win_get_cursor(state.win)[1]]
+  if node and node.kind == 'file' then require('config.utils').module_doc_float(node.path) end
+end
+
 -- Every node key in the trie, for fold-all / unfold-all.
 local function all_keys(node, acc)
   for _, child in pairs(node.children) do
@@ -555,6 +561,7 @@ function M.open()
   kmap('<CR>', function() open_file(state) end)
   kmap('o', function() open_file(state) end)
   kmap('<2-LeftMouse>', function() open_file(state) end) -- double-click opens, like the tree
+  kmap('gh', function() module_doc(state) end)
   kmap('<Tab>', function() toggle_fold(state) end)
   kmap('za', function() toggle_fold(state) end)
   kmap('zM', function() set_all_folds(state, true) end)

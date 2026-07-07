@@ -252,6 +252,44 @@ function M.hover()
   end
 end
 
+-- Preview a Rust file's leading `//!` module doc in a hover float (like `gh` on code).
+-- Shared by nvim-tree and the feature-tree panel, so it takes a plain path.
+function M.module_doc_float(path)
+  local read_ok, file_lines = pcall(vim.fn.readfile, path, '', 100)
+  if not read_ok then return end
+
+  -- Collect the leading `//!` block, allowing blanks / attributes / other comments before it.
+  local doc, started = {}, false
+  for _, line in ipairs(file_lines) do
+    local trimmed = vim.trim(line)
+    local content = trimmed:match('^//!(.*)')
+    if content then
+      started = true
+      table.insert(doc, (content:gsub('^ ', '')))
+    elseif started or not (trimmed == '' or trimmed:match('^#!') or trimmed:match('^//')) then
+      break
+    end
+  end
+
+  if #doc == 0 then
+    vim.notify('No //! module doc in ' .. vim.fn.fnamemodify(path, ':t'), vim.log.levels.INFO)
+    return
+  end
+  vim.lsp.util.open_floating_preview(doc, 'markdown', {
+    border = 'rounded',
+    max_width = 80,
+    focus_id = 'kinder-tree-doc',
+  })
+end
+
+-- nvim-tree `gh`: hover the //! doc of the file under the cursor.
+function M.tree_module_doc()
+  local ok, api = pcall(require, 'nvim-tree.api')
+  if not ok then return end
+  local node = api.tree.get_node_under_cursor()
+  if node and node.type == 'file' and node.absolute_path then M.module_doc_float(node.absolute_path) end
+end
+
 -- Jump to the trait method backing the symbol under cursor.
 -- Plain LSP defn/decl misbehaves (inherent impls shadow, #[async_trait] -> ~/.cargo/registry).
 function M.go_to_interface()

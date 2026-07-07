@@ -10,12 +10,12 @@ local ns = vim.api.nvim_create_namespace('plpgsql_lexical')
 local PRIO = (vim.hl and vim.hl.priorities.treesitter or 100) - 10
 
 -- Custom groups: grey variables (built-in @variable is near-white), cyan types (match
--- @type.builtin.sql), orange parameters, emerald $$ delimiters.
+-- @type.builtin.sql), orange parameters, teal $$ delimiters.
 local function set_hl()
   vim.api.nvim_set_hl(0, 'PlpgsqlVariable', { fg = theme.gray })
   vim.api.nvim_set_hl(0, 'PlpgsqlType', { fg = theme.cyan })
   vim.api.nvim_set_hl(0, 'PlpgsqlParam', { fg = theme.orange })
-  vim.api.nvim_set_hl(0, 'PlpgsqlDelim', { fg = theme.emerald })
+  vim.api.nvim_set_hl(0, 'PlpgsqlDelim', { fg = theme.teal })
 end
 set_hl()
 vim.api.nvim_create_autocmd('ColorScheme', { callback = set_hl })
