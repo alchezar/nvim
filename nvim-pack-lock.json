@@ -85,11 +85,11 @@
       "src": "https://github.com/chentoast/marks.nvim"
     },
     "markview.nvim": {
-      "rev": "a2a07154b495367e4d609dd83c73120f1d058c75",
+      "rev": "092c0872fd2437b3b862d253910981142d2465aa",
       "src": "https://github.com/OXY2DEV/markview.nvim"
     },
     "mini.icons": {
-      "rev": "24dbea2195c477e57d581215839a6ab915f34b14",
+      "rev": "98faae31e9be1cc054ae63485e58ceb185efcad0",
       "src": "https://github.com/echasnovski/mini.icons"
     },
     "noice.nvim": {
@@ -141,7 +141,7 @@
       "src": "https://github.com/petertriho/nvim-scrollbar"
     },
     "nvim-tree.lua": {
-      "rev": "7ff7040bf6c246671eb55cb1727de4fd9f92a106",
+      "rev": "35d3511e7ad4cbfa44c78c406db663b6e2a07c0d",
       "src": "https://github.com/nvim-tree/nvim-tree.lua"
     },
     "nvim-treesitter": {
@@ -161,7 +161,7 @@
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "24958d97c0e2393339e59404ebe7ee687951ea24",
+      "rev": "eb0c154504e9db6f7564cd2f06c5b7d6e01c71ff",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "snacks.nvim": {

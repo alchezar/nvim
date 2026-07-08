@@ -836,7 +836,13 @@ function M.document_symbols()
     items = { { width = 5, right_justify = true }, { width = 60 }, { width = 2 }, { remaining = true } },
   })
   -- path_display hidden: every symbol lives in this one buffer, so drop the column.
-  local opts = { bufnr = bufnr, path_display = { 'hidden' }, previewer = live_buffer_previewer(bufnr), ignore_symbols = ignore_symbols }
+  local opts = {
+    bufnr = bufnr,
+    path_display = { 'hidden' },
+    previewer = live_buffer_previewer(bufnr),
+    ignore_symbols =
+        ignore_symbols
+  }
   local default = require('telescope.make_entry').gen_from_lsp_symbols(opts)
   opts.entry_maker = function(line)
     local entry = default(line)

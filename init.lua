@@ -19,7 +19,7 @@ require('Comment').setup()                -- gc/gcc comment toggling
 require('gitsigns').setup()               -- Git change signs in the gutter
 require('plugins.todo_comments_setup')    -- Highlight TODO/NOTE; tag colors from palette
 require('trouble').setup()                -- Diagnostics/quickfix list UI
-require('plugins.fidget_setup')           -- LSP progress spinner
+require('custom.neovide_lsp_progress')    -- Neovide only: LSP progress -> top bar
 require('plugins.file-tree')              -- File explorer sidebar
 require('config.tree_icons').setup()      -- Custom file-tree icons by filename
 require('plugins.virt_column_setup')      -- Column rulers at 80/100 (visual/insert)
@@ -42,3 +42,7 @@ require('plugins.crates_setup')           -- Cargo.toml crate versions
 require('plugins.hex_setup')              -- Open binaries in xxd hex view
 require('config.filetypes')               -- Custom filetype detection
 require('plugins.easymotion_setup')       -- Jump to motions via labels
+
+if not vim.g.neovide then
+    require('plugins.fidget_setup')       -- fidget: terminal only
+end
