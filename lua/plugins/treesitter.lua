@@ -20,6 +20,9 @@ vim.api.nvim_create_autocmd('BufWinEnter', {
     if vim.w.sqlx_for_match then return end
     vim.w.sqlx_for_match = vim.fn.matchadd('@keyword.sql',
       [[\v(\/\/.*)@<!<FOR\s+(NO\s+KEY\s+UPDATE|KEY\s+SHARE|UPDATE|SHARE)>]])
+    -- `SELECT ... WHERE` without FROM (valid in Postgres) errors the sql grammar,
+    -- so WHERE captures as @variable (white). \C keeps Rust's lowercase `where` intact.
+    vim.fn.matchadd('@keyword.sql', [[\v\C(\/\/.*)@<!<WHERE>]])
     -- `$` sigil: metavariable nodes are atomic, so treesitter paints the whole
     -- `$name` one color (orange). Force just the `$` to teal so it matches the
     -- `$(...)` repetition sigil. Lookahead keeps `$` in strings/prices untouched.
