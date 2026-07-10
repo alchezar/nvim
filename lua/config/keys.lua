@@ -56,6 +56,7 @@ map('n', '<leader>rl', utils.restart_buf_lsp, { desc = 'Restart LSP server (clea
 map('n', '<leader>rb', utils.reload_buf, { desc = 'Reload current buffer (wipe and reopen)' })
 map('n', '<leader>rL', '<cmd>RustAnalyzer restart<cr>', { desc = 'Restart rust-analyzer (whole process)' })
 map('n', '<leader>rB', '<cmd>RustLsp reloadWorkspace<cr>', { desc = 'Reload rust-analyzer workspace' })
+map('n', '<leader>rt', utils.reload_tree_git, { desc = 'Reload nvim-tree git status' })
 -- Telescope
 map('n', '<Tab>', '<C-^>', { desc = 'Switch to alternate file' })
 map('n', '<C-Tab>', builtin.oldfiles, { desc = 'Recent files' })

@@ -472,6 +472,19 @@ function M.reload_buf()
   pcall(vim.api.nvim_win_set_cursor, 0, pos)
 end
 
+-- Force nvim-tree to re-run git status. macOS fsevents can miss the atomic
+-- .git/index rename-replace after external git ops, leaving stale/missing git
+-- highlight in the tree; this re-reads the whole tree and its git state.
+function M.reload_tree_git()
+  local ok, api = pcall(require, 'nvim-tree.api')
+  if not ok then
+    vim.notify('nvim-tree not loaded', vim.log.levels.WARN)
+    return
+  end
+  api.tree.reload()
+  vim.notify('nvim-tree: git status reloaded', vim.log.levels.INFO)
+end
+
 -- Open a path from clipboard. Accepts `path`, `path:line`, `path:line:col`.
 function M.open_clipboard_path()
   local raw = vim.trim(vim.fn.getreg('+'))
