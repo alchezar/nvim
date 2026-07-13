@@ -39,13 +39,15 @@ vim.api.nvim_create_autocmd('ModeChanged', {
   callback = function()
     local mode = vim.v.event.new_mode
     local show_all = mode:match('^[vV\22]') ~= nil or mode:match('^[iR]') ~= nil
+    -- Window-local: listchars is global-local, a global set would leak the
+    -- visual/insert expansion into other windows after picker/window switches.
     if show_all then
       local sw = vim.bo.shiftwidth
       if sw <= 0 then sw = vim.bo.tabstop end
       local lead = '│' .. string.rep('·', math.max(sw - 1, 0))
-      vim.opt.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = lead }
+      vim.opt_local.listchars = { trail = '·', space = '·', tab = '→ ', leadmultispace = lead }
     else
-      vim.opt.listchars = { trail = '·', tab = '  ' }
+      vim.opt_local.listchars = { trail = '·', tab = '  ' }
     end
     local ok, vc = pcall(require, 'virt-column')
     if ok then vc.update({ enabled = show_all }) end

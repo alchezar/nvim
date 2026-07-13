@@ -272,6 +272,7 @@ local function rust_lsp_highlights(lang)
 		["@lsp.type.selfKeyword." .. lang]             = { fg = colors.red },
 		["@lsp.type.selfTypeKeyword." .. lang]         = { fg = colors.red },
 		["@lsp.type.keyword." .. lang]                 = { fg = colors.red },
+		["@lsp.typemod.keyword.attribute." .. lang]    = { fg = colors.dark },
 		["@lsp.type.static." .. lang]                  = { fg = colors.emerald },
 		["@lsp.typemod.static.declaration." .. lang]   = { fg = colors.emerald },
 		["@lsp.typemod.function.static." .. lang]      = { fg = colors.emerald },
