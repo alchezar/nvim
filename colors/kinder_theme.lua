@@ -12,6 +12,11 @@ local colors = require('config.theme_colors')
 vim.api.nvim_set_hl(0, 'StatusLine', { fg = colors.fg, bg = colors.bg })
 vim.api.nvim_set_hl(0, 'CommandLine', { fg = colors.fg, bg = colors.bg })
 
+-- Tab bar: solid bg, otherwise Neovide leaves TabLineFill translucent.
+vim.api.nvim_set_hl(0, 'TabLineFill', { bg = colors.bg })
+vim.api.nvim_set_hl(0, 'TabLine', { bg = colors.bg, fg = colors.silver })
+vim.api.nvim_set_hl(0, 'TabLineSel', { bg = colors.bg, fg = colors.fg, bold = true })
+
 -- Transparent background.
 vim.api.nvim_set_hl(0, "Normal", { bg = "none" })
 vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })

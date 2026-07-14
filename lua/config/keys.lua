@@ -4,7 +4,7 @@ local builtin = require('telescope.builtin')
 local translate = require('plugins.translate_setup')
 local dap = function(action) return function() require('dap')[action]() end end
 
-vim.g.mapleader = ' ';                                                                                                 -- Leader key
+vim.g.mapleader = ' ';
 map('n', 'gq', ':Startify<CR>', { desc = 'Open Startify', silent = true })                                             -- Startify dashboard
 map({ 'n', 'v' }, '<M-S-f>', utils.format, { desc = 'Format buffer' })                                                 -- Format current buffer (Opt+Shift+F)
 map({ 'n', 'x' }, 'Q', 'gq', { desc = 'Format text (wrap at textwidth)' })                                             -- Q -> gq: format / re-wrap text and comments using `textwidth`
@@ -36,6 +36,13 @@ map('n', '<leader>sl',
   [[|%(::)@<!%(use )@<!<%([a-z]\w*::)+[A-Z]\w*[a-z]\w*>]] ..
   [[|\&mut \*\*?\w+<CR>]],
   { desc = 'Search let bindings / qualified types / tx reborrows' })
+-- Swallow Ctrl+S/Ctrl+Q in :terminal so they never reach the pty as XOFF/XON (freezes output)
+map('t', '<C-s>', '<Nop>', { desc = 'Block XOFF (terminal output stop)' })
+map('t', '<C-q>', '<Nop>', { desc = 'Block XON (terminal output resume)' })
+-- Cmd+1..9 jump to tab N (Neovide), like terminal tab switching
+for i = 1, 9 do
+  map('n', '<D-' .. i .. '>', '<Cmd>tabnext ' .. i .. '<CR>', { desc = 'Go to tab ' .. i })
+end
 -- LSP (matching .ideavimrc bindings)
 map('n', 'gd', builtin.lsp_definitions, { desc = 'Go to definition (Telescope)' })
 map('n', 'gD', builtin.lsp_type_definitions, { desc = 'Go to type definition (Telescope)' })
