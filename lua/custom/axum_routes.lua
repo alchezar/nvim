@@ -1,5 +1,6 @@
 -- Telescope picker for axum/utoipa endpoints. A `// METHOD /full/path` comment
 -- above #[utoipa::path(..)] supplies the full URL; bare attrs get (no prefix).
+-- The same comment over a plain fn (no utoipa) also counts - see parse_anchor.
 
 local M            = {}
 
@@ -98,19 +99,35 @@ local function first_kw(l)
   return s:match('^([%w_]+)')
 end
 
--- A banner counts only when a `#[utoipa::path(` attribute sits between it and
--- the item it documents. Scan down through blanks/comments/other attributes
--- (`#[inline]` etc); stop at the first declaration. utoipa first -> handler;
--- a declaration first -> it documents a type/overview, so reject it.
-local function anchor_over_utoipa(file, anchor_lnum)
+-- What a banner sits over: 'utoipa' (attr found first), 'fn' (handler declared
+-- with no utoipa attr), or nil. Scan down through blanks/comments/other
+-- attributes (`#[inline]` etc); stop at the first declaration - anything but a
+-- fn means the banner documents a type/overview, so reject it.
+local function anchor_target(file, anchor_lnum)
   local lines = vim.fn.readfile(file, '', anchor_lnum + 120)
   for i = anchor_lnum + 1, math.min(#lines, anchor_lnum + 120) do
     local l = lines[i]
-    if l:match('^%s*#%[utoipa::path') then return true end
+    if l:match('^%s*#%[utoipa::path') then return 'utoipa' end
     local w = first_kw(l)
-    if w and ITEM_KW[w] then return false end
+    if w and ITEM_KW[w] then return w == 'fn' and 'fn' or nil end
   end
-  return false
+  return nil
+end
+
+-- Pull `METHOD /path` out of a comment. `strict` means the whole comment body
+-- is just that route (bare or in backticks) - prose merely mentioning a route
+-- is not strict, which is what lets a bare fn be trusted without utoipa.
+local function parse_anchor(text)
+  local meth, path
+  for _, mm in ipairs(METHOD_LIST) do
+    local p = text:match(mm .. '%s+`?(/[^`%s),]*)')
+    if p then meth, path = mm, p; break end
+  end
+  if not meth then return nil end
+  local body = text:match('^%s*//+%s*(.-)%s*$') or ''
+  body = body:match('^`(.*)`$') or body
+  local smeth, spath = body:match('^(%u+)%s+(/%S*)$')
+  return meth, path, smeth == meth and spath == path
 end
 
 local function collect_anchored(file)
@@ -126,13 +143,12 @@ local function collect_anchored(file)
     local m = parse_vimgrep(raw)
     -- `//!` lines are module-level endpoint overviews - they duplicate the
     -- per-handler `///` and resolve to the wrong fn, so drop them.
-    if m and not m.text:match('^%s*//!') and anchor_over_utoipa(m.file, m.lnum) then
-      local meth, path
-      for _, mm in ipairs(METHOD_LIST) do
-        local p = m.text:match(mm .. '%s+`?(/[^`%s),]*)')
-        if p then meth, path = mm, p; break end
-      end
-      if meth and path then
+    if m and not m.text:match('^%s*//!') then
+      local meth, path, strict = parse_anchor(m.text)
+      local target = meth and anchor_target(m.file, m.lnum)
+      -- utoipa anchors are cross-checked against the attr in collect_all; over a
+      -- bare fn there is nothing to check against, so demand a strict banner.
+      if target == 'utoipa' or (target == 'fn' and strict) then
         local handler, hlnum, doc = find_handler_after(m.file, m.lnum, 120)
         local key = hlnum and (m.file .. ':' .. hlnum) or (meth .. ' ' .. path)
         if not seen[key] then
@@ -145,6 +161,7 @@ local function collect_anchored(file)
             handler      = handler,
             handler_lnum = hlnum,
             doc          = doc,
+            target       = target,
             kind         = 'anchor',
           })
         end
@@ -218,6 +235,10 @@ local function collect_all(file)
     local epath = e.path:gsub('%?.*$', '')
     if u and u.method == e.method and (u.path == '/' or epath:sub(- #u.path) == u.path) then
       seen[key] = true
+      table.insert(items, e)
+    elseif e.target == 'fn' then
+      -- No utoipa attr on this handler: the strict banner is the only source.
+      if key then seen[key] = true end
       table.insert(items, e)
     end
   end
