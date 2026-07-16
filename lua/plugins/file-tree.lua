@@ -126,6 +126,15 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_tree_hl })
 apply_tree_hl()
 
+-- nvim-tree paints via extmarks, never vim-syntax; a stray syntax (e.g. 'rust'
+-- inherited on buffer reuse) would light up keyword-like names (the `mod` in mod.rs).
+require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
+  local bufnr = payload and payload.bufnr
+  if bufnr and vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].syntax ~= '' then
+    vim.bo[bufnr].syntax = ''
+  end
+end)
+
 -- Annotate mod.rs / README.md with `[parent]`, and `foo.rs` next to `foo/` with `[mod]`.
 local mod_ns = vim.api.nvim_create_namespace('nvim_tree_mod_rs_parent')
 vim.api.nvim_set_hl(0, 'NvimTreeModRsParent', { fg = require('config.theme_colors').silver, bold = true })
