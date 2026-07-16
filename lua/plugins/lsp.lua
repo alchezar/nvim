@@ -266,3 +266,32 @@ vim.diagnostic.config({
   update_in_insert = true,
   float = { border = 'rounded', source = true },
 })
+
+-- Pull diagnostics refresh only on didOpen/didChange, so an edit in one file leaves every other
+-- buffer stale (rust-analyzer sets interFileDependencies). Re-pull on entry to keep them honest.
+local pull_broken = false
+
+local function warn_pull_broken(reason)
+  pull_broken = true
+  vim.schedule(function()
+    vim.notify(
+      ('BufEnter diagnostic pull is dead (%s).\nDiagnostics go stale again - use <leader>rb, and fix lua/plugins/lsp.lua.')
+      :format(reason),
+      vim.log.levels.ERROR
+    )
+  end)
+end
+
+vim.api.nvim_create_autocmd('BufEnter', {
+  callback = function(args)
+    if pull_broken then return end
+    if #vim.lsp.get_clients({ bufnr = args.buf, method = 'textDocument/diagnostic' }) == 0 then return end
+    -- vim.lsp.diagnostic._refresh is private; a nvim upgrade may rename or reshape it.
+    local refresh = vim.lsp.diagnostic._refresh
+    if type(refresh) ~= 'function' then
+      return warn_pull_broken('vim.lsp.diagnostic._refresh is gone')
+    end
+    local ok, err = pcall(refresh, args.buf)
+    if not ok then warn_pull_broken(tostring(err)) end
+  end,
+})
