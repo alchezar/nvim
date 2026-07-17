@@ -827,8 +827,8 @@ local function focus_symbol_at_cursor(opts)
   }
 end
 
--- Struct/enum fields swell the symbol list; hide them by default. Flip to true to show them.
-local SHOW_STRUCT_FIELDS = false
+-- Struct fields and enum variants swell the symbol list; hide them. Flip to true to show them.
+local SHOW_MEMBERS = false
 
 -- File structure (Telescope). Rust only: prefix each symbol with a visibility
 -- marker read off the `pub` keyword on its source line.
@@ -836,8 +836,9 @@ function M.document_symbols()
   local builtin = require('telescope.builtin')
   local bufnr = vim.api.nvim_get_current_buf()
   -- nil key = no filter; icon-prefixed kind name matches how lsp_icons patched it.
-  local ignore_symbols = SHOW_STRUCT_FIELDS and nil
-      or { require('config.lsp_icons').icons.Field .. 'Field' }
+  local icons = require('config.lsp_icons').icons
+  local ignore_symbols = SHOW_MEMBERS and nil
+      or { icons.Field .. 'Field', icons.EnumMember .. 'EnumMember' }
   if vim.bo[bufnr].filetype ~= 'rust' then
     local opts = { previewer = live_buffer_previewer(bufnr), ignore_symbols = ignore_symbols }
     focus_symbol_at_cursor(opts)
