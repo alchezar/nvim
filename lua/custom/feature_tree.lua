@@ -25,6 +25,7 @@ local GROUP_ROOT_SINGLETONS = true
 local ARROW_CLOSED, ARROW_OPEN = '\u{F460}', '\u{F47C}'
 local FOLDER_CLOSED, FOLDER_OPEN = '\u{F024B}', '\u{F0770}'
 local ICON_PAD = '  ' -- match nvim-tree's icon padding
+local SEPARATOR_CHAR = '·' -- dotted rule between the real tree and this panel
 
 -- .rs icon from devicons (same source as the tree); empty if unavailable.
 local FILE_ICON, FILE_ICON_HL = '', 'FeatureTreeFile'
@@ -49,6 +50,8 @@ local function apply_hl()
   -- Branch-review overlay, matching the real tree's BranchReviewFile/Folder.
   vim.api.nvim_set_hl(0, 'FeatureTreeReviewFile', { fg = theme.purple, bold = true })
   vim.api.nvim_set_hl(0, 'FeatureTreeReviewFolder', { fg = theme.purple })
+  -- Dotted rule splitting the panel off the tree; WinSeparator itself is bg-on-bg (invisible).
+  vim.api.nvim_set_hl(0, 'FeatureTreeSeparator', { fg = theme.dark })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_hl })
 apply_hl()
@@ -382,6 +385,18 @@ local function edit_win()
   end
 end
 
+-- The rule between the trees is the hsep *under* the tree window, so it's drawn with the tree's own
+-- fillchars and WinSeparator - not ours. Swap both there while the panel is up, restore on close.
+local function set_separator(tree_win, on)
+  if not (tree_win and vim.api.nvim_win_is_valid(tree_win)) then return end
+  local fc = vim.opt.fillchars:get() -- start from the global blanks, override just horiz
+  fc.horiz = on and SEPARATOR_CHAR or ' '
+  vim.api.nvim_win_call(tree_win, function() vim.opt_local.fillchars = fc end)
+  local wh = vim.wo[tree_win].winhighlight
+  vim.wo[tree_win].winhighlight = wh:gsub('WinSeparator:%w+',
+    'WinSeparator:' .. (on and 'FeatureTreeSeparator' or 'NvimTreeWinSeparator'))
+end
+
 local function close(state)
   if state.win and vim.api.nvim_win_is_valid(state.win) then
     vim.api.nvim_win_close(state.win, true)
@@ -538,17 +553,25 @@ function M.open()
   vim.wo[win].winfixheight = true
   vim.wo[win].list = false -- no listchars, like the tree
 
-  local state = { buf = buf, win = win, src = src, root = root, status = git_status(src), sig = tree_sig(root) }
+  set_separator(tree_win, true)
+
+  local state = {
+    buf = buf, win = win, tree_win = tree_win,
+    src = src, root = root, status = git_status(src), sig = tree_sig(root),
+  }
 
   M.collapsed = {} -- fresh window: fold clean folders, keep changed ones open
   seed_folds(root, state.status)
   repaint(state) -- meta ready before `active` is published to follow
   active = state
-  -- Drop the follow reference on any close (buffer is wipe-on-hide).
+  -- Drop the follow reference on any close (buffer is wipe-on-hide) and un-dot the tree's edge.
   vim.api.nvim_create_autocmd('BufWipeout', {
     buffer = buf,
     once = true,
-    callback = function() if active and active.buf == buf then active = nil end end,
+    callback = function()
+      set_separator(state.tree_win, false)
+      if active and active.buf == buf then active = nil end
+    end,
   })
 
   -- Land on the currently edited file; else the first feature.
