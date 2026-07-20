@@ -51,5 +51,9 @@ u.watch_kbd_layout()
 vim.api.nvim_create_autocmd('VimEnter', {
   callback = function()
     require('langmapper').automapping({ global = true, buffer = true })
+    -- automapping binds о/л to the builtin j/k, dropping the gj/gk maps from
+    -- options.lua; re-point them so wrapped lines walk by screen row here too.
+    vim.keymap.set('n', 'о', 'gj', { desc = 'down by screen line (Ukrainian j key)' })
+    vim.keymap.set('n', 'л', 'gk', { desc = 'up by screen line (Ukrainian k key)' })
   end,
 })

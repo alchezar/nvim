@@ -94,8 +94,9 @@ local pad_ns = vim.api.nvim_create_namespace('kinder_markdown_pad')
 -- No code_span_delimiter: markview already pads inline code back to its raw width.
 local pad_query = '(emphasis_delimiter) @full (backslash_escape) @first'
 
--- Hidden markup shortens a row, knocking raw columns out of line. Conceal it to a space
--- instead: same width, still invisible. Needs 'conceallevel' 2; 3 drops the replacement.
+-- Hidden markup shortens a row, knocking table columns out of line. Conceal it to a
+-- space instead: same width, still invisible. Needs 'conceallevel' 2; 3 drops the
+-- replacement. Only table rows need it - elsewhere the padding is a visible gap.
 local function pad_concealed(buffer, raw)
   vim.api.nvim_buf_clear_namespace(buffer, pad_ns, 0, -1)
 
@@ -113,7 +114,8 @@ local function pad_concealed(buffer, raw)
       -- backslash_escape hides only its leading `\`, the escaped char stays visible.
       if query.captures[id] == 'first' then end_col = col + 1 end
 
-      if row == end_row then
+      local line = vim.api.nvim_buf_get_lines(buffer, row, row + 1, false)[1] or ''
+      if row == end_row and line:match('^%s*|') then
         -- Per char: one extmark conceals its whole range to a single space.
         for c = col, end_col - 1 do
           vim.api.nvim_buf_set_extmark(buffer, pad_ns, row, c, {
@@ -124,6 +126,16 @@ local function pad_concealed(buffer, raw)
     end
   end)
 end
+
+-- Prose wraps at word boundaries, not mid-word, once <M-z> turns 'wrap' on;
+-- breakindent keeps continuation rows under the list item they belong to.
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'markdown',
+  callback = function()
+    vim.opt_local.linebreak = true
+    vim.opt_local.breakindent = true
+  end,
+})
 
 -- Flip the window between rendered and raw. Needed because markview only repaints on
 -- cursor moves in hybrid mode, so 'wrap'/leftcol changes go unnoticed.
@@ -144,10 +156,15 @@ end
 vim.api.nvim_create_autocmd({ 'WinScrolled', 'OptionSet', 'BufWinEnter' }, {
   callback = function(args)
     if args.event == 'OptionSet' and args.match ~= 'wrap' then return end
-    if vim.bo[args.buf].filetype ~= 'markdown' then return end
 
     local win = args.event == 'WinScrolled' and tonumber(args.match) or vim.api.nvim_get_current_win()
+    if not vim.api.nvim_win_is_valid(win) then return end
+    -- Read the buffer off the window: OptionSet reports args.buf as 0, which never
+    -- matches the window's real buffer and made sync_raw bail out on every toggle.
+    local buf = vim.api.nvim_win_get_buf(win)
+    if vim.bo[buf].filetype ~= 'markdown' then return end
+
     -- Deferred: markview sets conceallevel on attach, and rendering inside the scroll does nothing.
-    vim.schedule(function() sync_raw(win, args.buf) end)
+    vim.schedule(function() sync_raw(win, buf) end)
   end,
 })
