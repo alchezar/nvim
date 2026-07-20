@@ -732,12 +732,19 @@ local SYMBOL_KIND_COLORS = {
   Namespace = 'dark',
   Package = 'dark',
 }
+-- Markdown outline: H1..H6 in the colors markview paints them (plugins/markdown.lua).
+local HEADING_COLORS = { 'red', 'orange', 'yellow', 'green', 'blue', 'purple' }
+
 local function set_symbol_hl()
   vim.api.nvim_set_hl(0, 'TelescopeSymbolPublic', { fg = colors.green })
   vim.api.nvim_set_hl(0, 'TelescopeSymbolPrivate', { fg = colors.silver })
   vim.api.nvim_set_hl(0, 'TelescopeSymbolKindTest', { fg = colors.emerald })
   for kind, color in pairs(SYMBOL_KIND_COLORS) do
     vim.api.nvim_set_hl(0, 'TelescopeSymbolKind' .. kind, { fg = colors[color] --[[@as string]] })
+  end
+  for level, color in ipairs(HEADING_COLORS) do
+    vim.api.nvim_set_hl(0, 'TelescopeSymbolHeading' .. level,
+      { fg = colors[color] --[[@as string]], bold = true })
   end
 end
 set_symbol_hl()
@@ -830,11 +837,60 @@ end
 -- Struct fields and enum variants swell the symbol list; hide them. Flip to true to show them.
 local SHOW_MEMBERS = false
 
+-- Markdown has no LSP here, so the outline is parsed out of the buffer itself.
+local function markdown_outline(bufnr)
+  local headings = require('custom.markdown_outline').headings(bufnr)
+  if #headings == 0 then
+    vim.notify('No headings in this buffer', vim.log.levels.INFO)
+    return
+  end
+  local displayer = require('telescope.pickers.entry_display').create({
+    separator = ' ',
+    items = { { width = 5, right_justify = true }, { remaining = true } },
+  })
+  local opts = {}
+  focus_symbol_at_cursor(opts)
+  require('telescope.pickers').new(opts, {
+    prompt_title = 'File structure',
+    previewer = live_buffer_previewer(bufnr),
+    sorter = require('telescope.config').values.generic_sorter(opts),
+    finder = require('telescope.finders').new_table({
+      results = headings,
+      entry_maker = function(h)
+        return {
+          value = h,
+          ordinal = h.text,
+          lnum = h.lnum,
+          col = 1,
+          display = function(e)
+            return displayer({
+              { tostring(e.lnum),                           'TelescopeResultsLineNr' },
+              { ('  '):rep(e.value.indent) .. e.value.text, 'TelescopeSymbolHeading' .. e.value.level },
+            })
+          end,
+        }
+      end,
+    }),
+    attach_mappings = function(prompt_bufnr)
+      require('telescope.actions').select_default:replace(function()
+        local entry = require('telescope.actions.state').get_selected_entry()
+        require('telescope.actions').close(prompt_bufnr)
+        if entry then
+          vim.api.nvim_win_set_cursor(0, { entry.lnum, 0 })
+          vim.cmd('normal! zz')
+        end
+      end)
+      return true
+    end,
+  }):find()
+end
+
 -- File structure (Telescope). Rust only: prefix each symbol with a visibility
 -- marker read off the `pub` keyword on its source line.
 function M.document_symbols()
   local builtin = require('telescope.builtin')
   local bufnr = vim.api.nvim_get_current_buf()
+  if vim.bo[bufnr].filetype == 'markdown' then return markdown_outline(bufnr) end
   -- nil key = no filter; icon-prefixed kind name matches how lsp_icons patched it.
   local icons = require('config.lsp_icons').icons
   local ignore_symbols = SHOW_MEMBERS and nil
