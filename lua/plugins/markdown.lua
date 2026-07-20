@@ -50,6 +50,7 @@ require('markview').setup({
       heading_4 = { style = 'icon', hl = 'KinderMarkdownH4' },
       heading_5 = { style = 'icon', hl = 'KinderMarkdownH5' },
       heading_6 = { style = 'icon', hl = 'KinderMarkdownH6' },
+      org_indent_wrap = false, -- same heuristic wrap indent as list_items below
     },
     code_blocks = {
       enable = true,
@@ -59,6 +60,10 @@ require('markview').setup({
       label_hl = 'KinderMarkdownCode',  -- background behind the language name
       default = { block_hl = 'KinderMarkdownCode', pad_hl = 'KinderMarkdownCode' },
     },
+    -- markview guesses the wrap point as text_width/win_width, which lands mid-word
+    -- under 'linebreak'. 'breakindentopt' below indents wrapped rows instead.
+    list_items = { enable = true, wrap = false },
+    block_quotes = { enable = true, wrap = false },
     horizontal_rules = {
       enable = true,
       parts = {
@@ -75,15 +80,6 @@ require('markview').setup({
           end,
         },
       },
-    },
-    -- No marker padding: it is inline virtual text, which 'linebreak' does not
-    -- count when picking the wrap point, so the last word of a row splits apart.
-    list_items = {
-      enable = true,
-      marker_minus = { add_padding = false },
-      marker_plus = { add_padding = false },
-      marker_star = { add_padding = false },
-      marker_dot = { add_padding = false },
     },
   },
   markdown_inline = {
@@ -104,8 +100,7 @@ local pad_ns = vim.api.nvim_create_namespace('kinder_markdown_pad')
 local pad_query = '(emphasis_delimiter) @full (backslash_escape) @first'
 
 -- Hidden markup shortens a row, knocking table columns out of line. Conceal it to a
--- space instead: same width, still invisible. Needs 'conceallevel' 2; 3 drops the
--- replacement. Only table rows need it - elsewhere the padding is a visible gap.
+-- space instead: same width, still invisible. Table rows only - elsewhere it shows.
 local function pad_concealed(buffer, raw)
   vim.api.nvim_buf_clear_namespace(buffer, pad_ns, 0, -1)
 
@@ -136,13 +131,15 @@ local function pad_concealed(buffer, raw)
   end)
 end
 
--- Prose wraps at word boundaries, not mid-word, once <M-z> turns 'wrap' on;
--- breakindent keeps continuation rows under the list item they belong to.
+-- Wrap prose by word, continuation rows under the item's text. list:-1 needs
+-- 'formatlistpat' to see markdown bullets; shift:4 offsets markview's marker padding.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'markdown',
   callback = function()
     vim.opt_local.linebreak = true
     vim.opt_local.breakindent = true
+    vim.opt_local.breakindentopt = 'list:-1,shift:4'
+    vim.opt_local.formatlistpat = [[^\s*[-*+]\s\+\|^\s*\d\+[.)]\s\+\|^\s*\[[ x]\]\s\+]]
   end,
 })
 
@@ -168,8 +165,7 @@ vim.api.nvim_create_autocmd({ 'WinScrolled', 'OptionSet', 'BufWinEnter' }, {
 
     local win = args.event == 'WinScrolled' and tonumber(args.match) or vim.api.nvim_get_current_win()
     if not vim.api.nvim_win_is_valid(win) then return end
-    -- Read the buffer off the window: OptionSet reports args.buf as 0, which never
-    -- matches the window's real buffer and made sync_raw bail out on every toggle.
+    -- OptionSet reports args.buf as 0, which never matches the window's real buffer.
     local buf = vim.api.nvim_win_get_buf(win)
     if vim.bo[buf].filetype ~= 'markdown' then return end
 
