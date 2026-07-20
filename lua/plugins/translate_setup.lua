@@ -116,6 +116,12 @@ local function floating_cmd(lines)
   })
   vim.api.nvim_set_option_value('wrap', true, { win = win })
   vim.api.nvim_set_option_value('linebreak', true, { win = win })
+  -- A new float inherits these from the window it opens over; markdown's list
+  -- indent would then eat width from every wrapped row here.
+  vim.api.nvim_set_option_value('breakindent', false, { win = win })
+  -- Word wrap rarely fills a row exactly, so the estimate above can fall short.
+  local real = vim.api.nvim_win_text_height(win, { start_row = 0 }).all
+  if real ~= height then vim.api.nvim_win_set_height(win, real) end
 
   _float = { win = win, buf = buf }
   -- nested: let the close emit WinClosed so the float backdrop clears its blur
