@@ -76,6 +76,15 @@ require('markview').setup({
         },
       },
     },
+    -- No marker padding: it is inline virtual text, which 'linebreak' does not
+    -- count when picking the wrap point, so the last word of a row splits apart.
+    list_items = {
+      enable = true,
+      marker_minus = { add_padding = false },
+      marker_plus = { add_padding = false },
+      marker_star = { add_padding = false },
+      marker_dot = { add_padding = false },
+    },
   },
   markdown_inline = {
     inline_codes = { enable = true, hl = 'KinderMarkdownInlineCode' },
