@@ -508,7 +508,94 @@ for _, lang in ipairs({ "python" }) do
 end
 
 -- LUA -------------------------------------------------------------------------
-vim.api.nvim_set_hl(0, "@function.builtin.lua", { fg = colors.emerald })
+local function lua_treesitter_highlights(lang)
+	return {
+		["@keyword." .. lang]               = { fg = colors.red },
+		["@keyword.function." .. lang]      = { fg = colors.red },
+		["@keyword.return." .. lang]        = { fg = colors.red },
+		["@keyword.operator." .. lang]      = { fg = colors.red },
+		["@keyword.conditional." .. lang]   = { fg = colors.red },
+		["@keyword.repeat." .. lang]        = { fg = colors.red },
+		["@function." .. lang]              = { fg = colors.green },
+		["@function.call." .. lang]         = { fg = colors.green },
+		["@function.method." .. lang]       = { fg = colors.green },
+		["@function.method.call." .. lang]  = { fg = colors.green },
+		["@function.builtin." .. lang]      = { fg = colors.emerald },
+		["@constructor." .. lang]           = { fg = colors.gray },
+		["@type." .. lang]                  = { fg = colors.blue },
+		["@type.builtin." .. lang]          = { fg = colors.cyan },
+		["@variable." .. lang]              = { fg = colors.gray },
+		["@variable.parameter." .. lang]    = { fg = colors.orange },
+		["@variable.member." .. lang]       = { fg = colors.white },
+		["@variable.builtin." .. lang]      = { fg = colors.white },
+		["@property." .. lang]              = { fg = colors.white },
+		["@string." .. lang]                = { fg = colors.yellow },
+		["@string.escape." .. lang]         = { fg = colors.purple },
+		["@string.regexp." .. lang]         = { fg = colors.purple },
+		["@number." .. lang]                = { fg = colors.purple },
+		["@boolean." .. lang]               = { fg = colors.purple },
+		["@constant." .. lang]              = { fg = colors.lime },
+		["@constant.builtin." .. lang]      = { fg = colors.pink },
+		["@operator." .. lang]              = { fg = colors.red },
+		["@punctuation.bracket." .. lang]   = { fg = colors.gray },
+		["@punctuation.delimiter." .. lang] = { fg = colors.gray },
+		["@punctuation.special." .. lang]   = { fg = colors.red },
+		["@comment." .. lang]               = { fg = colors.silver },
+		["@comment.documentation." .. lang] = { fg = colors.silver },
+		["@module." .. lang]                = { fg = colors.silver },
+		["@label." .. lang]                 = { fg = colors.red },
+		["@attribute." .. lang]             = { fg = colors.cyan },
+	}
+end
+
+local function lua_lsp_highlights(lang)
+	return {
+		["@lsp.type.parameter." .. lang]                   = { fg = colors.orange },
+		["@lsp.type.variable." .. lang]                    = { fg = colors.gray },
+		["@lsp.type.property." .. lang]                    = { fg = colors.white },
+		["@lsp.type.function." .. lang]                    = { fg = colors.green },
+		["@lsp.type.method." .. lang]                      = { fg = colors.green },
+		["@lsp.type.class." .. lang]                       = { fg = colors.blue },
+		["@lsp.type.type." .. lang]                        = { fg = colors.blue },
+		["@lsp.type.struct." .. lang]                      = { fg = colors.blue },
+		["@lsp.type.interface." .. lang]                   = { fg = colors.teal },
+		["@lsp.type.typeParameter." .. lang]               = { fg = colors.teal },
+		["@lsp.type.enum." .. lang]                        = { fg = colors.cyan },
+		["@lsp.type.enumMember." .. lang]                  = { fg = colors.pink },
+		["@lsp.type.namespace." .. lang]                   = { fg = colors.dark },
+		["@lsp.type.keyword." .. lang]                     = { fg = colors.red },
+		["@lsp.type.operator." .. lang]                    = { fg = colors.red },
+		["@lsp.type.string." .. lang]                      = { fg = colors.yellow },
+		["@lsp.type.number." .. lang]                      = { fg = colors.purple },
+		["@lsp.type.regexp." .. lang]                      = { fg = colors.purple },
+		["@lsp.type.comment." .. lang]                     = { fg = colors.silver },
+		["@lsp.type.macro." .. lang]                       = { fg = colors.brown, bold = true },
+		["@lsp.type.decorator." .. lang]                   = { fg = colors.cyan },
+		["@lsp.typemod.parameter.declaration." .. lang]    = { fg = colors.orange },
+		["@lsp.typemod.variable.declaration." .. lang]     = { fg = colors.gray },
+		["@lsp.typemod.function.declaration." .. lang]     = { fg = colors.green },
+		["@lsp.typemod.method.declaration." .. lang]       = { fg = colors.green },
+		["@lsp.typemod.property.declaration." .. lang]     = { fg = colors.white },
+		["@lsp.typemod.variable.global." .. lang]          = { fg = colors.lime },
+		["@lsp.typemod.variable.readonly." .. lang]        = { fg = colors.lime },
+		["@lsp.typemod.function.defaultLibrary." .. lang]  = { fg = colors.emerald },
+		["@lsp.typemod.method.defaultLibrary." .. lang]    = { fg = colors.emerald },
+		["@lsp.typemod.variable.defaultLibrary." .. lang]  = { fg = colors.lime },
+		["@lsp.typemod.namespace.defaultLibrary." .. lang] = { fg = colors.lime },
+	}
+end
+
+for _, lang in ipairs({ "lua" }) do
+	for group, color in pairs(lua_treesitter_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
+
+for _, lang in ipairs({ "lua" }) do
+	for group, color in pairs(lua_lsp_highlights(lang)) do
+		vim.api.nvim_set_hl(0, group, color)
+	end
+end
 
 -- MAKE ------------------------------------------------------------------------
 vim.api.nvim_set_hl(0, "makeCommands", { fg = colors.red })
