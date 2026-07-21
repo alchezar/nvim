@@ -140,6 +140,7 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.opt_local.breakindent = true
     vim.opt_local.breakindentopt = 'list:-1,shift:4'
     vim.opt_local.formatlistpat = [[^\s*[-*+]\s\+\|^\s*\d\+[.)]\s\+\|^\s*\[[ x]\]\s\+]]
+    vim.opt_local.formatoptions:remove('t')
   end,
 })
 
