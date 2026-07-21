@@ -23,8 +23,9 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_markview_hl })
 apply_markview_hl()
 
--- A rendered table only holds together at leftcol 0 without 'wrap': soft-wrap splits rows
--- mid-cell, a sideways scroll drifts the border. Show raw markdown rather than half-broken.
+-- markview's own table render only holds together at leftcol 0 without 'wrap'.
+-- Under 'wrap' draw our own word-wrapped table; a sideways scroll still degrades
+-- to raw markdown (the box would drift with leftcol).
 local function render_table(buffer, item)
   local win = require('markview.utils').buf_getwin(buffer)
 
@@ -34,7 +35,10 @@ local function render_table(buffer, item)
 
   local leftcol = vim.api.nvim_win_call(win, function() return vim.fn.winsaveview().leftcol end)
 
-  if vim.wo[win].wrap or leftcol > 0 then return end
+  if vim.wo[win].wrap then return require('custom.markdown_table_wrap').render(buffer, item, win) end
+  -- Back to nowrap: drop our marks or they would sit over markview's own render.
+  require('custom.markdown_table_wrap').clear(buffer, item)
+  if leftcol > 0 then return end
 
   return require('markview.renderers.markdown').table(buffer, item)
 end
@@ -99,8 +103,9 @@ local pad_ns = vim.api.nvim_create_namespace('kinder_markdown_pad')
 -- No code_span_delimiter: markview already pads inline code back to its raw width.
 local pad_query = '(emphasis_delimiter) @full (backslash_escape) @first'
 
--- Hidden markup shortens a row, knocking table columns out of line. Conceal it to a
--- space instead: same width, still invisible. Table rows only - elsewhere it shows.
+-- A table scrolled sideways (leftcol > 0) shows raw, where hidden markup like '**'
+-- shortens the row and drifts the '|' columns. Conceal it to spaces instead: same
+-- width, still invisible. Needs 'conceallevel' 2; table rows only.
 local function pad_concealed(buffer, raw)
   vim.api.nvim_buf_clear_namespace(buffer, pad_ns, 0, -1)
 
