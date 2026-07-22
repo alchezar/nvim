@@ -77,6 +77,7 @@ local actions = require('telescope.actions')
 
 require('telescope').setup({
   defaults = {
+    initial_mode = 'normal',
     path_display = { 'truncate' },
     -- Prompt on top with preview to the side; `ascending` keeps the best match
     -- right under the prompt instead of at the bottom of the list.
@@ -88,6 +89,7 @@ require('telescope').setup({
     },
   },
   pickers = {
+    live_grep                     = { initial_mode = 'insert' },
     -- `dd` in normal mode closes the buffer under the cursor without leaving the picker.
     buffers                       = { mappings = { n = { dd = actions.delete_buffer } } },
     lsp_references                = { entry_maker = lsp_entry_maker({ mark = true }) },
