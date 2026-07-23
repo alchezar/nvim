@@ -813,6 +813,24 @@ local function fn_is_test(bufnr, lnum)
   return false
 end
 
+-- rust-analyzer reports every fn as Function; ones sitting directly in an
+-- impl/trait body are methods, so climb treesitter parents to tell them apart.
+local function fn_is_method(bufnr, lnum, col)
+  local ok, node = pcall(vim.treesitter.get_node, { bufnr = bufnr, pos = { lnum - 1, col } })
+  node = ok and node or nil
+  while node do
+    local t = node:type()
+    if t == 'function_item' or t == 'function_signature_item' then
+      local list = node:parent()
+      local holder = list and list:parent()
+      local ht = holder and holder:type()
+      return ht == 'impl_item' or ht == 'trait_item'
+    end
+    node = node:parent()
+  end
+  return false
+end
+
 -- Land the picker on the symbol enclosing the cursor (greatest start line <=
 -- the cursor) instead of the first row; runs once after results first load.
 local function focus_symbol_at_cursor(opts)
@@ -922,11 +940,16 @@ function M.document_symbols()
     local icon = pub and '\u{ea70}' or '\u{eae7}' -- 󰈈 eye / 󰈉 eye-closed
     local hl = pub and 'TelescopeSymbolPublic' or 'TelescopeSymbolPrivate'
     -- symbol_type carries an icon prefix (lsp_icons patches SymbolKind), so match
-    -- the trailing kind word and relabel "function" -> "test", keeping the icon.
-    local is_test = entry.symbol_type:match('Function$') ~= nil and fn_is_test(bufnr, entry.lnum)
+    -- the trailing kind word and relabel "function" -> "test" / "method".
+    local is_fn = entry.symbol_type:match('Function$') ~= nil
+    local is_test = is_fn and fn_is_test(bufnr, entry.lnum)
+    local is_method = is_fn and not is_test
+        and fn_is_method(bufnr, entry.lnum, (src:find('%S') or 1) - 1)
     entry.display = function(e)
       local kind_col = is_test
           and { (e.symbol_type:lower():gsub('function$', 'test')), 'TelescopeSymbolKindTest' }
+          or is_method
+          and { icons.Method .. 'method', 'TelescopeSymbolKindMethod' }
           or { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] }
       return displayer({ { tostring(e.lnum), 'TelescopeResultsLineNr' }, e.symbol_name, { icon, hl }, kind_col })
     end
