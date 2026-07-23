@@ -209,6 +209,11 @@ function M.clear(buffer, item)
   vim.api.nvim_buf_clear_namespace(buffer, ns, from, item.range.row_end + 1)
 end
 
+-- Row-range clear for markview's own lifecycle (insert mode, disable) - see markdown.lua.
+function M.clear_range(buffer, from, to)
+  vim.api.nvim_buf_clear_namespace(buffer, ns, from, to)
+end
+
 function M.render(buffer, item, win)
   M.clear(buffer, item)
   local row_start, row_end = item.range.row_start, item.range.row_end

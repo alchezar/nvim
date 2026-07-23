@@ -99,6 +99,15 @@ require('markview').setup({
   },
 })
 
+-- markview de-renders on insert by clearing only its own namespaces, so our
+-- wrapped table would stay; piggyback its markdown clear to drop ours too.
+local md_renderer = require('markview.renderers.markdown')
+local md_clear = md_renderer.clear
+md_renderer.clear = function(buffer, from, to, hybrid)
+  require('custom.markdown_table_wrap').clear_range(buffer, from or 0, to or -1)
+  return md_clear(buffer, from, to, hybrid)
+end
+
 local pad_ns = vim.api.nvim_create_namespace('kinder_markdown_pad')
 -- No code_span_delimiter: markview already pads inline code back to its raw width.
 local pad_query = '(emphasis_delimiter) @full (backslash_escape) @first'
