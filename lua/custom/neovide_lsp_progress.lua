@@ -8,7 +8,14 @@ local active = {}
 -- Nudged forward on each indeterminate update so the bar visibly lives while work runs.
 local indet = 0
 
+-- Visual/select shows its own mode message on the cmdline; extui stacks it with the
+-- progress line and expands the cmdline, so suppress the bar for those modes.
+local function in_visual()
+  return vim.api.nvim_get_mode().mode:match('^[vV\22]') ~= nil
+end
+
 local function show(entry)
+  if in_visual() then return end
   local text = entry.title or ''
   if entry.message and entry.message ~= '' then
     text = text ~= '' and (text .. ' ' .. entry.message) or entry.message
@@ -25,8 +32,15 @@ end
 
 local function done()
   indet = 0
+  if in_visual() then return end
   pcall(vim.api.nvim_echo, { { '' } }, false,
     { kind = 'progress', source = 'lsp', id = 'lsp', title = '', status = 'success', percent = 100 })
+end
+
+-- Blank the bar without clearing state, so leaving visual mode can restore it.
+local function hide_display()
+  pcall(vim.api.nvim_echo, { { '' } }, false,
+    { kind = 'progress', source = 'lsp', id = 'lsp', title = '', status = 'running', percent = 100 })
 end
 
 vim.api.nvim_create_autocmd('LspProgress', {
@@ -49,6 +63,20 @@ vim.api.nvim_create_autocmd('LspProgress', {
         message = val.message,
       }
       show(active[key])
+    end
+  end,
+})
+
+-- Hide the bar on entering visual, restore the latest progress on leaving it.
+vim.api.nvim_create_autocmd('ModeChanged', {
+  callback = function()
+    local ev = vim.v.event
+    local was, now = ev.old_mode:match('^[vV\22]'), ev.new_mode:match('^[vV\22]')
+    if now and not was then
+      hide_display()
+    elseif was and not now then
+      local nxt = next(active)
+      if nxt then show(active[nxt]) end
     end
   end,
 })
