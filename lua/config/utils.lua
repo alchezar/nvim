@@ -761,9 +761,9 @@ end
 
 -- Preview the live, LSP-attached buffer instead of a disk copy, so the code
 -- keeps its real treesitter + semantic-token highlighting and diagnostics.
-local function live_buffer_previewer(bufnr)
+local function live_buffer_previewer(bufnr, title)
   return require('telescope.previewers').new({
-    title = 'File structure',
+    title = title or 'File structure',
     preview_fn = function(self, entry, status)
       local win = status.layout.preview and status.layout.preview.winid
       if not win or not vim.api.nvim_win_is_valid(win) or not vim.api.nvim_buf_is_valid(bufnr) then
@@ -796,6 +796,9 @@ local function live_buffer_previewer(bufnr)
     end,
   })
 end
+
+-- Exposed so other pickers (axum_routes) reuse the live LSP-highlighted preview.
+M.live_buffer_previewer = live_buffer_previewer
 
 -- A #[test] / #[*::test] (sqlx, tokio, ...) attribute above a fn relabels its
 -- kind column "test"; scan upward past attrs and doc comments to the real code.

@@ -384,13 +384,20 @@ function M.open(opts)
 
   -- File mode: land on the endpoint nearest the cursor, like <leader>o.
   local picker_opts = {}
-  if file then utils.focus_symbol_at_cursor(picker_opts) end
+  local previewer
+  if file then
+    utils.focus_symbol_at_cursor(picker_opts)
+    -- Live LSP-highlighted preview of the one buffer; grep preview stays for the project list.
+    previewer = utils.live_buffer_previewer(vim.api.nvim_get_current_buf(), 'Axum endpoints (file)')
+  else
+    previewer = conf.grep_previewer({})
+  end
 
   pickers.new(picker_opts, {
     prompt_title    = file and 'Axum endpoints (file)' or 'Axum endpoints',
     finder          = finders.new_table({ results = items, entry_maker = make_entry }),
     sorter          = conf.generic_sorter(picker_opts),
-    previewer       = conf.grep_previewer({}),
+    previewer       = previewer,
     attach_mappings = function(prompt_bufnr, _)
       vim.api.nvim_create_autocmd('BufWipeout', {
         buffer   = prompt_bufnr,
