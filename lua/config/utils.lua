@@ -852,6 +852,9 @@ local function focus_symbol_at_cursor(opts)
   }
 end
 
+-- Exposed so other pickers (axum_routes) reuse the same cursor-focus behaviour.
+M.focus_symbol_at_cursor = focus_symbol_at_cursor
+
 -- Struct fields and enum variants swell the symbol list; hide them. Flip to true to show them.
 local SHOW_MEMBERS = false
 

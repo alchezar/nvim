@@ -10,6 +10,8 @@ local conf         = require('telescope.config').values
 local actions      = require('telescope.actions')
 local action_state = require('telescope.actions.state')
 
+local utils        = require('config.utils')
+
 local METHODS      = 'GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE'
 local METHOD_LIST  = { 'GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS', 'TRACE' }
 
@@ -380,10 +382,14 @@ function M.open(opts)
   local saved_mousescroll = vim.o.mousescroll
   vim.o.mousescroll = 'ver:3,hor:1'
 
-  pickers.new({}, {
+  -- File mode: land on the endpoint nearest the cursor, like <leader>o.
+  local picker_opts = {}
+  if file then utils.focus_symbol_at_cursor(picker_opts) end
+
+  pickers.new(picker_opts, {
     prompt_title    = file and 'Axum endpoints (file)' or 'Axum endpoints',
     finder          = finders.new_table({ results = items, entry_maker = make_entry }),
-    sorter          = conf.generic_sorter({}),
+    sorter          = conf.generic_sorter(picker_opts),
     previewer       = conf.grep_previewer({}),
     attach_mappings = function(prompt_bufnr, _)
       vim.api.nvim_create_autocmd('BufWipeout', {
