@@ -8,6 +8,8 @@ vim.g.rustaceanvim = {
         -- and check.extraArgs does not reach clippy through rustaceanvim.
         check = { command = 'clippy', extraEnv = { RUSTFLAGS = '-Wunused_qualifications' } },
         cargo = { allFeatures = true },
+        -- Default limit of 128 is eaten by dependency modules, hiding workspace types.
+        workspace = { symbol = { search = { limit = 4096, scope = 'workspace', kind = 'only_types' } } },
         -- Suppress dim/underline on #[cfg]-gated branches.
         diagnostics = { disabled = { 'inactive-code' } },
         semanticHighlighting = {
