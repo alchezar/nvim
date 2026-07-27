@@ -834,25 +834,30 @@ local function fn_is_method(bufnr, lnum, col)
   return false
 end
 
--- Land the picker on the symbol enclosing the cursor (greatest start line <=
--- the cursor) instead of the first row; runs once after results first load.
-local function focus_symbol_at_cursor(opts)
-  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+-- Land the picker on a chosen entry instead of the first row; runs once after
+-- results first load. `better(entry, best)` tells which candidate wins.
+local function focus_entry(opts, better)
   local placed = false
   opts.on_complete = {
     function(picker)
       if placed then return end
       placed = true
-      local best_index, best_lnum
+      local best_index, best
       for index = 1, picker.manager:num_results() do
-        local lnum = (picker.manager:get_entry(index) or {}).lnum
-        if lnum and lnum <= cursor_line and (not best_lnum or lnum > best_lnum) then
-          best_index, best_lnum = index, lnum
-        end
+        local entry = picker.manager:get_entry(index)
+        if entry and better(entry, best) then best_index, best = index, entry end
       end
       if best_index then picker:set_selection(picker:get_row(best_index)) end
     end,
   }
+end
+
+-- Symbol enclosing the cursor: greatest start line still <= the cursor.
+local function focus_symbol_at_cursor(opts)
+  local cursor_line = vim.api.nvim_win_get_cursor(0)[1]
+  focus_entry(opts, function(entry, best)
+    return entry.lnum ~= nil and entry.lnum <= cursor_line and (not best or entry.lnum > best.lnum)
+  end)
 end
 
 -- Exposed so other pickers (axum_routes) reuse the same cursor-focus behaviour.
@@ -1140,20 +1145,9 @@ function M.git_status(opts)
   local name = vim.api.nvim_buf_get_name(0)
   local current = name ~= '' and vim.fs.normalize(vim.fn.fnamemodify(name, ':p')) or nil
   if current then
-    local placed = false
-    opts.on_complete = {
-      function(picker)
-        if placed then return end
-        placed = true
-        for index = 1, picker.manager:num_results() do
-          local entry = picker.manager:get_entry(index)
-          if entry and entry.path and vim.fs.normalize(entry.path) == current then
-            picker:set_selection(picker:get_row(index))
-            return
-          end
-        end
-      end,
-    }
+    focus_entry(opts, function(entry)
+      return entry.path ~= nil and vim.fs.normalize(entry.path) == current
+    end)
   end
   require('telescope.builtin').git_status(opts)
 end
