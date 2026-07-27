@@ -1133,4 +1133,29 @@ function M.buffers(opts)
   require('telescope.builtin').buffers(opts)
 end
 
+-- builtin.git_status, but landing on the current file when it is among the
+-- changed ones; falls back to the first row otherwise.
+function M.git_status(opts)
+  opts = opts or {}
+  local name = vim.api.nvim_buf_get_name(0)
+  local current = name ~= '' and vim.fs.normalize(vim.fn.fnamemodify(name, ':p')) or nil
+  if current then
+    local placed = false
+    opts.on_complete = {
+      function(picker)
+        if placed then return end
+        placed = true
+        for index = 1, picker.manager:num_results() do
+          local entry = picker.manager:get_entry(index)
+          if entry and entry.path and vim.fs.normalize(entry.path) == current then
+            picker:set_selection(picker:get_row(index))
+            return
+          end
+        end
+      end,
+    }
+  end
+  require('telescope.builtin').git_status(opts)
+end
+
 return M

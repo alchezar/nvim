@@ -107,7 +107,7 @@ map('n', '<leader>E', ':NvimTreeFindFileToggle<CR>', { desc = 'Toggle file tree 
 map('n', '<leader>e', ':NvimTreeFocus<CR>', { desc = 'Focus file tree', silent = true })
 map('n', '<leader>f', ':NvimTreeFindFile<CR>', { desc = 'Find file in tree', silent = true })
 -- Git
-map('n', '<leader>gs', builtin.git_status, { desc = 'Git status (changed files)' })
+map('n', '<leader>gs', utils.git_status, { desc = 'Git status (changed files)' })
 map('n', '<leader>gb', ':BlameToggle<CR>', { desc = 'Toggle git blame side panel (date heat-map)', silent = true })
 map('n', '<leader>gp', utils.gitsigns_preview_hunk, { desc = 'Preview hunk diff (popup)' })
 map('n', '<leader>gr', function()
