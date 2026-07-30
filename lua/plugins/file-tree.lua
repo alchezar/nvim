@@ -45,6 +45,23 @@ local function tree_sorter(nodes)
   end)
 end
 
+-- Generated dirs kept as a bare row: visible, but their contents never enter the tree.
+-- target/debug/deps alone holds 262k files, and every reload would walk them.
+local opaque_dirs = { target = true, uploads = true, node_modules = true }
+
+local function is_opaque_dir(node)
+  return (node and node.type == 'directory' and opaque_dirs[node.name]) == true
+end
+
+-- filters.custom as a function: hides what is inside the opaque dirs, keeps the dirs.
+local function tree_filter(path)
+  if path:match('%.DS_Store$') then return true end
+  for name in pairs(opaque_dirs) do
+    if path:find('/' .. name .. '/', 1, true) then return true end
+  end
+  return false
+end
+
 require('nvim-tree').setup({
   -- Keep nvim-tree's default maps, but route `s` to EasyMotion 2-char search like everywhere else
   -- (its built-in buffer-local `s` would otherwise shadow the global mapping).
@@ -54,6 +71,14 @@ require('nvim-tree').setup({
     vim.keymap.set('n', 's', '<Plug>(easymotion-s2)', { buffer = bufnr, desc = 'EasyMotion 2-char search' })
     -- Match `gh`-on-code: hover the file's //! module doc in a float.
     vim.keymap.set('n', 'gh', require('config.utils').tree_module_doc, { buffer = bufnr, desc = 'Module //! doc' })
+    -- Opening an opaque dir shows nothing yet still lstats every direct child (seconds), so refuse it.
+    local function open_node()
+      if is_opaque_dir(api.tree.get_node_under_cursor()) then return end
+      api.node.open.edit()
+    end
+    for _, lhs in ipairs({ '<CR>', 'o', '<2-LeftMouse>' }) do
+      vim.keymap.set('n', lhs, open_node, { buffer = bufnr, desc = 'Open (opaque dirs stay closed)' })
+    end
   end,
   -- Tree follows the global cwd (set to the project root by auto_cd_to_project_root).
   -- Re-roots on a real project change; within a project getcwd == root so focus never reloads.
@@ -78,9 +103,9 @@ require('nvim-tree').setup({
 
   filters = {
     -- Show git-ignored files (.env, .secret/...): nvim-tree runs `git status --ignored=matching`,
-    -- which does NOT recurse into ignored dirs, so this is cheap. Hide only the huge target/.
+    -- which does NOT recurse into ignored dirs, so this is cheap.
     git_ignored = false,
-    custom = { '^target$', '^\\.DS_Store$' },
+    custom = tree_filter,
   },
   diagnostics = {
     enable = true,
@@ -139,6 +164,29 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   local bufnr = payload and payload.bufnr
   if bufnr and vim.api.nvim_buf_is_valid(bufnr) and vim.bo[bufnr].syntax ~= '' then
     vim.bo[bufnr].syntax = ''
+  end
+end)
+
+-- Mark the opaque dirs so an empty-looking row reads as deliberate, not as a broken tree.
+local opaque_ns = vim.api.nvim_create_namespace('nvim_tree_opaque_dir')
+vim.api.nvim_set_hl(0, 'NvimTreeOpaqueDir', { fg = require('config.theme_colors').gray, italic = true })
+
+require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
+  local bufnr = payload and payload.bufnr
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
+  vim.api.nvim_buf_clear_namespace(bufnr, opaque_ns, 0, -1)
+
+  local core = require('nvim-tree.core')
+  local explorer = core.get_explorer()
+  if not explorer then return end
+
+  for line, node in pairs(explorer:get_nodes_by_line(core.get_nodes_starting_line())) do
+    if is_opaque_dir(node) then
+      vim.api.nvim_buf_set_extmark(bufnr, opaque_ns, line - 1, 0, {
+        virt_text = { { '...', 'NvimTreeOpaqueDir' } },
+        virt_text_pos = 'eol',
+      })
+    end
   end
 end)
 
