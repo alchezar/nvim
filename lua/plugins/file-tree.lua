@@ -59,6 +59,8 @@ require('nvim-tree').setup({
   -- Re-roots on a real project change; within a project getcwd == root so focus never reloads.
   sync_root_with_cwd = true,
   respect_buf_cwd = false,
+  -- Change-root must be a global cd; the default lcd gives the tree window its own cwd -> reload per focus.
+  actions = { change_dir = { global = true } },
   sort = { sorter = tree_sorter },
   view = { width = 40, cursorline = false },
   -- Reveal the open file without re-running git per BufEnter (update_root would; the lag).
@@ -103,6 +105,11 @@ require('nvim-tree').setup({
     },
   },
 })
+
+-- Skip nvim-tree's per-node vim.filetype.match before a custom sorter; it dominates reload.
+require('nvim-tree.explorer.sorter').sort = function(_, nodes)
+  tree_sorter(nodes)
+end
 
 local function apply_tree_hl()
   local theme = require('config.theme_colors')
@@ -497,5 +504,13 @@ vim.api.nvim_create_autocmd('BufEnter', {
   nested = true,
   callback = function(args)
     require('config.utils').auto_cd_to_project_root(args.buf)
+  end,
+})
+
+-- Undo any window-local cwd a plugin left behind, for the same reason: one cwd only.
+vim.api.nvim_create_autocmd({ 'WinEnter', 'BufEnter' }, {
+  nested = true,
+  callback = function()
+    require('config.utils').drop_window_local_cwd()
   end,
 })

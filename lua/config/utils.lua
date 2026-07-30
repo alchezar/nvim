@@ -552,6 +552,13 @@ function M.auto_cd_to_project_root(bufnr)
   end
 end
 
+-- Plugins still set a window-local cwd (snacks lcd action, startify tcd); cd clears it.
+function M.drop_window_local_cwd()
+  if vim.fn.haslocaldir() == 1 then
+    vim.cmd.cd(vim.fn.getcwd(-1, -1))
+  end
+end
+
 -- Resolve fg of the highlight under cursor.
 local function cursor_color_at_pos()
   local row = vim.api.nvim_win_get_cursor(0)[1] - 1
