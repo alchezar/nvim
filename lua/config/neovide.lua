@@ -15,6 +15,7 @@ vim.g.neovide_cursor_smooth_blink = false
 vim.g.neovide_cursor_animate_in_insert_mode = true
 vim.g.neovide_cursor_animate_command_line = true
 vim.g.neovide_cursor_trail_size = 0.8
+vim.g.neovide_scroll_animation_length = 0.2
 
 -- vim.g.neovide_position_animation_length = 0
 vim.g.neovide_floating_shadow = false
