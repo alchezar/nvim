@@ -32,7 +32,7 @@ map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics'
 map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
 -- Highlight Rust let/let mut bindings, module-qualified types and &mut *tx reborrows
 map('n', '<leader>sl',
-  [[/\C\vlet (mut )?\w*:]] ..
+  [[/\C\vlet (mut )?\w*:%(:)@!]] ..
   [[|%(::)@<!%(use )@<!<%([a-z]\w*::)+[A-Z]\w*[a-z]\w*>]] ..
   [[|\&mut \*\*?\w+<CR>]],
   { desc = 'Search let bindings / qualified types / tx reborrows' })
