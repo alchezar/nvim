@@ -54,6 +54,25 @@ local function strip_comments_cmd(lines, pos)
   return lines
 end
 
+-- The stock 'head' parse_after re-cuts the translation to the original line
+-- widths character by character, breaking words mid-syllable. Rejoin each
+-- paragraph into one line and let the float soft-wrap it instead.
+local function paragraph_cmd(lines)
+  local out, para = {}, {}
+  for _, line in ipairs(lines) do
+    if vim.trim(line) == '' then
+      if #para > 0 then
+        table.insert(out, table.concat(para, ' ')); para = {}
+      end
+      table.insert(out, '')
+    else
+      table.insert(para, vim.trim(line))
+    end
+  end
+  if #para > 0 then table.insert(out, table.concat(para, ' ')) end
+  return #out > 0 and out or { '' }
+end
+
 -- :Translate the visual selection; park cursor BELOW the selection so the
 -- floating output (relative=cursor, row=1) doesn't cover the source text.
 -- Falls back to the last selected line when selection ends at EOF.
@@ -132,9 +151,13 @@ require('translate').setup({
   default = {
     command = 'google',
     parse_before = 'trim,strip_comments,natural',
+    parse_after = 'paragraph',
   },
   parse_before = {
     strip_comments = { cmd = strip_comments_cmd },
+  },
+  parse_after = {
+    paragraph = { cmd = paragraph_cmd },
   },
   output = {
     floating = { cmd = floating_cmd },
