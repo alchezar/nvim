@@ -58,7 +58,13 @@ require('markview').setup({
     },
     code_blocks = {
       enable = true,
-      style = 'block',
+      -- 'block' pads every line out to the widest one with inline virt_text; under
+      -- 'wrap' that padding soft-wraps and shreds the background into stray rows.
+      style = function(buffer)
+        local win = require('markview.utils').buf_getwin(buffer)
+        if type(win) == 'number' and vim.wo[win].wrap then return 'simple' end
+        return 'block'
+      end,
       border_hl = 'KinderMarkdownCode', -- top/bottom border rows
       info_hl = 'KinderMarkdownCode',   -- language label row
       label_hl = 'KinderMarkdownCode',  -- background behind the language name
