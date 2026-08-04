@@ -79,6 +79,18 @@ require('nvim-tree').setup({
     for _, lhs in ipairs({ '<CR>', 'o', '<2-LeftMouse>' }) do
       vim.keymap.set('n', lhs, open_node, { buffer = bufnr, desc = 'Open (opaque dirs stay closed)' })
     end
+    -- Single click opens, file-manager style. On release, so the unmapped <LeftMouse>
+    -- has already moved the cursor.
+    vim.keymap.set('n', '<LeftRelease>', function()
+      local pos = vim.fn.getmousepos()
+      if pos.winid ~= vim.api.nvim_get_current_win() then return end -- dragged out of the tree
+      -- getmousepos clamps `line` to the last row, so a click below the tree would open it;
+      -- the real screen row of that line gives it away.
+      if vim.fn.screenpos(pos.winid, pos.line, 1).row ~= pos.screenrow then return end
+      -- Header row is `..`, and one stray click should not re-root the tree.
+      if pos.line < require('nvim-tree.core').get_nodes_starting_line() then return end
+      open_node()
+    end, { buffer = bufnr, desc = 'Open on single click' })
   end,
   -- Tree follows the global cwd (set to the project root by auto_cd_to_project_root).
   -- Re-roots on a real project change; within a project getcwd == root so focus never reloads.
