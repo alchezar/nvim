@@ -162,6 +162,9 @@ vim.api.nvim_create_autocmd('FileType', {
 -- cursor moves in hybrid mode, so 'wrap'/leftcol changes go unnoticed.
 local function sync_raw(win, buffer)
   if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_buf(win) ~= buffer then return end
+  -- markview never attaches to 'nofile' buffers (LSP hover, previews). Rendering one
+  -- here would repaint it on the first scroll, mid-view.
+  if not require('markview.state').buf_attached(buffer) then return end
 
   local leftcol = vim.api.nvim_win_call(win, function() return vim.fn.winsaveview().leftcol end)
   local raw = vim.wo[win].wrap or leftcol > 0
