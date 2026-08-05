@@ -704,6 +704,19 @@ function M.search_visual(forward)
   vim.cmd('normal! ' .. (forward and 'n' or 'N'))
 end
 
+-- Skips a qualified name whose whole line is import punctuation: it sits in a (possibly multi-line)
+-- `use` block, which a one-line `%(use )@<!` lookbehind cannot see.
+function M.search_rust_idioms()
+  local qualified = [[<%([a-z]\w*::)+[A-Z]\w*[a-z]\w*>]]
+  local import = [[%([a-zA-Z0-9_:{}]|,\s*)*]]
+  vim.api.nvim_feedkeys([[/\C\vlet (mut )?\w*:%(:)@!]] ..
+    [[|%(%(]] .. qualified .. import .. [[[,;]?\s*$)@!]] ..
+    [[|%(^\s*%(pub%(\(\w+\))?\s+)?%(use\s+)?]] .. import .. [[)@<!)]] ..
+    [[%(::)@<!]] .. qualified ..
+    [[|\&mut \*\*?\w+]] ..
+    [[|<use std::\{]] .. '\r', 'n', false)
+end
+
 -- Digits before gv are a native count (7<leader>gv -> HEAD~7). With none, prompt for a base:
 -- a number is HEAD~N, other text is a branch, empty toggles off / falls back to origin/HEAD.
 function M.branch_review_toggle()
