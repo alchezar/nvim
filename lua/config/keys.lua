@@ -30,12 +30,13 @@ map('n', '<leader>wk', '<C-w>k', { desc = 'Go to window above', silent = true })
 map('n', '<leader>wl', '<C-w>l', { desc = 'Go to window right', silent = true })                                       -- Window right
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })                     -- Trouble
 map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
--- Highlight Rust let/let mut bindings, module-qualified types and &mut *tx reborrows
+-- Highlight Rust let/let mut bindings, module-qualified types, &mut *tx reborrows and grouped std imports
 map('n', '<leader>sl',
   [[/\C\vlet (mut )?\w*:%(:)@!]] ..
   [[|%(::)@<!%(use )@<!<%([a-z]\w*::)+[A-Z]\w*[a-z]\w*>]] ..
-  [[|\&mut \*\*?\w+<CR>]],
-  { desc = 'Search let bindings / qualified types / tx reborrows' })
+  [[|\&mut \*\*?\w+]] ..
+  [[|<use std::\{<CR>]],
+  { desc = 'Search let bindings / qualified types / tx reborrows / grouped std imports' })
 -- Swallow Ctrl+S/Ctrl+Q in :terminal so they never reach the pty as XOFF/XON (freezes output)
 map('t', '<C-s>', '<Nop>', { desc = 'Block XOFF (terminal output stop)' })
 map('t', '<C-q>', '<Nop>', { desc = 'Block XON (terminal output resume)' })
