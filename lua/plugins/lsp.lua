@@ -7,7 +7,8 @@ vim.g.rustaceanvim = {
         -- RUSTFLAGS surfaces redundant path prefixes; rustc's unused_qualifications is allow-by-default
         -- and check.extraArgs does not reach clippy through rustaceanvim.
         check = { command = 'clippy', extraEnv = { RUSTFLAGS = '-Wunused_qualifications' } },
-        cargo = { allFeatures = true },
+        -- Own target dir: RA and the Makefile pass different RUSTFLAGS, so a shared one costs a rebuild on every switch.
+        cargo = { allFeatures = true, targetDir = true, extraEnv = { CARGO_INCREMENTAL = '0' } },
         -- Default limit of 128 is eaten by dependency modules, hiding workspace types.
         workspace = { symbol = { search = { limit = 4096, scope = 'workspace', kind = 'only_types' } } },
         -- Suppress dim/underline on #[cfg]-gated branches.
