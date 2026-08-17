@@ -31,6 +31,7 @@ map('n', '<leader>wl', '<C-w>l', { desc = 'Go to window right', silent = true })
 map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics', silent = true })                     -- Trouble
 map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
 map('n', '<leader>sl', utils.search_rust_idioms, { desc = 'Search Rust idioms mistakes' })
+map({ 'n', 'x' }, '<leader>ss', utils.speak_selection, { desc = 'Speak selection (say); again to stop' })
 -- Swallow Ctrl+S/Ctrl+Q in :terminal so they never reach the pty as XOFF/XON (freezes output)
 map('t', '<C-s>', '<Nop>', { desc = 'Block XOFF (terminal output stop)' })
 map('t', '<C-q>', '<Nop>', { desc = 'Block XON (terminal output resume)' })

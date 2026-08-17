@@ -704,6 +704,49 @@ function M.search_visual(forward)
   vim.cmd('normal! ' .. (forward and 'n' or 'N'))
 end
 
+-- macOS Speak-selection (Option+Esc) only reads the window title in Neovide: the
+-- GPU-drawn grid exposes no AXSelectedText, so pipe the selection to `say` here.
+-- Pressing it again stops playback, the way the system hotkey does.
+local speech_rate = 190 -- words per minute; `say` itself defaults to 175
+local speech_job
+local speech_watches_exit
+
+-- `say` outlives nvim, so a quit mid-sentence would keep talking with no way to stop it.
+local function speech_stop_on_exit()
+  if speech_watches_exit then return end
+  speech_watches_exit = vim.api.nvim_create_autocmd('VimLeavePre', {
+    callback = function()
+      if speech_job then speech_job:kill('sigterm') end
+    end,
+  })
+end
+
+function M.speak_selection()
+  if speech_job then
+    speech_job:kill('sigterm')
+    speech_job = nil
+    return
+  end
+  local mode = vim.fn.mode()
+  if not (mode == 'v' or mode == 'V' or mode == '\22') then return end
+  local lines = vim.fn.getregion(vim.fn.getpos('v'), vim.fn.getpos('.'), { type = mode })
+  vim.cmd('normal! \27') -- <Esc>: drop the selection, playback has the text now
+  local text = vim.trim(table.concat(lines, '\n'))
+  if text == '' or vim.fn.executable('say') == 0 then return end
+
+  -- Cyrillic (U+04xx) starts with these bytes; an English voice spells it out letter by letter.
+  local cmd = { 'say', '-r', tostring(speech_rate) }
+  if text:find('[\208\209]') then vim.list_extend(cmd, { '-v', 'Lesya' }) end
+
+  speech_stop_on_exit()
+  speech_job = vim.system(cmd, { stdin = text }, vim.schedule_wrap(function(r)
+    speech_job = nil
+    if r.code ~= 0 and r.signal == 0 then
+      vim.notify('say: ' .. vim.trim(r.stderr or ''), vim.log.levels.WARN)
+    end
+  end))
+end
+
 -- Skips a qualified name whose whole line is import punctuation: it sits in a (possibly multi-line)
 -- `use` block, which a one-line `%(use )@<!` lookbehind cannot see.
 function M.search_rust_idioms()
