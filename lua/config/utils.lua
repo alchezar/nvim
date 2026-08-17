@@ -730,6 +730,23 @@ local function speech_stop_on_exit()
   })
 end
 
+-- `say` pauses at every newline, so join each paragraph into one line; blank lines still separate them.
+local function speech_paragraphs(lines)
+  local paragraphs, current = {}, {}
+  local function flush()
+    if #current > 0 then
+      table.insert(paragraphs, table.concat(current, ' '))
+      current = {}
+    end
+  end
+  for _, line in ipairs(lines) do
+    line = vim.trim(line)
+    if line == '' then flush() else table.insert(current, line) end
+  end
+  flush()
+  return table.concat(paragraphs, '\n')
+end
+
 function M.speak_selection()
   if speech_job then
     speech_job:kill('sigterm')
@@ -740,7 +757,7 @@ function M.speak_selection()
   if not (mode == 'v' or mode == 'V' or mode == '\22') then return end
   local lines = vim.fn.getregion(vim.fn.getpos('v'), vim.fn.getpos('.'), { type = mode })
   vim.cmd('normal! \27') -- <Esc>: drop the selection, playback has the text now
-  local text = vim.trim(table.concat(lines, '\n'))
+  local text = speech_paragraphs(lines)
   if text == '' or vim.fn.executable('say') == 0 then return end
 
   -- Cyrillic (U+04xx) starts with these bytes; an English voice spells it out letter by letter.
