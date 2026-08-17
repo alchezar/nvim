@@ -30,6 +30,7 @@ require('plugins.markdown')               -- Markdown in-buffer rendering
 require('plugins.csvview_setup')          -- Render CSV as aligned tables
 require('plugins.fishbone_setup')         -- Bookmark mark layer in the gutter
 require('custom.md_pages')                -- Markdown: approx. A4 page count in the statusline
+require('custom.markdown_toc')            -- Markdown: table of contents side panel
 require('plugins.dbee')                   -- Database client UI
 require('plugins.blame_setup')            -- Inline git blame
 require('plugins.diffview_setup')         -- Git diff and history viewer
