@@ -228,6 +228,7 @@ local function rust_treesitter_highlights(lang)
 	return {
 		["@keyword." .. lang]               = { fg = colors.red },
 		["@keyword.storage." .. lang]       = { fg = colors.red },
+		["@label." .. lang]                 = { fg = colors.teal },
 		["@function." .. lang]              = { fg = colors.green },
 		["@function.call." .. lang]         = { fg = colors.green },
 		["@function.method." .. lang]       = { fg = colors.green },
@@ -259,6 +260,7 @@ end
 local function rust_lsp_highlights(lang)
 	return {
 		["@lsp.type.lifetime." .. lang]                = { fg = colors.teal },
+		["@lsp.type.label." .. lang]                   = { fg = colors.teal },
 		["@lsp.type.enum." .. lang]                    = { fg = colors.cyan },
 		["@lsp.type.enumMember." .. lang]              = { fg = colors.pink },
 		["@lsp.type.decorator." .. lang]               = { fg = colors.dark },
