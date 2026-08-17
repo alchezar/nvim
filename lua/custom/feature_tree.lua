@@ -584,6 +584,11 @@ function M.open()
   kmap('<CR>', function() open_file(state) end)
   kmap('o', function() open_file(state) end)
   kmap('<2-LeftMouse>', function() open_file(state) end) -- double-click opens, like the tree
+  -- Single click opens/toggles, like the tree. On release, so the unmapped <LeftMouse> has
+  -- already moved the cursor onto the clicked row.
+  kmap('<LeftRelease>', function()
+    if require('config.utils').clicked_line() then open_file(state) end
+  end)
   kmap('gh', function() module_doc(state) end)
   kmap('<Tab>', function() toggle_fold(state) end)
   kmap('za', function() toggle_fold(state) end)

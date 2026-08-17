@@ -290,6 +290,15 @@ function M.tree_module_doc()
   if node and node.type == 'file' and node.absolute_path then M.module_doc_float(node.absolute_path) end
 end
 
+-- Row a <LeftRelease> landed on in the current window; nil if the press was dragged out or hit
+-- below the last line (getmousepos clamps `line` there, but its real screen row gives it away).
+function M.clicked_line()
+  local pos = vim.fn.getmousepos()
+  if pos.winid ~= vim.api.nvim_get_current_win() then return end
+  if vim.fn.screenpos(pos.winid, pos.line, 1).row ~= pos.screenrow then return end
+  return pos.line
+end
+
 -- Jump to the trait method backing the symbol under cursor.
 -- Plain LSP defn/decl misbehaves (inherent impls shadow, #[async_trait] -> ~/.cargo/registry).
 function M.go_to_interface()

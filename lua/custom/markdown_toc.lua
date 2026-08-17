@@ -239,12 +239,7 @@ function M.toggle()
   -- Single click jumps, like the file tree. On release, so the unmapped <LeftMouse>
   -- has already moved the cursor onto the clicked row.
   kmap('<LeftRelease>', function()
-    local pos = vim.fn.getmousepos()
-    if pos.winid ~= vim.api.nvim_get_current_win() then return end -- dragged out of the panel
-    -- getmousepos clamps `line` to the last row, so a click below the list would jump;
-    -- the real screen row of that line gives it away.
-    if vim.fn.screenpos(pos.winid, pos.line, 1).row ~= pos.screenrow then return end
-    jump(state, true)
+    if require('config.utils').clicked_line() then jump(state, true) end
   end)
   kmap('<Tab>', function() toggle_fold(state) end)
   kmap('za', function() toggle_fold(state) end)
