@@ -63,7 +63,7 @@ end
 -- blame.nvim forces cursorline on both panes; tree has its own winhl group,
 -- so recoloring global CursorLine only affects the blame-driven cursorline.
 local function apply_blame_hl()
-  vim.api.nvim_set_hl(0, 'CursorLine', { bg = theme.black })
+  vim.api.nvim_set_hl(0, 'CursorLine', require('config.utils').shade())
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_blame_hl })
 apply_blame_hl()

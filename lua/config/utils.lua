@@ -2,6 +2,22 @@ local M = {}
 
 local colors = require('config.theme_colors')
 
+-- Neovide fades only the default background (`neovide_normal_opacity`) and paints
+-- explicit ones solid; this blend gives them the same fade. 0 in terminal nvim.
+function M.bg_blend()
+  local opacity = vim.g.neovide and vim.g.neovide_normal_opacity or 1
+  return math.floor((1 - opacity) * 100 + 0.5)
+end
+
+-- Dim background for cursorline and code blocks. Neovide fades black via blend;
+-- a terminal blends nothing, so there a lighter tone stands in for the fade.
+function M.shade(extra)
+  local hl = extra or {}
+  hl.bg = vim.g.neovide and colors.black or colors.float
+  hl.blend = M.bg_blend()
+  return hl
+end
+
 -- Float yazi; open the chosen file.
 function M.open_yazi()
   local tmp = vim.fn.tempname()

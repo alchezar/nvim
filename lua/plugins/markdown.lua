@@ -10,11 +10,12 @@ local function apply_markview_hl()
   for i, c in ipairs(colors) do
     vim.api.nvim_set_hl(0, 'KinderMarkdownH' .. i, { fg = c, bold = true })
   end
-  -- Code blocks: darker than the editor background (bg #262626 -> black #181818).
+  -- Code blocks: darker than the editor background, shaded per UI (utils.shade).
   -- Block bg only (treesitter colors the code); inline code also forces gray text
   -- so it never inherits the surrounding red (e.g. inside an H1 heading).
-  vim.api.nvim_set_hl(0, 'KinderMarkdownCode', { bg = theme.black })
-  vim.api.nvim_set_hl(0, 'KinderMarkdownInlineCode', { bg = theme.black, fg = theme.gray })
+  local utils = require('config.utils')
+  vim.api.nvim_set_hl(0, 'KinderMarkdownCode', utils.shade())
+  vim.api.nvim_set_hl(0, 'KinderMarkdownInlineCode', utils.shade({ fg = theme.gray }))
   -- Horizontal rule: one muted full-width line, no center glyph or gradient.
   vim.api.nvim_set_hl(0, 'KinderMarkdownRule', { fg = theme.silver })
   -- Bold (**...**): teal, still bold. Scoped to markdown_inline so other langs keep theirs.
