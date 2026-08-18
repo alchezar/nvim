@@ -40,7 +40,25 @@ vim.cmd("colorscheme kinder_theme")
 local function apply_neovide_theme()
   vim.api.nvim_set_hl(0, "Normal", { bg = palette.bg })
   vim.api.nvim_set_hl(0, "NormalFloat", { bg = palette.bg })
+  vim.api.nvim_set_hl(0, "KinderNormal", { bg = palette.bg })
 end
+
+-- Cells without a highlight skip Neovide's background rect and land a shade apart
+-- under a transparent Normal; a pinned Normal puts every cell on the painted path.
+local function pin_window_normal(win)
+  local wh = vim.wo[win].winhighlight
+  if wh:find("Normal:") then return end -- the window (tree, telescope) already has one
+  vim.wo[win].winhighlight = wh == "" and "Normal:KinderNormal" or (wh .. ",Normal:KinderNormal")
+end
+
+local function pin_all_windows()
+  for _, win in ipairs(vim.api.nvim_list_wins()) do pin_window_normal(win) end
+end
+
+vim.api.nvim_create_autocmd({ "WinNew", "WinEnter", "BufWinEnter" }, {
+  callback = function() pin_window_normal(vim.api.nvim_get_current_win()) end,
+})
+vim.api.nvim_create_autocmd("VimEnter", { callback = pin_all_windows })
 
 local update_cursor_color = require("config.utils").update_cursor_color
 vim.opt.guicursor =
@@ -57,6 +75,7 @@ vim.api.nvim_create_autocmd({ "ColorScheme" }, {
 })
 apply_neovide_theme()
 update_cursor_color()
+pin_all_windows()
 
 -- Kill cursorline ghost bands left by Neovide's smooth (touchpad) scroll in tree/blame windows.
 require("config.utils").dim_cursorline_while_scrolling()
