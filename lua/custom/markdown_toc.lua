@@ -10,6 +10,7 @@ local ns = vim.api.nvim_create_namespace('markdown_toc')
 
 local PANEL_WIDTH = 40
 local ARROW_CLOSED, ARROW_OPEN = '\u{F460}', '\u{F47C}' -- same expanders as the file tree
+local NO_SOURCE = 'Table of contents: no markdown buffer'
 
 -- H1..H6 in the colors markview paints them (plugins/markdown.lua).
 local HEADING_COLORS = { 'red', 'orange', 'yellow', 'green', 'blue', 'purple' }
@@ -75,6 +76,11 @@ local function outline(bufnr)
   return items
 end
 
+-- Single greyed line for a panel with nothing to list.
+local function note_lines(note)
+  return { '  ' .. note }, { { line = 0, col = 2, len = #note, hl = 'MarkdownTocEmpty' } }
+end
+
 -- Headings -> buffer lines + per-line meta. A folded heading hides its nested ones.
 local function render(items)
   local lines, hls, meta, row_of_key = {}, {}, {}, {}
@@ -98,23 +104,24 @@ local function render(items)
       if h.has_children and collapsed[h.key] then hide_below = h.indent end
     end
   end
-  if #lines == 0 then
-    local note = '(no headings)'
-    lines[1] = '  ' .. note
-    hls[1] = { line = 0, col = 2, len = #note, hl = 'MarkdownTocEmpty' }
-  end
+  if #lines == 0 then lines, hls = note_lines('(no headings)') end
   return lines, hls, meta, row_of_key
 end
 
 -- Re-read the source buffer and redraw in place; the panel cursor keeps its row.
 local function repaint(state)
-  if not (valid(state) and vim.api.nvim_buf_is_valid(state.src_buf)) then return end
-  state.items = outline(state.src_buf)
-  state.by_key = {}
-  for _, h in ipairs(state.items) do state.by_key[h.key] = h end
-  state.tick = vim.b[state.src_buf].changedtick
-
-  local lines, hls, meta, row_of_key = render(state.items)
+  if not valid(state) then return end
+  local lines, hls, meta, row_of_key
+  if state.src_buf and vim.api.nvim_buf_is_valid(state.src_buf) then
+    state.items = outline(state.src_buf)
+    state.by_key = {}
+    for _, h in ipairs(state.items) do state.by_key[h.key] = h end
+    state.tick = vim.b[state.src_buf].changedtick
+    lines, hls, meta, row_of_key = render(state.items)
+  else -- detached: keep the panel, say why it is empty
+    state.items, state.by_key, meta, row_of_key = {}, {}, {}, {}
+    lines, hls = note_lines(NO_SOURCE)
+  end
   state.meta, state.row_of_key = meta, row_of_key
   vim.bo[state.buf].modifiable = true
   vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
@@ -184,6 +191,16 @@ local function close(state)
   if valid(state) then vim.api.nvim_win_close(state.win, true) end
 end
 
+-- No markdown to outline: empty the panel instead of closing it, so hopping through
+-- other files doesn't cost a reopen. It refills as soon as markdown is focused again.
+local function detach(state)
+  if not valid(state) then return end
+  state.src_win, state.src_buf = nil, nil
+  vim.api.nvim_win_set_var(state.win, 'ft_no_cursorline', true)
+  vim.wo[state.win].cursorline = false
+  repaint(state)
+end
+
 -- Re-aim the panel at another markdown buffer (window switch, or the source closed).
 local function retarget(state, win)
   state.src_win, state.src_buf = win, vim.api.nvim_win_get_buf(win)
@@ -199,11 +216,7 @@ function M.toggle()
     return
   end
 
-  local src_win = markdown_win()
-  if not src_win then
-    vim.notify('Table of contents: no markdown buffer', vim.log.levels.WARN)
-    return
-  end
+  local src_win = markdown_win() -- may be nil: the panel opens empty and waits
 
   local buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].bufhidden = 'wipe'
@@ -219,9 +232,10 @@ function M.toggle()
   vim.wo[win].winfixwidth = true
   vim.wo[win].wrap, vim.wo[win].list, vim.wo[win].spell = false, false, false
 
-  local state = { buf = buf, win = win, src_win = src_win, src_buf = vim.api.nvim_win_get_buf(src_win) }
+  local state = { buf = buf, win = win }
   collapsed = {} -- fresh window: show the whole outline
-  repaint(state) -- meta ready before `active` is published to follow
+  -- meta ready before `active` is published to follow
+  if src_win then retarget(state, src_win) else detach(state) end
   active = state
   vim.api.nvim_create_autocmd('BufWipeout', {
     buffer = buf,
@@ -255,7 +269,7 @@ vim.api.nvim_create_autocmd('CursorMoved', {
 })
 
 -- Follow the editor across windows: another markdown buffer takes the panel over, a
--- real file of any other type closes it (its outline would be a stale document).
+-- real file of any other type empties it (its outline would be a stale document).
 -- Trees, terminals and floats only borrow focus, so they leave the panel alone.
 vim.api.nvim_create_autocmd({ 'BufEnter', 'WinEnter' }, {
   callback = function(args)
@@ -265,11 +279,11 @@ vim.api.nvim_create_autocmd({ 'BufEnter', 'WinEnter' }, {
     if win == st.win or vim.api.nvim_win_get_buf(win) ~= args.buf then return end
     if vim.bo[args.buf].buftype ~= '' then return end
     if vim.bo[args.buf].filetype ~= 'markdown' then
-      -- On the next tick: closing mid-autocmd can trip window ops, and a buffer that
-      -- is still settling its buftype/filetype has had time to land by then.
+      -- On the next tick: a buffer that is still settling its buftype/filetype has
+      -- had time to land by then.
       vim.schedule(function()
         local buf = vim.api.nvim_get_current_buf()
-        if vim.bo[buf].buftype == '' and vim.bo[buf].filetype ~= 'markdown' then close(st) end
+        if vim.bo[buf].buftype == '' and vim.bo[buf].filetype ~= 'markdown' then detach(st) end
       end)
       return
     end
@@ -295,7 +309,7 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'BufWritePost' }, {
   end,
 })
 
--- The edited window was closed: hand the panel to another markdown window, if any.
+-- The edited window was closed: hand the panel to another markdown window, or empty it.
 vim.api.nvim_create_autocmd('WinClosed', {
   callback = function(args)
     local st = active
@@ -303,7 +317,7 @@ vim.api.nvim_create_autocmd('WinClosed', {
     vim.schedule(function()
       if not valid(active) then return end
       local win = markdown_win()
-      if win and win ~= active.win then retarget(active, win) end
+      if win and win ~= active.win then retarget(active, win) else detach(active) end
     end)
   end,
 })
