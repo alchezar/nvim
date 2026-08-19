@@ -115,6 +115,28 @@ md_renderer.clear = function(buffer, from, to, hybrid)
   return md_clear(buffer, from, to, hybrid)
 end
 
+-- Under 'wrap' our own box covers the table's source rows, but markview's inline
+-- pass still pads and conceals inside them, which moves the soft-wrap points the
+-- box is anchored on. Drop inline items sitting on a table row.
+local inline_renderer = require('markview.renderers.markdown_inline')
+local inline_render = inline_renderer.render
+inline_renderer.render = function(buffer, content, heading_lines)
+  local win = require('markview.utils').buf_getwin(buffer)
+  if type(win) == 'number' and vim.wo[win].wrap then
+    local cache, kept = {}, {}
+    for _, item in ipairs(content or {}) do
+      local row = item.range and item.range.row_start
+      if row and cache[row] == nil then
+        local line = vim.api.nvim_buf_get_lines(buffer, row, row + 1, false)[1] or ''
+        cache[row] = line:match('^%s*|') ~= nil
+      end
+      if not row or not cache[row] then kept[#kept + 1] = item end
+    end
+    content = kept
+  end
+  return inline_render(buffer, content, heading_lines)
+end
+
 local pad_ns = vim.api.nvim_create_namespace('kinder_markdown_pad')
 -- No code_span_delimiter: markview already pads inline code back to its raw width.
 local pad_query = '(emphasis_delimiter) @full (backslash_escape) @first'
@@ -176,25 +198,34 @@ local function sync_raw(win, buffer)
   local leftcol = vim.api.nvim_win_call(win, function() return vim.fn.winsaveview().leftcol end)
   local raw = vim.wo[win].wrap or leftcol > 0
 
-  if vim.w[win].markview_raw == raw then return end
-  vim.w[win].markview_raw = raw
+  -- Width matters too: the box is laid out for one exact text width and its overlays
+  -- sit on byte columns derived from it, so a resize has to repaint.
+  local width = vim.api.nvim_win_get_width(win) - vim.fn.getwininfo(win)[1].textoff
+  if vim.w[win].markview_raw == raw and vim.w[win].markview_width == width then return end
+  vim.w[win].markview_raw, vim.w[win].markview_width = raw, width
 
   vim.wo[win].conceallevel = raw and 2 or 3
   pad_concealed(buffer, raw)
   require('markview.actions').render(buffer)
 end
 
-vim.api.nvim_create_autocmd({ 'WinScrolled', 'OptionSet', 'BufWinEnter' }, {
+vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized', 'OptionSet', 'BufWinEnter' }, {
   callback = function(args)
     if args.event == 'OptionSet' and args.match ~= 'wrap' then return end
 
-    local win = args.event == 'WinScrolled' and tonumber(args.match) or vim.api.nvim_get_current_win()
-    if not vim.api.nvim_win_is_valid(win) then return end
-    -- OptionSet reports args.buf as 0, which never matches the window's real buffer.
-    local buf = vim.api.nvim_win_get_buf(win)
-    if vim.bo[buf].filetype ~= 'markdown' then return end
+    -- WinResized names every affected window; the others carry just the one.
+    local wins = args.event == 'WinResized' and vim.v.event.windows
+        or { args.event == 'WinScrolled' and tonumber(args.match) or vim.api.nvim_get_current_win() }
 
-    -- Deferred: markview sets conceallevel on attach, and rendering inside the scroll does nothing.
-    vim.schedule(function() sync_raw(win, buf) end)
+    for _, win in ipairs(wins or {}) do
+      if vim.api.nvim_win_is_valid(win) then
+        -- OptionSet reports args.buf as 0, which never matches the window's real buffer.
+        local buf = vim.api.nvim_win_get_buf(win)
+        if vim.bo[buf].filetype == 'markdown' then
+          -- Deferred: markview sets conceallevel on attach, and rendering inside the scroll does nothing.
+          vim.schedule(function() sync_raw(win, buf) end)
+        end
+      end
+    end
   end,
 })
