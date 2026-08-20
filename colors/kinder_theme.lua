@@ -77,6 +77,9 @@ vim.api.nvim_set_hl(0, "@tag.attribute.xml", { fg = colors.orange })
 vim.api.nvim_set_hl(0, "@string.xml", { fg = colors.yellow })
 vim.api.nvim_set_hl(0, "@comment.xml", { fg = colors.silver, italic = true })
 
+-- Links with colors instead of `Underlined`
+vim.api.nvim_set_hl(0, "@markup.link", { fg = colors.cyan })
+
 -- LSP diagnostics
 vim.api.nvim_set_hl(0, "DiagnosticError", { fg = colors.red })
 vim.api.nvim_set_hl(0, "DiagnosticWarn", { fg = colors.orange })
