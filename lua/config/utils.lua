@@ -210,10 +210,11 @@ local function reflow_signatures(lines)
   return out
 end
 
--- Hover float with line diagnostics prepended.
-function M.hover()
-  local bufnr = 0
-  local lnum = vim.fn.line('.') - 1
+-- Line diagnostics plus the LSP hover of `win`'s cursor, as markdown lines. Async:
+-- `on_done` runs once every hover client has answered, with `{}` when nothing replied.
+function M.hover_lines(win, on_done)
+  local bufnr = vim.api.nvim_win_get_buf(win)
+  local lnum = vim.api.nvim_win_get_cursor(win)[1] - 1
   local diags = vim.diagnostic.get(bufnr, { lnum = lnum })
 
   local prefix = {}
@@ -230,17 +231,8 @@ function M.hover()
   end
 
   local clients = vim.lsp.get_clients({ bufnr = bufnr, method = 'textDocument/hover' })
-  local function show(lines)
-    if #lines == 0 then return end
-    vim.lsp.util.open_floating_preview(lines, 'markdown', {
-      border = 'rounded',
-      max_width = 80,
-      focus_id = 'kinder-hover',
-    })
-  end
-
   if #clients == 0 then
-    show(prefix)
+    on_done(prefix)
     return
   end
 
@@ -248,7 +240,7 @@ function M.hover()
   local remaining = #clients
   local hover_lines = nil
   for _, client in ipairs(clients) do
-    local params = vim.lsp.util.make_position_params(0, client.offset_encoding)
+    local params = vim.lsp.util.make_position_params(win, client.offset_encoding)
     client:request('textDocument/hover', params, function(err, result)
       if not hover_lines and not err and result and result.contents then
         local h = vim.lsp.util.convert_input_to_markdown_lines(result.contents)
@@ -262,21 +254,29 @@ function M.hover()
           if #lines > 0 then table.insert(lines, '---') end
           vim.list_extend(lines, hover_lines)
         end
-        show(lines)
+        on_done(lines)
       end
     end, bufnr)
   end
 end
 
--- Preview a Rust file's leading `//!` module doc in a hover float (like `gh` on code).
--- Shared by nvim-tree and the feature-tree panel, so it takes a plain path.
-function M.module_doc_float(path)
-  local read_ok, file_lines = pcall(vim.fn.readfile, path, '', 100)
-  if not read_ok then return end
+-- Hover float with line diagnostics prepended.
+function M.hover()
+  M.hover_lines(0, function(lines)
+    if #lines == 0 then return end
+    vim.lsp.util.open_floating_preview(lines, 'markdown', {
+      border = 'rounded',
+      max_width = 80,
+      focus_id = 'kinder-hover',
+    })
+  end)
+end
 
-  -- Collect the leading `//!` block, allowing blanks / attributes / other comments before it.
+-- Leading `//!` block of a Rust file. Blanks, attributes and plain `//` comments may
+-- come first; anything else ends the search.
+local function rust_module_doc(lines)
   local doc, started = {}, false
-  for _, line in ipairs(file_lines) do
+  for _, line in ipairs(lines) do
     local trimmed = vim.trim(line)
     local content = trimmed:match('^//!(.*)')
     if content then
@@ -286,7 +286,37 @@ function M.module_doc_float(path)
       break
     end
   end
+  return doc
+end
 
+-- Header comment a buffer opens with: the `//!` module doc in Rust, elsewhere the run
+-- of line comments at the top ('commentstring'). Empty when the file has none.
+function M.file_header_doc(bufnr)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, 100, false)
+  if vim.bo[bufnr].filetype == 'rust' then return rust_module_doc(lines) end
+
+  local prefix = (vim.bo[bufnr].commentstring or ''):match('^(.-)%s*%%s')
+  if not prefix or prefix == '' then return {} end
+  local doc, started = {}, false
+  for _, line in ipairs(lines) do
+    local trimmed = vim.trim(line)
+    if vim.startswith(trimmed, prefix) then
+      started = true
+      table.insert(doc, (trimmed:sub(#prefix + 1):gsub('^ ', '')))
+    elseif started or not (trimmed == '' or trimmed:match('^#!')) then
+      break
+    end
+  end
+  return doc
+end
+
+-- Preview a Rust file's leading `//!` module doc in a hover float (like `gh` on code).
+-- Shared by nvim-tree and the feature-tree panel, so it takes a plain path.
+function M.module_doc_float(path)
+  local read_ok, file_lines = pcall(vim.fn.readfile, path, '', 100)
+  if not read_ok then return end
+
+  local doc = rust_module_doc(file_lines)
   if #doc == 0 then
     vim.notify('No //! module doc in ' .. vim.fn.fnamemodify(path, ':t'), vim.log.levels.INFO)
     return

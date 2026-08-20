@@ -1,5 +1,6 @@
--- Table of contents panel for markdown: a split on the right listing the ATX
--- headings of the edited buffer, cursorline parked on the current section.
+-- Table of contents panel for markdown: the right-hand panel listing the ATX
+-- headings of the edited buffer, cursorline parked on the current section. Shares
+-- one slot with the hover view, see custom/side_panel.lua.
 --   :MarkdownToc / <leader>O  toggle; <CR> jumps + focuses, o jumps and stays,
 --   <Tab>/za fold, zM/zR fold all, q closes.
 
@@ -8,7 +9,6 @@ local theme = require('config.theme_colors')
 local M = {}
 local ns = vim.api.nvim_create_namespace('markdown_toc')
 
-local PANEL_WIDTH = 40
 local ARROW_CLOSED, ARROW_OPEN = '\u{F460}', '\u{F47C}' -- same expanders as the file tree
 local NO_SOURCE = 'Table of contents: no markdown buffer'
 
@@ -27,35 +27,29 @@ vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_hl })
 apply_hl()
 
 local collapsed = {} -- heading key -> true (folded); reset on open, kept while the panel lives
-local active         -- open panel's state, for the follow/refresh autocmds; nil when closed
-
--- Tab window showing filetype ft, or nil.
-local function win_by_ft(ft)
-  for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    if vim.bo[vim.api.nvim_win_get_buf(w)].filetype == ft then return w end
-  end
-end
+local state          -- panel buffer + source; lives as long as the buffer, nil when closed
 
 -- Window to outline: the current one when it holds markdown. A tree/terminal/float
 -- (buftype ~= '') is only borrowed focus, so look past it; a real file of another
 -- type is not a document to list.
-local function markdown_win()
+function M.source_win()
   local cur = vim.api.nvim_get_current_win()
   local buf = vim.api.nvim_win_get_buf(cur)
   if vim.bo[buf].filetype == 'markdown' then return cur end
   if vim.bo[buf].buftype == '' then return nil end
   for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-    if vim.bo[vim.api.nvim_win_get_buf(w)].filetype == 'markdown' then return w end
+    local b = vim.api.nvim_win_get_buf(w)
+    if vim.bo[b].buftype == '' and vim.bo[b].filetype == 'markdown' then return w end
   end
 end
 
-local function valid(state)
-  return state and state.win and vim.api.nvim_win_is_valid(state.win)
+local function valid(st)
+  return st and st.win and vim.api.nvim_win_is_valid(st.win)
 end
 
-local function src_valid(state)
-  return state.src_win and vim.api.nvim_win_is_valid(state.src_win)
-      and vim.api.nvim_win_get_buf(state.src_win) == state.src_buf
+local function src_valid(st)
+  return st.src_win and vim.api.nvim_win_is_valid(st.src_win)
+      and vim.api.nvim_win_get_buf(st.src_win) == st.src_buf
 end
 
 -- Headings with a fold key and a children flag. The key is the ancestor text
@@ -109,33 +103,33 @@ local function render(items)
 end
 
 -- Re-read the source buffer and redraw in place; the panel cursor keeps its row.
-local function repaint(state)
-  if not valid(state) then return end
+local function repaint(st)
+  if not valid(st) then return end
   local lines, hls, meta, row_of_key
-  if state.src_buf and vim.api.nvim_buf_is_valid(state.src_buf) then
-    state.items = outline(state.src_buf)
-    state.by_key = {}
-    for _, h in ipairs(state.items) do state.by_key[h.key] = h end
-    state.tick = vim.b[state.src_buf].changedtick
-    lines, hls, meta, row_of_key = render(state.items)
+  if st.src_buf and vim.api.nvim_buf_is_valid(st.src_buf) then
+    st.items = outline(st.src_buf)
+    st.by_key = {}
+    for _, h in ipairs(st.items) do st.by_key[h.key] = h end
+    st.tick = vim.b[st.src_buf].changedtick
+    lines, hls, meta, row_of_key = render(st.items)
   else -- detached: keep the panel, say why it is empty
-    state.items, state.by_key, meta, row_of_key = {}, {}, {}, {}
+    st.items, st.by_key, meta, row_of_key = {}, {}, {}, {}
     lines, hls = note_lines(NO_SOURCE)
   end
-  state.meta, state.row_of_key = meta, row_of_key
-  vim.bo[state.buf].modifiable = true
-  vim.api.nvim_buf_set_lines(state.buf, 0, -1, false, lines)
-  vim.bo[state.buf].modifiable = false
-  vim.api.nvim_buf_clear_namespace(state.buf, ns, 0, -1)
+  st.meta, st.row_of_key = meta, row_of_key
+  vim.bo[st.buf].modifiable = true
+  vim.api.nvim_buf_set_lines(st.buf, 0, -1, false, lines)
+  vim.bo[st.buf].modifiable = false
+  vim.api.nvim_buf_clear_namespace(st.buf, ns, 0, -1)
   for _, h in ipairs(hls) do
-    vim.api.nvim_buf_set_extmark(state.buf, ns, h.line, h.col, {
+    vim.api.nvim_buf_set_extmark(st.buf, ns, h.line, h.col, {
       end_col = h.col + h.len,
       hl_group = h.hl,
     })
   end
   -- Folding shrinks the list under a cursor that sat on a now-hidden row.
-  local row = vim.api.nvim_win_get_cursor(state.win)[1]
-  if row > #lines then vim.api.nvim_win_set_cursor(state.win, { #lines, 0 }) end
+  local row = vim.api.nvim_win_get_cursor(st.win)[1]
+  if row > #lines then vim.api.nvim_win_set_cursor(st.win, { #lines, 0 }) end
 end
 
 -- Section owning `lnum`: the last heading at or above it.
@@ -150,101 +144,73 @@ end
 
 -- Park the panel cursor on the current section, without stealing focus. A section
 -- hidden inside a fold highlights its nearest visible ancestor instead.
-local function follow(state)
-  if not valid(state) or not src_valid(state) then return end
-  if vim.api.nvim_get_current_win() == state.win then return end -- user is browsing the panel
-  local h = section_at(state.items, vim.api.nvim_win_get_cursor(state.src_win)[1])
-  while h and not state.row_of_key[h.key] do h = h.parent and state.by_key[h.parent] or nil end
+local function follow(st)
+  if not valid(st) or not src_valid(st) then return end
+  if vim.api.nvim_get_current_win() == st.win then return end -- user is browsing the panel
+  local h = section_at(st.items, vim.api.nvim_win_get_cursor(st.src_win)[1])
+  while h and not st.row_of_key[h.key] do h = h.parent and st.by_key[h.parent] or nil end
   -- Above the first heading: nothing to point at, so drop the stale highlight.
-  vim.api.nvim_win_set_var(state.win, 'ft_no_cursorline', h == nil)
-  vim.wo[state.win].cursorline = h ~= nil
+  vim.api.nvim_win_set_var(st.win, 'ft_no_cursorline', h == nil)
+  vim.wo[st.win].cursorline = h ~= nil
   if not h then return end
   -- No centering: nvim scrolls the panel only when the row falls off it, so reading
   -- down a document doesn't drag the whole outline along.
-  vim.api.nvim_win_set_cursor(state.win, { state.row_of_key[h.key], 0 })
+  vim.api.nvim_win_set_cursor(st.win, { st.row_of_key[h.key], 0 })
 end
 
 -- Move the edited window onto the heading under the panel cursor.
-local function jump(state, focus)
-  local h = state.meta[vim.api.nvim_win_get_cursor(state.win)[1]]
-  if not h or not src_valid(state) then return end
-  vim.api.nvim_win_set_cursor(state.src_win, { h.lnum, 0 })
-  vim.api.nvim_win_call(state.src_win, function() vim.cmd('normal! zz') end)
-  if focus then vim.api.nvim_set_current_win(state.src_win) end
+local function jump(st, focus)
+  if not valid(st) or not src_valid(st) then return end
+  local h = st.meta[vim.api.nvim_win_get_cursor(st.win)[1]]
+  if not h then return end
+  vim.api.nvim_win_set_cursor(st.src_win, { h.lnum, 0 })
+  vim.api.nvim_win_call(st.src_win, function() vim.cmd('normal! zz') end)
+  if focus then vim.api.nvim_set_current_win(st.src_win) end
 end
 
-local function toggle_fold(state)
-  local h = state.meta[vim.api.nvim_win_get_cursor(state.win)[1]]
+local function toggle_fold(st)
+  if not valid(st) then return end
+  local h = st.meta[vim.api.nvim_win_get_cursor(st.win)[1]]
   if not h or not h.has_children then return end
   collapsed[h.key] = not collapsed[h.key] or nil
-  repaint(state)
+  repaint(st)
 end
 
-local function set_all_folds(state, folded)
-  for _, h in ipairs(state.items) do
+local function set_all_folds(st, folded)
+  if not valid(st) then return end
+  for _, h in ipairs(st.items) do
     if h.has_children then collapsed[h.key] = folded or nil end
   end
-  repaint(state)
-end
-
-local function close(state)
-  if valid(state) then vim.api.nvim_win_close(state.win, true) end
+  repaint(st)
 end
 
 -- No markdown to outline: empty the panel instead of closing it, so hopping through
 -- other files doesn't cost a reopen. It refills as soon as markdown is focused again.
-local function detach(state)
-  if not valid(state) then return end
-  state.src_win, state.src_buf = nil, nil
-  vim.api.nvim_win_set_var(state.win, 'ft_no_cursorline', true)
-  vim.wo[state.win].cursorline = false
-  repaint(state)
+local function detach(st)
+  if not valid(st) then return end
+  st.src_win, st.src_buf = nil, nil
+  vim.api.nvim_win_set_var(st.win, 'ft_no_cursorline', true)
+  vim.wo[st.win].cursorline = false
+  repaint(st)
 end
 
 -- Re-aim the panel at another markdown buffer (window switch, or the source closed).
-local function retarget(state, win)
-  state.src_win, state.src_buf = win, vim.api.nvim_win_get_buf(win)
-  repaint(state)
-  follow(state)
+local function retarget(st, win)
+  st.src_win, st.src_buf = win, vim.api.nvim_win_get_buf(win)
+  repaint(st)
+  follow(st)
 end
 
--- Toggle the table of contents in a full-height split on the right.
-function M.toggle()
-  local existing = win_by_ft('MarkdownToc')
-  if existing then
-    vim.api.nvim_win_close(existing, true)
-    return
-  end
+-- side_panel provider interface ------------------------------------------------
 
-  local src_win = markdown_win() -- may be nil: the panel opens empty and waits
+function M.panel_buf()
+  if state and vim.api.nvim_buf_is_valid(state.buf) then return state.buf end
 
   local buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[buf].bufhidden = 'wipe'
+  vim.bo[buf].bufhidden = 'hide'
   vim.bo[buf].filetype = 'MarkdownToc'
-
-  local back = vim.api.nvim_get_current_win()
-  vim.cmd('botright vsplit')
-  local win = vim.api.nvim_get_current_win()
-  vim.api.nvim_win_set_buf(win, buf)
-  vim.api.nvim_win_set_width(win, PANEL_WIDTH)
-  vim.wo[win].cursorline = true
-  vim.wo[win].number, vim.wo[win].relativenumber, vim.wo[win].signcolumn = false, false, 'no'
-  vim.wo[win].winfixwidth = true
-  vim.wo[win].wrap, vim.wo[win].list, vim.wo[win].spell = false, false, false
-
-  local state = { buf = buf, win = win }
-  collapsed = {} -- fresh window: show the whole outline
-  -- meta ready before `active` is published to follow
-  if src_win then retarget(state, src_win) else detach(state) end
-  active = state
-  vim.api.nvim_create_autocmd('BufWipeout', {
-    buffer = buf,
-    once = true,
-    callback = function() if active and active.buf == buf then active = nil end end,
-  })
-
-  vim.api.nvim_set_current_win(back) -- the panel is a map, not the place to land
-  follow(state)
+  state = { buf = buf }
+  collapsed = {} -- fresh panel: show the whole outline
 
   local kmap = function(lhs, fn) vim.keymap.set('n', lhs, fn, { buffer = buf, nowait = true }) end
   kmap('<CR>', function() jump(state, true) end)
@@ -259,35 +225,53 @@ function M.toggle()
   kmap('za', function() toggle_fold(state) end)
   kmap('zM', function() set_all_folds(state, true) end)
   kmap('zR', function() set_all_folds(state, false) end)
-  kmap('q', function() close(state) end)
+  kmap('q', function() require('custom.side_panel').close() end)
+  return buf
 end
+
+function M.panel_show(win)
+  state.win = win
+  -- The hover view leaves the window wrapped and concealing; an outline is neither.
+  vim.wo[win].wrap, vim.wo[win].linebreak, vim.wo[win].breakindent = false, false, false
+  vim.wo[win].conceallevel = 0
+  vim.wo[win].cursorline = true
+  local src = M.source_win()
+  if src then retarget(state, src) else detach(state) end
+end
+
+-- Window or buffer switched: take over another markdown buffer, or empty out.
+function M.panel_sync()
+  if not valid(state) then return end
+  local win = vim.api.nvim_get_current_win()
+  if win == state.win then return end          -- user is browsing the panel
+  local buf = vim.api.nvim_win_get_buf(win)
+  if vim.bo[buf].buftype ~= '' then return end -- tree/terminal/float only borrows focus
+  if vim.bo[buf].filetype ~= 'markdown' then
+    detach(state)
+  elseif win ~= state.src_win or buf ~= state.src_buf then
+    retarget(state, win)
+  else
+    follow(state)
+  end
+end
+
+function M.panel_hide()
+  if state then state.win = nil end
+end
+
+function M.panel_close()
+  if not state then return end
+  local buf = state.buf
+  state = nil
+  if vim.api.nvim_buf_is_valid(buf) then vim.api.nvim_buf_delete(buf, { force = true }) end
+end
+
+-- Toggle the table of contents in the shared right-hand panel.
+function M.toggle() require('custom.side_panel').toggle() end
 
 vim.api.nvim_create_autocmd('CursorMoved', {
   callback = function()
-    if active then follow(active) end
-  end,
-})
-
--- Follow the editor across windows: another markdown buffer takes the panel over, a
--- real file of any other type empties it (its outline would be a stale document).
--- Trees, terminals and floats only borrow focus, so they leave the panel alone.
-vim.api.nvim_create_autocmd({ 'BufEnter', 'WinEnter' }, {
-  callback = function(args)
-    local st = active
-    if not valid(st) then return end
-    local win = vim.api.nvim_get_current_win()
-    if win == st.win or vim.api.nvim_win_get_buf(win) ~= args.buf then return end
-    if vim.bo[args.buf].buftype ~= '' then return end
-    if vim.bo[args.buf].filetype ~= 'markdown' then
-      -- On the next tick: a buffer that is still settling its buftype/filetype has
-      -- had time to land by then.
-      vim.schedule(function()
-        local buf = vim.api.nvim_get_current_buf()
-        if vim.bo[buf].buftype == '' and vim.bo[buf].filetype ~= 'markdown' then detach(st) end
-      end)
-      return
-    end
-    if win ~= st.src_win or args.buf ~= st.src_buf then retarget(st, win) end
+    if valid(state) then follow(state) end
   end,
 })
 
@@ -295,16 +279,14 @@ vim.api.nvim_create_autocmd({ 'BufEnter', 'WinEnter' }, {
 local refresh_timer
 vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'BufWritePost' }, {
   callback = function(args)
-    local st = active
-    if not valid(st) or args.buf ~= st.src_buf then return end
+    if not valid(state) or args.buf ~= state.src_buf then return end
     refresh_timer = refresh_timer or vim.uv.new_timer()
     if not refresh_timer then return end
     refresh_timer:stop()
     refresh_timer:start(150, 0, vim.schedule_wrap(function()
-      local cur = active
-      if not valid(cur) or vim.b[cur.src_buf].changedtick == cur.tick then return end
-      repaint(cur)
-      follow(cur)
+      if not valid(state) or vim.b[state.src_buf].changedtick == state.tick then return end
+      repaint(state)
+      follow(state)
     end))
   end,
 })
@@ -312,12 +294,11 @@ vim.api.nvim_create_autocmd({ 'TextChanged', 'TextChangedI', 'BufWritePost' }, {
 -- The edited window was closed: hand the panel to another markdown window, or empty it.
 vim.api.nvim_create_autocmd('WinClosed', {
   callback = function(args)
-    local st = active
-    if not valid(st) or tonumber(args.match) ~= st.src_win then return end
+    if not valid(state) or tonumber(args.match) ~= state.src_win then return end
     vim.schedule(function()
-      if not valid(active) then return end
-      local win = markdown_win()
-      if win and win ~= active.win then retarget(active, win) else detach(active) end
+      if not valid(state) then return end
+      local win = M.source_win()
+      if win and win ~= state.win then retarget(state, win) else detach(state) end
     end)
   end,
 })

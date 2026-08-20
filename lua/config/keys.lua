@@ -54,8 +54,8 @@ map('n', '[d', utils.diagnostic_prev, { desc = 'Previous diagnostic' })
 map('n', ']d', utils.diagnostic_next, { desc = 'Next diagnostic' })
 map('n', 'go', utils.switch_source_header, { desc = 'Switch C/C++ source/header' })
 map('n', '<leader>o', utils.document_symbols, { desc = 'File structure (Telescope)' })
-map('n', '<leader>O', function() require('custom.markdown_toc').toggle() end,
-  { desc = 'Markdown: toggle table of contents panel' })
+map('n', '<leader>O', function() require('custom.side_panel').toggle() end,
+  { desc = 'Toggle the right panel (outline in markdown, hover elsewhere)' })
 map('n', '<leader>rn', vim.lsp.buf.rename, { desc = 'Rename symbol' })
 map('n', '<leader>rl', utils.restart_buf_lsp, { desc = 'Restart LSP server (clear stale diagnostics everywhere)' })
 map('n', '<leader>rb', utils.reload_buf, { desc = 'Reload current buffer (wipe and reopen)' })
