@@ -69,6 +69,18 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_startify_hl })
 apply_startify_hl()
 
+-- startify hides '~' by pointing EndOfBuffer at a bg-colored group and never undoes that
+-- window-local map, so splits drag it into real buffers. Drop it everywhere: the markers
+-- keep the default NonText grey. StartifyReady fires after the map is set.
+local function drop_startify_eob()
+  local win = vim.api.nvim_get_current_win()
+  local wh = vim.wo[win].winhighlight
+  if not wh:find('StartifyEndOfBuffer', 1, true) then return end
+  vim.wo[win].winhighlight = (wh:gsub('EndOfBuffer:StartifyEndOfBuffer,?', ''):gsub(',$', ''))
+end
+vim.api.nvim_create_autocmd({ 'BufWinEnter', 'WinEnter' }, { callback = drop_startify_eob })
+vim.api.nvim_create_autocmd('User', { pattern = 'StartifyReady', callback = drop_startify_eob })
+
 local function load_extra_quotes()
   local ok, quotes = pcall(require, 'config.quotes')
   return ok and quotes or {}
