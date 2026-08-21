@@ -75,7 +75,7 @@ map('n', '<leader>fg',
   { desc = 'Live grep (literal)' })
 map('n', '<leader>fG', builtin.live_grep, { desc = 'Live grep' })
 map('n', '<leader>f.', function() builtin.resume({ initial_mode = 'normal' }) end, { desc = 'Resume last search' })
-map('n', '<leader>fb', builtin.buffers, { desc = 'Buffers' })
+map('n', '<leader>fb', utils.buffers, { desc = 'Buffers' })
 map('n', '<leader>fh', builtin.help_tags, { desc = 'Help tags' })
 map('n', '<leader>fk', builtin.keymaps, { desc = 'Search keymaps' })
 map('n', '<leader>?', builtin.keymaps, { desc = 'Search keymaps (cheatsheet)' })

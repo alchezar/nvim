@@ -1,15 +1,7 @@
 -- Telescope LSP pickers with a custom entry_maker that splits rows into
--- [code | filename | path | line:col] so theme highlights can color each segment.
+-- [code | file:line:col | mirrored path] so theme highlights can color each segment.
 
--- Path relative to cwd; outside cwd falls back to `~`-form.
-local function relpath(filename)
-  local cwd = vim.fn.getcwd()
-  if filename:sub(1, #cwd + 1) == cwd .. '/' then
-    return filename:sub(#cwd + 2)
-  end
-  return vim.fn.fnamemodify(filename, ':~')
-end
-
+local utils = require('config.utils')
 local SEP = '  '
 
 -- Read/write usage markers (RustRover-style green/red access arrows).
@@ -26,22 +18,16 @@ local function lsp_entry_maker(opts)
   opts = opts or {}
   return function(item)
     if not item or not item.filename then return nil end
-    local path     = relpath(item.filename)
-    local name     = vim.fn.fnamemodify(path, ':t')
-    local line_col = item.lnum .. ':' .. item.col
-    local text     = (item.text or ''):gsub('^%s+', '')
-
-    -- Columns: the code line first (e.g. `impl X for Y`), then file name, full
-    -- path and position - so the meaningful text leads, never the long path.
-    local cols = {
-      { text, 'TelescopeResultsNormal' },
-      { name, 'TelescopeResultsFileName' },
-      { path, 'TelescopeResultsComment' },
-      { line_col, 'TelescopeResultsLineNr' },
-    }
+    local text = (item.text or ''):gsub('^%s+', '')
+    -- The code line leads and the mirrored `file:line:col\parents` trails, so the
+    -- meaningful text comes first and only the path root gets cut off.
+    local loc, loc_style = utils.mirror_path(item.filename, {
+      suffix  = ':' .. item.lnum .. ':' .. item.col,
+      name_hl = 'TelescopeResultsFileName',
+    })
 
     -- Classify once here; `display` may re-run on every redraw/scroll.
-    local kind     = opts.mark
+    local kind = opts.mark
         and require('config.usage_kind').classify(item.filename, item.lnum, item.col)
         or nil
     return {
@@ -58,15 +44,13 @@ local function lsp_entry_maker(opts)
           prefix = mark and (mark[1] .. ' ') or '  ' -- align unmarked rows
           if mark then pre_hl = { { 0, #mark[1] }, mark[2] } end
         end
-        local off, parts, hls = #prefix, {}, {}
-        for i, c in ipairs(cols) do
-          if i > 1 then off = off + #SEP end
-          hls[#hls + 1] = { { off, off + #c[1] }, c[2] }
-          off = off + #c[1]
-          parts[#parts + 1] = c[1]
+        local loc_at = #prefix + #text + #SEP
+        local hls = { { { #prefix, #prefix + #text }, 'TelescopeResultsNormal' } }
+        for _, st in ipairs(loc_style) do
+          hls[#hls + 1] = { { loc_at + st[1][1], loc_at + st[1][2] }, st[2] }
         end
         if pre_hl then table.insert(hls, 1, pre_hl) end
-        return prefix .. table.concat(parts, SEP), hls
+        return prefix .. text .. SEP .. loc, hls
       end,
     }
   end
@@ -90,6 +74,10 @@ require('telescope').setup({
   },
   pickers = {
     live_grep                     = { initial_mode = 'insert' },
+    -- Mirrored path wherever the row ends with one; live_grep keeps the plain
+    -- leading `path:line:col:` since there the path is not the trailing column.
+    find_files                    = { path_display = utils.mirror_path_display },
+    oldfiles                      = { path_display = utils.mirror_path_display },
     -- `dd` in normal mode closes the buffer under the cursor without leaving the picker.
     buffers                       = { mappings = { n = { dd = actions.delete_buffer } } },
     lsp_references                = { entry_maker = lsp_entry_maker({ mark = true }) },

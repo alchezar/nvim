@@ -870,7 +870,45 @@ local SYMBOL_KIND_COLORS = {
 -- Markdown outline: H1..H6 in the colors markview paints them (plugins/markdown.lua).
 local HEADING_COLORS = { 'red', 'orange', 'yellow', 'green', 'blue', 'purple' }
 
+-- Path relative to cwd; outside cwd falls back to `~`-form. Already-relative
+-- paths pass through: `:~` would expand them against cwd first.
+function M.relpath(path)
+  local cwd = vim.fn.getcwd()
+  if path:sub(1, #cwd + 1) == cwd .. '/' then return path:sub(#cwd + 2) end
+  if path:sub(1, 1) ~= '/' then return path end
+  return vim.fn.fnamemodify(path, ':~')
+end
+
+local PATH_ARROW = '\\'
+
+-- Mirrored path for picker rows: file name first, then its parents from the
+-- nearest one out to the root, so a narrow window cuts the root and never the
+-- file. The `\` separators mark it as mirrored - no real path runs this way.
+-- `opts.suffix` (`:lnum`) rides along with the file name; `opts.name_hl` colors it.
+function M.mirror_path(path, opts)
+  opts = opts or {}
+  local parts = vim.split(M.relpath(path), '/', { plain = true, trimempty = true })
+  local name  = table.remove(parts) or path
+  local text  = name .. (opts.suffix or '')
+  local style = {}
+  if opts.name_hl then style[#style + 1] = { { 0, #name }, opts.name_hl } end
+  if opts.suffix then style[#style + 1] = { { #name, #text }, 'TelescopeResultsLineNr' } end
+  for i = #parts, 1, -1 do
+    local at = #text
+    text = text .. PATH_ARROW .. parts[i]
+    style[#style + 1] = { { at, at + #PATH_ARROW }, 'TelescopePathSep' }
+    style[#style + 1] = { { at + #PATH_ARROW, #text }, 'TelescopeResultsComment' }
+  end
+  return text, style
+end
+
+-- `path_display` hook: telescope hands over an absolute path and applies the style.
+function M.mirror_path_display(_, path)
+  return M.mirror_path(path)
+end
+
 local function set_symbol_hl()
+  vim.api.nvim_set_hl(0, 'TelescopePathSep', { fg = colors.silver })
   vim.api.nvim_set_hl(0, 'TelescopeSymbolPublic', { fg = colors.green })
   vim.api.nvim_set_hl(0, 'TelescopeSymbolPrivate', { fg = colors.silver })
   vim.api.nvim_set_hl(0, 'TelescopeSymbolKindTest', { fg = colors.emerald })
@@ -1112,7 +1150,7 @@ function M.type_declarations()
   local kinds = { 'Struct', 'Enum', 'Interface', 'TypeParameter', 'Class' }
   local symbols = vim.tbl_map(function(k) return icons[k] .. k end, kinds)
   -- Own displayer: symbol name, then its kind (palette-colored like document_symbols),
-  -- then the file path last - so the name leads and the long path trails.
+  -- then the mirrored path last - so the name leads and only the path root gets cut off.
   local displayer = require('telescope.pickers.entry_display').create({
     separator = '  ',
     items = { { width = 50 }, { width = 18 }, { remaining = true } },
@@ -1123,10 +1161,14 @@ function M.type_declarations()
     local entry = default(line)
     if not entry then return entry end
     entry.display = function(e)
+      local path, style = M.mirror_path(e.filename, {
+        suffix  = ':' .. e.lnum,
+        name_hl = 'TelescopeResultsFileName',
+      })
       return displayer({
         e.symbol_name,
-        { e.symbol_type:lower(),                                   symbol_kind_hl[e.symbol_type] },
-        { vim.fn.fnamemodify(e.filename, ':~:.') .. ':' .. e.lnum, 'TelescopeResultsComment' },
+        { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] },
+        { path,                  function() return style end },
       })
     end
     return entry
@@ -1226,8 +1268,8 @@ local function buffer_git_status()
   return map
 end
 
--- builtin.buffers with each file name tinted by its git-diff state. Wraps the stock
--- entry_maker so the bufnr/flags/icon/path layout stays identical; only touched files recolor.
+-- builtin.buffers with a mirrored path and each file name tinted by its git-diff
+-- state. Wraps the stock entry_maker so the bufnr/flags/icon/path layout stays identical.
 function M.buffers(opts)
   opts = opts or {}
   local telutils = require('telescope.utils')
@@ -1244,28 +1286,29 @@ function M.buffers(opts)
     end
   end
   opts.bufnr_width = opts.bufnr_width or #tostring(max_bufnr)
-  local displayer -- built lazily on the first colored entry, once bufnr_width is known
+  local displayer -- built lazily on the first entry, once bufnr_width is known
   local default
   opts.entry_maker = function(element)
     default = default or require('telescope.make_entry').gen_from_buffer(opts)
     local entry = default(element)
     if not entry then return entry end
     local st = entry.path and status[vim.fs.normalize(entry.path)]
-    if not st then return entry end -- unchanged files keep the stock display
     displayer = displayer or require('telescope.pickers.entry_display').create({
       separator = ' ',
       items = { { width = opts.bufnr_width }, { width = 4 }, { width = icon_width }, { remaining = true } },
     })
     entry.display = function(e)
-      opts.__prefix = opts.bufnr_width + 4 + icon_width + 3 + 1 + #tostring(e.lnum)
-      local name = telutils.transform_path(opts, e.filename)
-      if not opts.disable_coordinates then name = name .. ':' .. e.lnum end
+      -- Mirrored path so the name leads; git-touched files tint it by diff state.
+      local name, style = M.mirror_path(e.filename, {
+        suffix  = not opts.disable_coordinates and (':' .. e.lnum) or nil,
+        name_hl = st and BUF_GIT_HL[st] or nil,
+      })
       local icon, icon_hl = telutils.get_devicons(e.filename, opts.disable_devicons)
       return displayer({
         { e.bufnr,     'TelescopeResultsNumber' },
         { e.indicator, 'TelescopeResultsComment' },
         { icon,        icon_hl },
-        { name,        BUF_GIT_HL[st] },
+        { name,        function() return style end },
       })
     end
     return entry

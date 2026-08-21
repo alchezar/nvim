@@ -257,14 +257,6 @@ local function collect_all(file)
 end
 M.collect = collect_all
 
-local function relpath(filename)
-  local cwd = vim.fn.getcwd()
-  if filename:sub(1, #cwd + 1) == cwd .. '/' then
-    return filename:sub(#cwd + 2)
-  end
-  return vim.fn.fnamemodify(filename, ':~')
-end
-
 -- Swagger-style per-method colors pulled from the theme palette.
 local palette = require('config.theme_colors')
 local method_colors = {
@@ -311,7 +303,9 @@ local function make_entry(item)
   local arrow    = item.handler and ' -> ' or ''
   local handler  = item.handler or ''
   local doc      = item.doc and ('  ' .. trunc(item.doc, DOC_MAX)) or ''
-  local file_tag = '  ' .. relpath(item.file)
+  -- Mirrored path: the file name leads, so a narrow window cuts the root instead.
+  local mpath, mstyle = utils.mirror_path(item.file, { name_hl = 'TelescopeResultsFileName' })
+  local file_tag = '  ' .. mpath
   local text     = method .. mark .. path_pre .. path_b .. path_q
       .. arrow .. handler .. doc .. file_tag
 
@@ -324,7 +318,6 @@ local function make_entry(item)
   local p6       = p5 + #arrow
   local p7       = p6 + #handler
   local p8       = p7 + #doc
-  local p9       = p8 + #file_tag
 
   -- Highlight literals bright and {placeholders} dim within path_b.
   local path_hls = {}
@@ -361,7 +354,9 @@ local function make_entry(item)
       add(p5, p6, 'Operator')
       add(p6, p7, 'Function')
       add(p7, p8, 'TelescopeResultsComment')
-      add(p8, p9, 'TelescopeResultsFileName')
+      for _, st in ipairs(mstyle) do
+        add(p8 + 2 + st[1][1], p8 + 2 + st[1][2], st[2]) -- 2 = the file_tag padding
+      end
       return text, hls
     end,
   }
