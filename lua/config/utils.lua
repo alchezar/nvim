@@ -143,8 +143,23 @@ end
 -- Break a one-line fn signature so each param sits on its own line.
 -- Depth tracking keeps generics/tuples (Result<T, E>, (A, B)) intact.
 local function split_signature(line)
-  if not line:find('%f[%w]fn%f[%W]') then return nil end
-  local open = line:find('(', 1, true)
+  local fn_at = line:find('%f[%w]fn%f[%W]')
+  if not fn_at then return nil end
+
+  -- The param list opens at the first `(` outside generics: `pub(crate) fn` and
+  -- `fn f<F: Fn(u32)>(..)` both put an earlier paren on the line.
+  local open, angle = nil, 0
+  for i = fn_at, #line do
+    local c = line:sub(i, i)
+    if c == '<' then
+      angle = angle + 1
+    elseif c == '>' and line:sub(i - 1, i - 1) ~= '-' then
+      if angle > 0 then angle = angle - 1 end
+    elseif c == '(' and angle == 0 then
+      open = i
+      break
+    end
+  end
   if not open then return nil end
 
   local depth, close = 0, nil
