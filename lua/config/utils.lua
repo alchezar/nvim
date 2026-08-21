@@ -843,7 +843,7 @@ function M.search_rust_idioms()
     [[|%(%(]] .. qualified .. import .. [[[,;]?\s*$)@!]] ..
     [[|%(^\s*%(pub%(\(\w+\))?\s+)?%(use\s+)?]] .. import .. [[)@<!)]] ..
     [[%(::)@<!]] .. qualified ..
-    [[|\&mut \*\*?\w+]] ..
+    [[|\&mut \*\*?\w*tx>]] ..
     [[|<use std::\{]] .. '\r', 'n', false)
 end
 
