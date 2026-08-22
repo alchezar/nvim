@@ -69,6 +69,50 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_startify_hl })
 apply_startify_hl()
 
+-- Recent files, mirrored like the telescope rows: devicon, file name, then the parents
+-- from the nearest one out - so a narrow column cuts the root and never the name.
+-- Startify's syntax keys off `/`, which the mirrored form has none of, so the spans
+-- computed here are replayed as extmarks once the entries are on screen.
+local entry_ns = vim.api.nvim_create_namespace('startify_entry')
+local entry_style = {} -- rendered text -> spans, filled as startify builds the list
+
+function _G.startify_mirror_entry(path)
+  local text, style = require('config.utils').mirror_path(path, {
+    name_hl = 'StartifyFile',
+    sep_hl  = 'StartifySlash',
+    tail_hl = 'StartifyPath',
+  })
+  local icon, icon_hl = require('nvim-web-devicons').get_icon(vim.fn.fnamemodify(path, ':t'),
+    vim.fn.fnamemodify(path, ':e'), { default = true })
+  local prefix = icon .. '  '
+  local spans = { { { 0, #icon }, icon_hl } }
+  for _, s in ipairs(style) do
+    spans[#spans + 1] = { { #prefix + s[1][1], #prefix + s[1][2] }, s[2] }
+  end
+  entry_style[prefix .. text] = spans
+  return prefix .. text
+end
+
+vim.cmd([==[
+  function! g:StartifyMirrorPath(path) abort
+    return luaeval('_G.startify_mirror_entry(_A)', a:path)
+  endfunction
+  let g:startify_transformations = [['.', function('g:StartifyMirrorPath')]]
+]==])
+
+-- Rows we did not build (projects, sessions, commands) simply miss from the map.
+local function highlight_entries(buf)
+  vim.api.nvim_buf_clear_namespace(buf, entry_ns, 0, -1)
+  for i, line in ipairs(vim.api.nvim_buf_get_lines(buf, 0, -1, false)) do
+    local at, text = line:match('^%s*%[[^%]]*%]%s*()(.*)$')
+    local spans = text and entry_style[text]
+    for _, s in ipairs(spans or {}) do
+      vim.api.nvim_buf_set_extmark(buf, entry_ns, i - 1, at - 1 + s[1][1],
+        { end_col = at - 1 + s[1][2], hl_group = s[2] })
+    end
+  end
+end
+
 -- startify hides '~' by pointing EndOfBuffer at a bg-colored group and never undoes that
 -- window-local map, so splits drag it into real buffers. Drop it everywhere: the markers
 -- keep the default NonText grey. StartifyReady fires after the map is set.
@@ -197,6 +241,11 @@ vim.api.nvim_create_autocmd('FileType', {
 local content_width = 85
 local last_pad_n    = nil
 
+-- The list sits a notch left of dead center: rows carry a mirrored path far wider than
+-- content_width, so centering by that width alone leaves them looking pushed right.
+local list_shift    = 10
+local function shifted_pad(pad_n) return math.max(0, pad_n - list_shift) end
+
 local function vim_escape(s) return (s:gsub("'", "''")) end
 
 -- One Vim funcref per group -> Startify renders each as its own top-level section.
@@ -220,10 +269,10 @@ local function apply_layout(win_col)
 
   local total_w                = vim.o.columns
   local pad_n                  = math.max(4, math.floor((total_w - content_width) / 2) - (win_col or 0))
-  local pad                    = string.rep(' ', pad_n)
+  local pad                    = string.rep(' ', shifted_pad(pad_n)) -- headers ride along with the entries
 
   vim.g.startify_pad_str       = pad
-  vim.g.startify_padding_left  = pad_n
+  vim.g.startify_padding_left  = shifted_pad(pad_n) -- the syntax bracket column follows the entries
   vim.g.startify_custom_header = "luaeval('_G.startify_cow_render()')"
   vim.g.startify_files_number  = 100 - total_projects(projects)
 
@@ -333,10 +382,11 @@ vim.api.nvim_create_autocmd('User', {
       return
     end
     local buf = vim.api.nvim_get_current_buf()
-    align_entries(buf, last_pad_n)
+    align_entries(buf, shifted_pad(last_pad_n))
     setup_cursor(buf)
     cursor_to_recent_files()
     highlight_tip_key(buf)
+    highlight_entries(buf)
   end,
 })
 

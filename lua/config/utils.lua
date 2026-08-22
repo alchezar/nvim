@@ -900,19 +900,22 @@ local PATH_ARROW = '\\'
 -- nearest one out to the root, so a narrow window cuts the root and never the
 -- file. The `\` separators mark it as mirrored - no real path runs this way.
 -- `opts.suffix` (`:lnum`) rides along with the file name; `opts.name_hl` colors it.
+-- `opts.sep_hl`/`opts.tail_hl` retarget the trail for callers outside telescope.
 function M.mirror_path(path, opts)
-  opts = opts or {}
-  local parts = vim.split(M.relpath(path), '/', { plain = true, trimempty = true })
-  local name  = table.remove(parts) or path
-  local text  = name .. (opts.suffix or '')
-  local style = {}
+  opts          = opts or {}
+  local sep_hl  = opts.sep_hl or 'TelescopePathSep'
+  local tail_hl = opts.tail_hl or 'TelescopeResultsComment'
+  local parts   = vim.split(M.relpath(path), '/', { plain = true, trimempty = true })
+  local name    = table.remove(parts) or path
+  local text    = name .. (opts.suffix or '')
+  local style   = {}
   if opts.name_hl then style[#style + 1] = { { 0, #name }, opts.name_hl } end
   if opts.suffix then style[#style + 1] = { { #name, #text }, 'TelescopeResultsLineNr' } end
   for i = #parts, 1, -1 do
     local at = #text
     text = text .. PATH_ARROW .. parts[i]
-    style[#style + 1] = { { at, at + #PATH_ARROW }, 'TelescopePathSep' }
-    style[#style + 1] = { { at + #PATH_ARROW, #text }, 'TelescopeResultsComment' }
+    style[#style + 1] = { { at, at + #PATH_ARROW }, sep_hl }
+    style[#style + 1] = { { at + #PATH_ARROW, #text }, tail_hl }
   end
   return text, style
 end
