@@ -46,6 +46,7 @@ require('plugins.crates_setup')           -- Cargo.toml crate versions
 require('plugins.hex_setup')              -- Open binaries in xxd hex view
 require('config.filetypes')               -- Custom filetype detection
 require('plugins.easymotion_setup')       -- Jump to motions via labels
+require('config.startup')                 -- Open the tree and the right panel at startup
 
 if not vim.g.neovide then
     require('plugins.fidget_setup')       -- fidget: terminal only
