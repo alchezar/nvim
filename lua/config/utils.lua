@@ -282,9 +282,23 @@ local prose_ns = vim.api.nvim_create_namespace('hover_prose')
 
 local function apply_prose_hl()
   vim.api.nvim_set_hl(0, 'HoverProse', { fg = colors.gray --[[@as string]] })
+  vim.api.nvim_set_hl(0, 'HoverModulePath', { fg = colors.dark --[[@as string]] })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_prose_hl })
 apply_prose_hl()
+
+-- rust-analyzer opens a hover with the item's module path in a code block of its own.
+-- Injected rust colors it (`@variable.rust` is white), but it is context, not the item.
+local function module_path_row(lines)
+  if not (lines[1] or ''):match('^```') then return nil end
+  if not (lines[3] or ''):match('^```%s*$') then return nil end
+  local path = lines[2] or ''
+  if path == '' or path:find('%s') then return nil end
+  -- A single block is the item itself (`u32`), not the module around it.
+  for i = 5, #lines do
+    if lines[i]:match('^```%a') then return 2 end
+  end
+end
 
 -- Gray the plain text of a rendered markdown buffer (hover float or panel). `ns` lets
 -- a caller that clears its own namespace on redraw drop this along with it.
@@ -300,6 +314,12 @@ function M.gray_prose(bufnr, ns)
     hl_group = 'HoverProse',
     priority = 90,
   })
+  -- Above treesitter's priority, unlike the blanket: this one has to win over rust.
+  local path_row = module_path_row(lines)
+  if path_row then
+    vim.api.nvim_buf_set_extmark(bufnr, ns or prose_ns, path_row - 1, 0,
+      { end_col = #lines[path_row], hl_group = 'HoverModulePath', priority = 150 })
+  end
 end
 
 -- Hover float with line diagnostics prepended.
