@@ -55,6 +55,7 @@ local function draw(lines)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
   vim.bo[buf].modifiable = false
   vim.api.nvim_buf_clear_namespace(buf, ns, 0, -1)
+  utils.gray_prose(buf, ns) -- same comment gray the `gh` float uses
   for i, line in ipairs(lines) do
     -- A quantifier binds to the last byte of a multibyte glyph, so no `^─+$` here.
     if line ~= '' and (line:gsub('\u{2500}', '')) == '' then

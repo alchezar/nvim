@@ -275,15 +275,43 @@ function M.hover_lines(win, on_done)
   end
 end
 
+-- Markdown prose carries no treesitter group of its own, so it falls back to Normal,
+-- which the theme leaves without a foreground (so: white). One blanket below
+-- treesitter's priority grays it; headings, code and links keep their own colors.
+local prose_ns = vim.api.nvim_create_namespace('hover_prose')
+
+local function apply_prose_hl()
+  vim.api.nvim_set_hl(0, 'HoverProse', { fg = colors.gray --[[@as string]] })
+end
+vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_prose_hl })
+apply_prose_hl()
+
+-- Gray the plain text of a rendered markdown buffer (hover float or panel). `ns` lets
+-- a caller that clears its own namespace on redraw drop this along with it.
+function M.gray_prose(bufnr, ns)
+  local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+  local last = lines[#lines]
+  if not last then return end
+  -- A reused float (same `focus_id`) would otherwise stack a blanket per call.
+  if not ns then vim.api.nvim_buf_clear_namespace(bufnr, prose_ns, 0, -1) end
+  vim.api.nvim_buf_set_extmark(bufnr, ns or prose_ns, 0, 0, {
+    end_row = #lines - 1,
+    end_col = #last,
+    hl_group = 'HoverProse',
+    priority = 90,
+  })
+end
+
 -- Hover float with line diagnostics prepended.
 function M.hover()
   M.hover_lines(0, function(lines)
     if #lines == 0 then return end
-    vim.lsp.util.open_floating_preview(lines, 'markdown', {
+    local fbuf = vim.lsp.util.open_floating_preview(lines, 'markdown', {
       border = 'rounded',
       max_width = 80,
       focus_id = 'kinder-hover',
     })
+    M.gray_prose(fbuf)
   end)
 end
 
@@ -336,11 +364,12 @@ function M.module_doc_float(path)
     vim.notify('No //! module doc in ' .. vim.fn.fnamemodify(path, ':t'), vim.log.levels.INFO)
     return
   end
-  vim.lsp.util.open_floating_preview(doc, 'markdown', {
+  local fbuf = vim.lsp.util.open_floating_preview(doc, 'markdown', {
     border = 'rounded',
     max_width = 80,
     focus_id = 'kinder-tree-doc',
   })
+  M.gray_prose(fbuf)
 end
 
 -- nvim-tree `gh`: hover the //! doc of the file under the cursor.
