@@ -140,6 +140,15 @@ function M.diagnostic_next()
   vim.diagnostic.jump({ count = 1 })
 end
 
+-- Hunk jumps for ]g/[g; nav_hunk supersedes the deprecated next_hunk/prev_hunk.
+function M.git_hunk_prev()
+  require('gitsigns').nav_hunk('prev')
+end
+
+function M.git_hunk_next()
+  require('gitsigns').nav_hunk('next')
+end
+
 -- Break a one-line fn signature so each param sits on its own line.
 -- Depth tracking keeps generics/tuples (Result<T, E>, (A, B)) intact.
 local function split_signature(line)
