@@ -77,7 +77,7 @@ end
 local function collect_params(buf)
   local params = {}
   local ok, parser = pcall(vim.treesitter.get_parser, buf, 'sql')
-  if not ok then return params end
+  if not ok or not parser then return params end -- since 0.12 a missing parser is nil, not an error
   local function walk(n)
     if n:type() == 'function_argument' then
       local a, b, c, d = n:range()
