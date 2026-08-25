@@ -144,6 +144,15 @@ require('nvim-tree.explorer.sorter').sort = function(_, nodes)
   tree_sorter(nodes)
 end
 
+-- Async git callbacks draw the explorer they captured, which a re-root may have
+-- destroyed (upstream #2255), repainting the old project's tree over the new one.
+local Renderer = require('nvim-tree.renderer')
+local renderer_draw = Renderer.draw
+function Renderer:draw()
+  if self.explorer ~= require('nvim-tree.core').get_explorer() then return end
+  renderer_draw(self)
+end
+
 local function apply_tree_hl()
   local theme = require('config.theme_colors')
   vim.api.nvim_set_hl(0, 'NvimTreeNormal', { fg = theme.gray })
