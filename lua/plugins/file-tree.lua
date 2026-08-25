@@ -175,6 +175,21 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   end
 end)
 
+-- Nodes indexed by rendered line, or nil when the map no longer describes what
+-- the buffer holds: an async git reload can draw a stale explorer after a re-root.
+local function nodes_by_rendered_line(bufnr)
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return nil end
+  local core = require('nvim-tree.core')
+  local explorer = core.get_explorer()
+  if not explorer then return nil end
+  local start_line = core.get_nodes_starting_line()
+  local nodes = explorer:get_nodes_by_line(start_line)
+  local count = 0
+  for _ in pairs(nodes) do count = count + 1 end
+  if vim.api.nvim_buf_line_count(bufnr) ~= start_line - 1 + count then return nil end
+  return nodes
+end
+
 -- Mark the opaque dirs so an empty-looking row reads as deliberate, not as a broken tree.
 local opaque_ns = vim.api.nvim_create_namespace('nvim_tree_opaque_dir')
 vim.api.nvim_set_hl(0, 'NvimTreeOpaqueDir', { fg = require('config.theme_colors').gray, italic = true })
@@ -184,11 +199,10 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then return end
   vim.api.nvim_buf_clear_namespace(bufnr, opaque_ns, 0, -1)
 
-  local core = require('nvim-tree.core')
-  local explorer = core.get_explorer()
-  if not explorer then return end
+  local nodes = nodes_by_rendered_line(bufnr)
+  if not nodes then return end
 
-  for line, node in pairs(explorer:get_nodes_by_line(core.get_nodes_starting_line())) do
+  for line, node in pairs(nodes) do
     if is_opaque_dir(node) then
       vim.api.nvim_buf_set_extmark(bufnr, opaque_ns, line - 1, 0, {
         virt_text = { { '...', 'NvimTreeOpaqueDir' } },
@@ -208,12 +222,9 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
 
   vim.api.nvim_buf_clear_namespace(bufnr, mod_ns, 0, -1)
 
-  local core = require('nvim-tree.core')
-  local explorer = core.get_explorer()
-  if not explorer then return end
+  local nodes_by_line = nodes_by_rendered_line(bufnr)
+  if not nodes_by_line then return end
 
-  local start_line = core.get_nodes_starting_line()
-  local nodes_by_line = explorer:get_nodes_by_line(start_line)
   for line, node in pairs(nodes_by_line) do
     -- Module declared as a sibling file: `custom.rs` next to a `custom/` dir.
     if node and node.name and node.name ~= 'mod.rs' and node.name:match('%.rs$')
@@ -455,8 +466,8 @@ local function place_bookmark_signs(bufnr)
   local store = require('custom.bookmarks').store
   if not store or not next(store) then return end
 
-  local explorer = require('nvim-tree.core').get_explorer()
-  if not explorer then return end
+  local nodes = nodes_by_rendered_line(bufnr)
+  if not nodes then return end
 
   -- All records are letter marks (a-z/A-Z); numbered and plain marks aren't.
   local function all_letters(recs)
@@ -488,8 +499,7 @@ local function place_bookmark_signs(bufnr)
     return letters_only and 'NvimTreeUserBookmarkLetterIcon' or 'NvimTreeUserBookmarkIcon'
   end
 
-  local start_line = require('nvim-tree.core').get_nodes_starting_line()
-  for line, node in pairs(explorer:get_nodes_by_line(start_line)) do
+  for line, node in pairs(nodes) do
     local hl = dot_hl(node)
     if hl then
       local glyph = node.type == 'directory' and dir_dot or file_dot
@@ -517,11 +527,10 @@ local function place_diagnostic_signs(bufnr)
   vim.api.nvim_buf_clear_namespace(bufnr, diag_ns, 0, -1)
 
   local diagnostics = require('nvim-tree.diagnostics')
-  local core = require('nvim-tree.core')
-  local explorer = core.get_explorer()
-  if not explorer then return end
+  local nodes = nodes_by_rendered_line(bufnr)
+  if not nodes then return end
 
-  for line, node in pairs(explorer:get_nodes_by_line(core.get_nodes_starting_line())) do
+  for line, node in pairs(nodes) do
     local status = node and diagnostics.get_diag_status(node)
     local severity = status and status.value
     if severity then
