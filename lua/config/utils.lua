@@ -837,7 +837,9 @@ end
 -- macOS Speak-selection (Option+Esc) only reads the window title in Neovide: the
 -- GPU-drawn grid exposes no AXSelectedText, so pipe the selection to `say` here.
 -- Pressing it again stops playback, the way the system hotkey does.
-local speech_rate = 190 -- words per minute; `say` itself defaults to 175
+-- Words per minute (`say` defaults to 175); each voice needs its own to sound the same speed.
+local speech_rate_en = 160
+local speech_rate_uk = 220
 local speech_job
 local speech_watches_exit
 
@@ -882,8 +884,9 @@ function M.speak_selection()
   if text == '' or vim.fn.executable('say') == 0 then return end
 
   -- Cyrillic (U+04xx) starts with these bytes; an English voice spells it out letter by letter.
-  local cmd = { 'say', '-r', tostring(speech_rate) }
-  if text:find('[\208\209]') then vim.list_extend(cmd, { '-v', 'Lesya' }) end
+  local cyrillic = text:find('[\208\209]') ~= nil
+  local cmd = { 'say', '-r', tostring(cyrillic and speech_rate_uk or speech_rate_en) }
+  if cyrillic then vim.list_extend(cmd, { '-v', 'Lesya' }) end
 
   speech_stop_on_exit()
   speech_job = vim.system(cmd, { stdin = text }, vim.schedule_wrap(function(r)
