@@ -666,7 +666,9 @@ function M.auto_cd_to_project_root(bufnr)
       root = vim.fs.dirname(path)
     end
   end
-  if root and root ~= vim.fn.getcwd() then
+  -- Against the global cwd, not getcwd(): startify lcd's to the opened file's dir,
+  -- and that local cwd would read as "already there" while the global stays behind.
+  if root and root ~= vim.fn.getcwd(-1, -1) then
     vim.cmd.cd(root)
   end
 end
