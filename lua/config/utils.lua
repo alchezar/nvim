@@ -1384,7 +1384,8 @@ function M.buffers(opts)
 end
 
 -- builtin.git_status, but landing on the current file when it is among the
--- changed ones; falls back to the first row otherwise.
+-- changed ones; falls back to the first row otherwise. The preview swaps the
+-- stock diff coloring for real syntax plus add/delete backgrounds.
 function M.git_status(opts)
   opts = opts or {}
   local name = vim.api.nvim_buf_get_name(0)
@@ -1394,6 +1395,7 @@ function M.git_status(opts)
       return entry.path ~= nil and vim.fs.normalize(entry.path) == current
     end)
   end
+  opts.previewer = opts.previewer or require('custom.git_diff_preview').git_status(opts)
   require('telescope.builtin').git_status(opts)
 end
 
