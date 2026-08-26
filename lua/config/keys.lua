@@ -18,6 +18,8 @@ map('n', '<D-/>', 'gccj', { desc = 'Toggle comment on current line (Cmd+/)', rem
 map('x', '<D-/>', "gc'>j", { desc = 'Toggle comment on selection (Cmd+/)', remap = true })                             -- Toggle line comment (Cmd+/) in visual mode
 map('x', '<D-C-u>', function() translate.translate_selection('UK') end, { desc = 'Translate selection to Ukrainian' }) -- Translate selected text (Cmd+Ctrl+U: -> Ukrainian)
 map('x', '<D-C-S-u>', function() translate.translate_selection('EN') end, { desc = 'Translate selection to English' }) -- Translate selected text (Cmd+Ctrl+Shift+U: -> English)
+map('n', 'n', 'nzzzv', { desc = 'Next search match, centered' })                                                       -- zz recenters the match, zv opens the fold it landed in
+map('n', 'N', 'Nzzzv', { desc = 'Previous search match, centered' })                                                   -- Same going backwards
 map('n', '<leader>n', ':noh<CR>', { desc = 'Clear search highlight', silent = true })                                  -- Disable search highlight
 map('n', '<leader>p', '"_dP', { desc = 'Paste without overwriting register' })                                         -- Keep register on paste
 map('n', '<leader>y', utils.open_yazi, { desc = 'Open yazi' })                                                         -- Open yazi file manager
