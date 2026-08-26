@@ -254,6 +254,17 @@ function M.hover_lines(win, on_done)
     end
   end
 
+  -- SQL first: no language server documents the language itself, and inside an
+  -- injected query the buffer's own server (rust-analyzer) sees only a string literal.
+  -- Required lazily - the index module reaches back into this one for the project root.
+  local sql = require('custom.sql_hover').lines(win)
+  if sql then
+    if #prefix > 0 then table.insert(prefix, '---') end
+    vim.list_extend(prefix, sql)
+    on_done(prefix)
+    return
+  end
+
   local clients = vim.lsp.get_clients({ bufnr = bufnr, method = 'textDocument/hover' })
   if #clients == 0 then
     on_done(prefix)

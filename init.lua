@@ -34,6 +34,7 @@ require('custom.markdown_toc')            -- Markdown: table of contents side pa
 require('custom.hover_panel')             -- LSP hover as a live side panel
 require('custom.side_panel')              -- Right panel slot shared by the two above
 require('plugins.dbee')                   -- Database client UI
+require('custom.sql_hover')               -- SQL hover: project migrations + Postgres reference
 require('plugins.blame_setup')            -- Inline git blame
 require('plugins.diffview_setup')         -- Git diff and history viewer
 require('plugins.snacks_setup')           -- Snacks picker: GitHub PR/issue sources
