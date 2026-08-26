@@ -1,0 +1,131 @@
+*kinder-tags.txt*  Comment tags this config reads
+
+                                                                 *kinder-tags*
+
+Tags and markers written in ordinary source comments that this configuration
+acts on. A switch turns a behaviour on or off, a doc comment feeds a panel or
+a float, a keyword only colours the comment it sits in.
+
+Every entry names the file that reads it, so the implementation is one |gf|
+away. Type |gO| for the table of contents.
+
+==============================================================================
+SWITCHES                                                *kinder-tags-switches*
+
+CRATES: IGNORE                                          *kinder-crates-ignore*
+
+Silences the crates.nvim upgrade warning for one dependency - both the
+diagnostic and the eol virtual text - so a deliberate version pin stops
+nagging. Works inline or as its own comment line above the crate: >
+
+    tokio = "1.35"          # crates: ignore-update
+
+    # crates: ignore
+    serde = "1.0.190"
+<
+The suffix is not checked. The pattern is `crates:%s*ignore`, so `ignore`,
+`ignore-update` and `ignore-upgrade` all match.
+
+Read by `suppress_pinned()` in `lua/plugins/crates_setup.lua`, on
+DiagnosticChanged in Cargo.toml.
+
+LANGUAGE=SQL                                             *kinder-language-sql*
+
+Injects the sql parser into a Rust string that never reaches a sqlx query
+macro - SQL that is built, formatted or held in a const. Same marker the
+JetBrains IDEs read. Three accepted forms: >
+
+    // language=sql
+    let sql = r"SELECT id FROM users WHERE name = $1";
+
+    // language=sql
+    const PURGE: &str = "DELETE FROM sessions WHERE expires_at < now()";
+
+    let q = format!(/* language=sql */ r"SELECT {cols} FROM {table}");
+<
+Inside a macro call the tag must sit within the parentheses, directly before
+the string. Anywhere else it goes on the line above the declaration. Both
+`//` and `/* */` work in the macro position.
+
+Read by `queries/rust/injections.scm`. The tag doubles as an opt-out from the
+generic macro catch-all, which would otherwise re-inject the body as rust and
+paint over the SQL captures.
+
+ROUTE ANCHOR                                             *kinder-route-anchor*
+
+A comment naming `METHOD /path` above a handler registers it in the axum
+route picker: >
+
+    // GET /users/{id}
+    pub async fn get_user(...) -> ...
+<
+The strict form - the comment body is exactly the method and the path,
+optionally in backticks - is trusted on its own, so a handler carrying no
+`#[utoipa::path]` attribute still shows up. A route mentioned in prose counts
+only when it agrees with the handler's utoipa attribute, which keeps a
+passing reference to some other endpoint out of the list.
+
+Read by `parse_anchor()` and `collect_anchored()` in
+`lua/custom/axum_routes.lua`.
+
+==============================================================================
+DOC COMMENTS                                                *kinder-tags-docs*
+
+MODULE DOC                                                 *kinder-module-doc*
+
+The leading `//!` block of a Rust file is previewed in a hover float from the
+file tree and the feature tree, the same way `gh` previews code. Blank lines,
+inner attributes and plain `//` comments may come first; anything else ends
+the block.
+
+In a non-Rust file the float shows the run of leading line comments instead,
+recognised through 'commentstring'.
+
+Read by `file_header_doc()` and `module_doc_float()` in
+`lua/config/utils.lua`.
+
+HANDLER DOC                                               *kinder-handler-doc*
+
+The `///` doc comment above an axum handler becomes its description in the
+route picker. The scan climbs past attributes and blank lines, and the
+topmost non-empty `///` line wins.
+
+Read by `lua/custom/axum_routes.lua`.
+
+MIGRATION DOC                                           *kinder-migration-doc*
+
+The `--` comment block above a statement in a .sql migration becomes that
+statement's description in the migration index and its hover: >
+
+    -- Sessions expire after 30 days; the index keeps the sweep cheap.
+    CREATE INDEX idx_sessions_expires ON sessions (expires_at);
+<
+One blank line between the block and the statement does not detach them, a
+second one does. A rule of repeated punctuation (`-- =====`) is stripped as
+decoration rather than read as text. A long block is trimmed, with a note
+saying how much was left out.
+
+Read by `comment_above()` in `lua/custom/sql_migration_index.lua`.
+
+==============================================================================
+KEYWORDS                                                *kinder-tags-keywords*
+
+TODO KEYWORDS                                           *kinder-todo-keywords*
+
+todo-comments.nvim colours `TODO:`, `NOTE:`, `TEST:` and `PERF:` in comments
+and collects them in its picker. Those four take their colour from the theme
+palette; the plugin's own alternates still apply - FIX (FIXME, BUG, ISSUE),
+HACK, WARN (WARNING, XXX), PERF (OPTIM, PERFORMANCE, OPTIMIZE), NOTE (INFO),
+TEST (TESTING, PASSED, FAILED).
+
+Read by `lua/plugins/todo_comments_setup.lua`.
+
+==============================================================================
+UPDATING THIS FILE                                        *kinder-tags-update*
+
+The help tags are generated, not tracked by editing. After changing a `*tag*`
+here, rebuild them so `:h kinder-tags` keeps resolving: >
+
+    :helptags ~/.config/nvim/doc
+<
+vim:tw=78:ts=8:ft=help:norl:

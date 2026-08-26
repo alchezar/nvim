@@ -1,0 +1,13 @@
+kinder-crates-ignore	kinder-tags.txt	/*kinder-crates-ignore*
+kinder-handler-doc	kinder-tags.txt	/*kinder-handler-doc*
+kinder-language-sql	kinder-tags.txt	/*kinder-language-sql*
+kinder-migration-doc	kinder-tags.txt	/*kinder-migration-doc*
+kinder-module-doc	kinder-tags.txt	/*kinder-module-doc*
+kinder-route-anchor	kinder-tags.txt	/*kinder-route-anchor*
+kinder-tags	kinder-tags.txt	/*kinder-tags*
+kinder-tags-docs	kinder-tags.txt	/*kinder-tags-docs*
+kinder-tags-keywords	kinder-tags.txt	/*kinder-tags-keywords*
+kinder-tags-switches	kinder-tags.txt	/*kinder-tags-switches*
+kinder-tags-update	kinder-tags.txt	/*kinder-tags-update*
+kinder-tags.txt	kinder-tags.txt	/*kinder-tags.txt*
+kinder-todo-keywords	kinder-tags.txt	/*kinder-todo-keywords*
