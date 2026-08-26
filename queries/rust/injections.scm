@@ -278,6 +278,48 @@
  (#set! injection.priority 110))
 
 ; ------------------------------------------------------------------------------
+; `language=sql` tag: SQL that is built rather than handed to a query macro.
+; Same marker JetBrains IDEs read. Inside a macro call the tag must sit within
+; the parentheses - that is what the rust catch-all below tests for to leave
+; the string alone; anywhere else it goes on the line above.
+
+; format!(/* language=sql */ r"...") or the tag on its own line inside the call
+((macro_invocation
+   (token_tree
+     [(line_comment) (block_comment)] @_tag
+     .
+     [(string_literal (string_content) @injection.content)
+      (raw_string_literal (string_content) @injection.content)]))
+ (#lua-match? @_tag "language=sql")
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; // language=sql  ->  let sql = r"...";
+((_
+   (line_comment) @_tag
+   .
+   (let_declaration value:
+     [(string_literal (string_content) @injection.content)
+      (raw_string_literal (string_content) @injection.content)]))
+ (#lua-match? @_tag "^//%s*language=sql")
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; // language=sql  ->  const SQL: &str = r"..."; / static SQL: &str = "...";
+((_
+   (line_comment) @_tag
+   .
+   [(const_item value:
+      [(string_literal (string_content) @injection.content)
+       (raw_string_literal (string_content) @injection.content)])
+    (static_item value:
+      [(string_literal (string_content) @injection.content)
+       (raw_string_literal (string_content) @injection.content)])])
+ (#lua-match? @_tag "^//%s*language=sql")
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; ------------------------------------------------------------------------------
 ; Generic macro bodies as rust (the upstream catch-all we dropped above).
 ; Re-injecting the token_tree is what gives macro contents real highlighting
 ; (keywords, calls, types) instead of bare lexical tokens. We exclude the sqlx
@@ -292,6 +334,7 @@
    "slint" "html" "json" "xml"
    "query" "query_as" "query_scalar"
    "query_unchecked" "query_as_unchecked" "query_scalar_unchecked")
+ (#not-lua-match? @injection.content "language=sql")
  (#set! injection.language "rust")
  (#set! injection.include-children))
 
