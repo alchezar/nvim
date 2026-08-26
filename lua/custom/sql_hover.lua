@@ -252,6 +252,11 @@ local function render_keyword(name, entry)
   local out = code_block(entry.sig or name)
   out[#out + 1] = ''
   out[#out + 1] = entry.doc
+  -- The Rust side is usually the whole point of a cast, so it earns a line of its own.
+  if entry.rust then
+    out[#out + 1] = ''
+    out[#out + 1] = ('sqlx decodes this as `%s`'):format(entry.rust)
+  end
   out[#out + 1] = ''
   out[#out + 1] = ('_Postgres %s_'):format(entry.kind)
   return out

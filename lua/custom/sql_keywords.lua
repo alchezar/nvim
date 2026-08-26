@@ -1,12 +1,14 @@
 -- Postgres keyword and built-in reference, keyed by uppercase name.
 -- SQL has nowhere to put a doc-comment, so no language server can hover a bare
 -- `LATERAL` or `COALESCE`; this table is what stands in for that documentation.
--- `sig` is the shape of the construct, `doc` what it does. Multi-word entries are
--- matched greedily by the caller, so `ON CONFLICT` wins over a bare `ON`.
+-- `sig` is the shape of the construct, `doc` what it does, and `rust` on a type is
+-- what sqlx decodes it into. Multi-word entries are matched greedily by the caller,
+-- so `ON CONFLICT` wins over a bare `ON`.
 
 local K = 'keyword'
 local F = 'function'
 local O = 'operator'
+local T = 'type'
 
 return {
   -- query ---------------------------------------------------------------------
@@ -307,8 +309,6 @@ return {
     doc = 'Converts a Unix epoch or a formatted string to a timestamp.' },
   ['AT TIME ZONE'] = { kind = K, sig = 'timestamp AT TIME ZONE zone',
     doc = 'Reinterprets between timestamp and timestamptz: applied to timestamptz it gives the local wall time in that zone, applied to a bare timestamp it declares which zone it was in.' },
-  ['INTERVAL'] = { kind = K, sig = "INTERVAL '1 day' | INTERVAL '2 hours 30 minutes'",
-    doc = 'A duration literal. Adding a month-based interval is calendar-aware, so it is not a fixed number of seconds.' },
   -- json ----------------------------------------------------------------------
   ['TO_JSONB'] = { kind = F, sig = 'to_jsonb(anyelement) -> jsonb', doc = 'Converts any value, including a whole row, to jsonb.' },
   ['JSONB_BUILD_OBJECT'] = { kind = F, sig = 'jsonb_build_object(key, value, ...) -> jsonb',
@@ -333,8 +333,8 @@ return {
   ['ARRAY_REMOVE'] = { kind = F, sig = 'array_remove(array, element) -> array', doc = 'Copy without any element equal to the given one.' },
   ['ARRAY_TO_STRING'] = { kind = F, sig = 'array_to_string(array, delimiter [, null_string]) -> text', doc = 'Joins elements; NULLs are dropped unless a replacement is given.' },
   ['STRING_TO_ARRAY'] = { kind = F, sig = 'string_to_array(text, delimiter) -> text[]', doc = 'Splits a string into an array.' },
-  ['ARRAY'] = { kind = K, sig = 'ARRAY[expr, ...] | ARRAY(subquery)',
-    doc = 'Array constructor. The subquery form collapses a whole result set into one array value.' },
+  ['ARRAY'] = { kind = K, sig = 'ARRAY[expr, ...] | ARRAY(subquery) | declared as type[]', rust = 'Vec<T>',
+    doc = 'Array constructor; every type also has an array form written `type[]`. The subquery form collapses a result set into one value, indexes are 1-based, and declared dimensions are not enforced. `= ANY($1)` is how a Rust Vec becomes an IN list.' },
 
   -- ids, series, sequences ----------------------------------------------------
   ['GEN_RANDOM_UUID'] = { kind = F, sig = 'gen_random_uuid() -> uuid',
@@ -375,6 +375,92 @@ return {
   ['FOUND'] = { kind = K, sig = 'IF NOT FOUND THEN ... END IF;', doc = 'Boolean set after each query: whether it affected or returned any row.' },
   ['EXCEPTION'] = { kind = K, sig = 'EXCEPTION WHEN unique_violation THEN ...',
     doc = 'Error handler at the end of a block. Entering one costs a subtransaction, so a handler inside a hot loop is expensive.' },
+
+  -- types ---------------------------------------------------------------------
+  -- `rust` is what sqlx decodes the type into, which is usually the reason a cast is
+  -- there at all: `latitude::FLOAT8` exists to get an f64 instead of a BigDecimal.
+
+  ['SMALLINT'] = { kind = T, sig = 'smallint (int2) - 2 bytes, -32768 .. 32767', rust = 'i16',
+    doc = 'Small signed integer. Worth it only for very wide tables; alignment often eats the saving.' },
+  ['INT2'] = { kind = T, sig = 'int2 - alias of smallint', rust = 'i16', doc = 'Internal name for smallint.' },
+  ['INTEGER'] = { kind = T, sig = 'integer (int, int4) - 4 bytes, about -2.15e9 .. 2.15e9', rust = 'i32',
+    doc = 'The default integer. An id column that may exceed two billion rows wants bigint instead - widening it later rewrites the table.' },
+  ['INT'] = { kind = T, sig = 'int - alias of integer', rust = 'i32', doc = 'Alias of integer, 4 bytes.' },
+  ['INT4'] = { kind = T, sig = 'int4 - alias of integer', rust = 'i32', doc = 'Internal name for integer.' },
+  ['BIGINT'] = { kind = T, sig = 'bigint (int8) - 8 bytes', rust = 'i64',
+    doc = 'Large signed integer. Note that Postgres has no unsigned types, so a Rust u64 has no direct counterpart.' },
+  ['INT8'] = { kind = T, sig = 'int8 - alias of bigint', rust = 'i64', doc = 'Internal name for bigint.' },
+  ['SERIAL'] = { kind = T, sig = 'serial - integer + sequence default', rust = 'i32',
+    doc = 'Not a real type: shorthand for integer with a nextval() default and an owned sequence. GENERATED AS IDENTITY is the standard replacement.' },
+  ['BIGSERIAL'] = { kind = T, sig = 'bigserial - bigint + sequence default', rust = 'i64',
+    doc = 'Shorthand for bigint with an owned sequence.' },
+  ['NUMERIC'] = { kind = T, sig = 'numeric(precision, scale) - exact, arbitrary precision', rust = 'BigDecimal / Decimal',
+    doc = 'Exact decimal arithmetic, the right type for money. Slow compared to integers and floats, and sqlx needs the bigdecimal or rust_decimal feature to decode it - hence the common `::FLOAT8` cast when exactness does not matter.' },
+  ['DECIMAL'] = { kind = T, sig = 'decimal - alias of numeric', rust = 'BigDecimal / Decimal', doc = 'Alias of numeric.' },
+  ['REAL'] = { kind = T, sig = 'real (float4) - 4 bytes, ~6 digits', rust = 'f32',
+    doc = 'Single-precision float. Inexact - never use for money.' },
+  ['FLOAT4'] = { kind = T, sig = 'float4 - alias of real', rust = 'f32', doc = 'Internal name for real.' },
+  ['DOUBLE PRECISION'] = { kind = T, sig = 'double precision (float8) - 8 bytes, ~15 digits', rust = 'f64',
+    doc = 'Double-precision float. Inexact, but fast and directly decodable, which is why numeric columns are often cast to it on the way out.' },
+  ['FLOAT8'] = { kind = T, sig = 'float8 - alias of double precision', rust = 'f64',
+    doc = 'Internal name for double precision. `value::FLOAT8` is the usual way to hand sqlx an f64 from a numeric column.' },
+  ['MONEY'] = { kind = T, sig = 'money - 8 bytes, fixed fractional precision', rust = 'PgMoney',
+    doc = 'Locale-dependent currency type. Its output format follows lc_monetary, so numeric is the safer choice.' },
+
+  ['TEXT'] = { kind = T, sig = 'text - variable length, unlimited', rust = 'String / &str',
+    doc = 'The default string type. No performance penalty against varchar in Postgres, so a length limit is a constraint choice, not an optimisation.' },
+  ['VARCHAR'] = { kind = T, sig = 'varchar(n) - variable length with a limit', rust = 'String / &str',
+    doc = 'Text with a maximum length, enforced on write. Stored identically to text; raising the limit is cheap, lowering it rewrites the table.' },
+  ['CHARACTER VARYING'] = { kind = T, sig = 'character varying(n) - the standard spelling of varchar', rust = 'String / &str',
+    doc = 'Standard-SQL name for varchar.' },
+  ['CHAR'] = { kind = T, sig = 'char(n) - blank-padded fixed length', rust = 'String',
+    doc = 'Pads values to n with spaces and strips them on read, which surprises comparisons. Rarely what you want.' },
+  ['BYTEA'] = { kind = T, sig = 'bytea - variable-length binary', rust = 'Vec<u8> / &[u8]',
+    doc = 'Raw bytes. Rendered as hex by default, and the whole value is read at once - large blobs belong outside the database.' },
+  ['CITEXT'] = { kind = T, sig = 'citext - case-insensitive text (extension)', rust = 'String',
+    doc = 'Text that compares case-insensitively, from the citext extension. Avoids scattering lower() through queries and indexes.' },
+
+  ['BOOLEAN'] = { kind = T, sig = 'boolean (bool) - true, false or NULL', rust = 'bool',
+    doc = 'Three-valued: a NULL boolean is neither true nor false, so `WHERE flag` silently drops those rows.' },
+  ['BOOL'] = { kind = T, sig = 'bool - alias of boolean', rust = 'bool', doc = 'Alias of boolean.' },
+
+  ['UUID'] = { kind = T, sig = 'uuid - 16 bytes', rust = 'uuid::Uuid',
+    doc = 'Fixed 128-bit identifier, stored binary rather than as its 36-character text form. Needs the uuid feature in sqlx.' },
+  ['JSON'] = { kind = T, sig = 'json - stored as text', rust = 'serde_json::Value / Json<T>',
+    doc = 'Keeps the exact input text, whitespace and key order included, and reparses on every access. Prefer jsonb unless you need the original bytes back.' },
+  ['JSONB'] = { kind = T, sig = 'jsonb - decomposed binary', rust = 'serde_json::Value / Json<T>',
+    doc = 'Parsed on write, so reads are cheap and it supports GIN indexing and containment (@>). Duplicate keys are dropped and key order is not preserved.' },
+  ['XML'] = { kind = T, sig = 'xml - checked XML text', rust = 'String', doc = 'Text validated as well-formed XML on write.' },
+
+  ['TIMESTAMPTZ'] = { kind = T, sig = 'timestamptz - 8 bytes, instant in time', rust = 'DateTime<Utc> / OffsetDateTime',
+    doc = 'Despite the name it stores no zone: the input is converted to UTC and rendered back in the session TimeZone. This is the type almost every application wants.' },
+  ['TIMESTAMP WITH TIME ZONE'] = { kind = T, sig = 'timestamp with time zone - the standard spelling of timestamptz',
+    rust = 'DateTime<Utc> / OffsetDateTime', doc = 'Standard-SQL name for timestamptz.' },
+  ['TIMESTAMP'] = { kind = T, sig = 'timestamp - 8 bytes, wall-clock reading', rust = 'NaiveDateTime / PrimitiveDateTime',
+    doc = 'A date and time with no zone at all, so two values are only comparable if you know they share one. Bare `timestamp` in a migration is usually a mistake for timestamptz.' },
+  ['DATE'] = { kind = T, sig = 'date - 4 bytes, calendar day', rust = 'NaiveDate / time::Date',
+    doc = 'A day with no time or zone.' },
+  ['TIME'] = { kind = T, sig = 'time - 8 bytes, time of day', rust = 'NaiveTime / time::Time',
+    doc = 'Time of day without a date.' },
+  ['INTERVAL'] = { kind = T, sig = "interval - 16 bytes; literal: INTERVAL '1 day', INTERVAL '2 hours 30 min'",
+    rust = 'PgInterval',
+    doc = 'A duration held as separate months, days and microseconds, so it is calendar-aware: adding one month is not a fixed number of seconds, and a day is not always 24 hours across a DST boundary.' },
+
+  ['INET'] = { kind = T, sig = 'inet - host address, optionally with a netmask', rust = 'IpAddr / IpNetwork',
+    doc = 'IPv4 or IPv6 address. Understands subnet containment operators, unlike text.' },
+  ['CIDR'] = { kind = T, sig = 'cidr - network address', rust = 'IpNetwork',
+    doc = 'A network specification; unlike inet it rejects bits set to the right of the netmask.' },
+
+  ['TSVECTOR'] = { kind = T, sig = 'tsvector - sorted list of lexemes', rust = 'String',
+    doc = 'Normalised document for full-text search, built by to_tsvector(). Match it with @@ and index it with GIN.' },
+  ['TSQUERY'] = { kind = T, sig = 'tsquery - full-text search expression', rust = 'String',
+    doc = 'Parsed search terms with the operators &, |, ! and <->.' },
+
+  ['TRIGGER'] = { kind = T, sig = 'RETURNS trigger',
+    doc = 'Pseudo-type for trigger functions. The function takes no declared arguments and returns NEW, OLD, or NULL to cancel the row in a BEFORE trigger.' },
+  ['RECORD'] = { kind = T, sig = 'RETURNS record | RETURNS SETOF record',
+    doc = 'An anonymous row type. A caller must supply a column definition list, so RETURNS TABLE(...) is usually friendlier.' },
+  ['VOID'] = { kind = T, sig = 'RETURNS void', rust = '()', doc = 'No result. A function returning void is called for its side effects.' },
 
   -- operators -----------------------------------------------------------------
   ['||'] = { kind = O, sig = 'a || b',
