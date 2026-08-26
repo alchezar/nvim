@@ -73,7 +73,17 @@ require('markview').setup({
     },
     -- markview guesses the wrap point as text_width/win_width, which lands mid-word
     -- under 'linebreak'. 'breakindentopt' below indents wrapped rows instead.
-    list_items = { enable = true, wrap = false },
+    -- add_padding puts the item's indent in virtual columns 'breakindent' can't count,
+    -- so keeping it would need a global shift that also indents plain paragraphs.
+    list_items = {
+      enable = true,
+      wrap = false,
+      marker_minus = { add_padding = false },
+      marker_plus = { add_padding = false },
+      marker_star = { add_padding = false },
+      marker_dot = { add_padding = false },
+      marker_parenthesis = { add_padding = false },
+    },
     block_quotes = { enable = true, wrap = false },
     horizontal_rules = {
       enable = true,
@@ -175,13 +185,13 @@ local function pad_concealed(buffer, raw)
 end
 
 -- Wrap prose by word, continuation rows under the item's text. list:-1 needs
--- 'formatlistpat' to see markdown bullets; shift:4 offsets markview's marker padding.
+-- 'formatlistpat' to see markdown bullets; no shift, so paragraphs keep their own indent.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'markdown',
   callback = function()
     vim.opt_local.linebreak = true
     vim.opt_local.breakindent = true
-    vim.opt_local.breakindentopt = 'list:-1,shift:4'
+    vim.opt_local.breakindentopt = 'list:-1'
     vim.opt_local.formatlistpat = [[^\s*[-*+]\s\+\|^\s*\d\+[.)]\s\+\|^\s*\[[ x]\]\s\+]]
     vim.opt_local.formatoptions:remove('t')
   end,
