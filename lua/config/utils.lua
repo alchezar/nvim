@@ -913,10 +913,11 @@ end
 function M.search_rust_idioms()
   local qualified = [[<%([a-z]\w*::)+[A-Z]\w*[a-z]\w*>]]
   local import = [[%([a-zA-Z0-9_:{}]|,\s*)*]]
+  local quoted = [[%(^[^`]*%(`[^`]*`[^`]*)*`[^`]*)@<!]]
   vim.api.nvim_feedkeys([[/\C\vlet (mut )?\w*:%(:)@!]] ..
     [[|%(%(]] .. qualified .. import .. [[[,;]?\s*$)@!]] ..
     [[|%(^\s*%(pub%(\(\w+\))?\s+)?%(use\s+)?]] .. import .. [[)@<!)]] ..
-    [[%(::)@<!]] .. qualified ..
+    [[%(::)@<!]] .. qualified .. quoted ..
     [[|\&mut \*\*?\w*tx>]] ..
     [[|<use std::\{]] .. '\r', 'n', false)
 end
