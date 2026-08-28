@@ -4,6 +4,8 @@
 --                   show as hunks in normal buffers; no diff window, no line backgrounds.
 --   tree marks    - changed file names tinted; a folder holding a change is tinted too,
 --                   so a change inside a collapsed dir is still visible.
+--   rename patch  - gitsigns cannot resolve the base blob of a file renamed since the base;
+--                   the ls_tree wrapper below fixes that, see its comment.
 -- Base defaults to origin/HEAD (then main/master). Override with a branch (:ReviewMode dev),
 -- a count (7<leader>gv = last 7 commits), or a commit hash to review up to and including it
 -- (:ReviewMode 5628b47 == N<leader>gv when that hash is the Nth commit back from HEAD).
@@ -155,6 +157,24 @@ function M.toggle(base)
   repaint_all()
   local n = vim.tbl_count(result.set)
   vim.notify(('Branch review vs %s - %d changed file%s'):format(label, n, n == 1 and '' or 's'), vim.log.levels.INFO)
+end
+
+-- gitsigns finds a file's base blob with `git ls-tree <rev> <path>`; on a path renamed
+-- since <rev> it falls back to a rename map keyed by repo-relative paths but hands it the
+-- buffer's absolute path, so the lookup never hits and a renamed file gets no base here.
+local repo = require('gitsigns.git.repo')
+local ls_tree = repo.ls_tree
+-- Idempotent: the rename retry inside ls_tree already passes a relative path.
+repo.ls_tree = function(self, path, revision)
+  local prefix = self.toplevel and (self.toplevel .. '/')
+  local relpath = prefix and vim.startswith(path, prefix) and path:sub(#prefix + 1) or path
+  local info, err = ls_tree(self, relpath, revision)
+  -- On a rename hit the result carries the pre-rename path; keep the current one so
+  -- gitsigns still tracks the file that exists on disk once the base goes back to index.
+  if info then
+    info.relpath = relpath
+  end
+  return info, err
 end
 
 vim.api.nvim_create_user_command('ReviewMode', function(opts)
