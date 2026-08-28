@@ -781,6 +781,12 @@ function M.gitsigns_preview_hunk()
 
   vim.schedule(function()
     local max_w = math.max(20, math.floor(vim.o.columns * 0.8))
+    -- The float is anchored to the cursor row, so each side has its own row
+    -- budget; one row of each goes to the border enclosing the content.
+    local has_statusline = vim.o.laststatus > 0 and 1 or 0
+    local editor_h = vim.o.lines - vim.o.cmdheight - has_statusline
+    local cursor_row = vim.fn.win_screenpos(0)[1] + vim.fn.winline() - 1
+    local below, above = editor_h - cursor_row, cursor_row - 3
     for _, win in ipairs(vim.api.nvim_list_wins()) do
       -- Only the gitsigns popup, never the full-screen backdrop float that pops
       -- up alongside it (it is also "new" and wider than max_w).
@@ -791,6 +797,16 @@ function M.gitsigns_preview_hunk()
           vim.api.nvim_win_set_config(win, cfg)
           vim.api.nvim_set_option_value('wrap', true, { win = win })
           vim.api.nvim_set_option_value('linebreak', true, { win = win })
+          -- Wrapped lines need more rows than gitsigns sized the float for, so
+          -- re-measure or the hunk gets cut off at "@@@".
+          local wanted = vim.api.nvim_win_text_height(win, {}).all
+          if wanted > below and above > below then
+            cfg.height = math.max(1, math.min(wanted, above))
+            cfg.row = cfg.row - cfg.height - 1 -- flip above the cursor, border included
+          else
+            cfg.height = math.max(1, math.min(wanted, below))
+          end
+          vim.api.nvim_win_set_config(win, cfg)
         end
       end
     end
