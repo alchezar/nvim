@@ -13,6 +13,8 @@ vim.g.rustaceanvim = {
         workspace = { symbol = { search = { limit = 4096, scope = 'workspace', kind = 'only_types' } } },
         -- Suppress dim/underline on #[cfg]-gated branches.
         diagnostics = { disabled = { 'inactive-code' } },
+        -- Defaults of 5 truncate wider structs and enums to `/* ... */` in hover.
+        hover = { show = { fields = 128, enumVariants = 128, traitAssocItems = 32 } },
         semanticHighlighting = {
           strings = { enable = false },
         },
