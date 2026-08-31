@@ -280,42 +280,78 @@
 ; ------------------------------------------------------------------------------
 ; `language=sql` tag: SQL that is built rather than handed to a query macro.
 ; Same marker JetBrains IDEs read. Inside a macro call the tag must sit within
-; the parentheses - that is what the rust catch-all below tests for to leave
-; the string alone; anywhere else it goes on the line above.
+; the parentheses - that is what the rust catch-all below tests for to leave the
+; string alone; on a binding it goes either on the line above or between the `=`
+; and the string, where a wrapped signature puts it.
+;
+; A plain `"..."` is captured whole and trimmed by `#offset!` rather than through
+; its (string_content): a `\` line continuation splits that content into one node
+; per line, and one injection per fragment loses the leading keyword of each -
+; tree-sitter drops the first token of a statement it cannot complete.
 
-; format!(/* language=sql */ r"...") or the tag on its own line inside the call
+; format!(/* language=sql */ "...") or the tag on its own line inside the call
 ((macro_invocation
    (token_tree
      [(line_comment) (block_comment)] @_tag
      .
-     [(string_literal (string_content) @injection.content)
-      (raw_string_literal (string_content) @injection.content)]))
+     (string_literal) @injection.content))
+ (#lua-match? @_tag "language=sql")
+ (#offset! @injection.content 0 1 0 -1)
+ (#set! injection.include-children)
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; format!(/* language=sql */ r"...")
+((macro_invocation
+   (token_tree
+     [(line_comment) (block_comment)] @_tag
+     .
+     (raw_string_literal (string_content) @injection.content)))
  (#lua-match? @_tag "language=sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
-; // language=sql  ->  let sql = r"...";
+; // language=sql  ->  let / const SQL: &str = "..."; / static SQL: &str = "...";
 ((_
    (line_comment) @_tag
    .
-   (let_declaration value:
-     [(string_literal (string_content) @injection.content)
-      (raw_string_literal (string_content) @injection.content)]))
+   [(let_declaration value: (string_literal) @injection.content)
+    (const_item value: (string_literal) @injection.content)
+    (static_item value: (string_literal) @injection.content)])
+ (#lua-match? @_tag "^//%s*language=sql")
+ (#offset! @injection.content 0 1 0 -1)
+ (#set! injection.include-children)
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; // language=sql  ->  let / const / static SQL: &str = r"...";
+((_
+   (line_comment) @_tag
+   .
+   [(let_declaration value: (raw_string_literal (string_content) @injection.content))
+    (const_item value: (raw_string_literal (string_content) @injection.content))
+    (static_item value: (raw_string_literal (string_content) @injection.content))])
  (#lua-match? @_tag "^//%s*language=sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
-; // language=sql  ->  const SQL: &str = r"..."; / static SQL: &str = "...";
-((_
-   (line_comment) @_tag
-   .
-   [(const_item value:
-      [(string_literal (string_content) @injection.content)
-       (raw_string_literal (string_content) @injection.content)])
-    (static_item value:
-      [(string_literal (string_content) @injection.content)
-       (raw_string_literal (string_content) @injection.content)])])
- (#lua-match? @_tag "^//%s*language=sql")
+; The same tag sitting after the `=`, which is where a wrapped binding puts it.
+; The tag is `(_)` and not `[(line_comment) (block_comment)]` because comments are
+; grammar extras: they are absent from the node types of every parent that can hold
+; one, and naming them there makes tree-sitter reject the pattern as impossible.
+([(let_declaration (_) @_tag . value: (string_literal) @injection.content)
+  (const_item (_) @_tag . value: (string_literal) @injection.content)
+  (static_item (_) @_tag . value: (string_literal) @injection.content)]
+ (#lua-match? @_tag "language=sql")
+ (#offset! @injection.content 0 1 0 -1)
+ (#set! injection.include-children)
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+([(let_declaration (_) @_tag . value: (raw_string_literal (string_content) @injection.content))
+  (const_item (_) @_tag . value: (raw_string_literal (string_content) @injection.content))
+  (static_item (_) @_tag . value: (raw_string_literal (string_content) @injection.content))]
+ (#lua-match? @_tag "language=sql")
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
