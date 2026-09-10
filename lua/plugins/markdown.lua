@@ -219,6 +219,26 @@ local function sync_raw(win, buffer)
   require('markview.actions').render(buffer)
 end
 
+-- A new sign widens the 'auto' gutter and shrinks the text area with no autocmd and no
+-- width change. 'textoff' only settles by 'on_end', it still reads the old one in 'on_win'.
+local off_ns = vim.api.nvim_create_namespace('kinder_markdown_textoff')
+local off_wins = {}
+vim.api.nvim_set_decoration_provider(off_ns, {
+  on_win = function(_, win, buf)
+    if vim.bo[buf].filetype == 'markdown' then off_wins[win] = buf end
+  end,
+  on_end = function()
+    for win, buf in pairs(off_wins) do
+      off_wins[win] = nil
+      local off = vim.fn.getwininfo(win)[1].textoff
+      if vim.w[win].markview_textoff ~= off then
+        vim.w[win].markview_textoff = off
+        vim.schedule(function() sync_raw(win, buf) end)
+      end
+    end
+  end,
+})
+
 vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized', 'OptionSet', 'BufWinEnter' }, {
   callback = function(args)
     if args.event == 'OptionSet' and args.match ~= 'wrap' then return end
