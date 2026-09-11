@@ -204,6 +204,9 @@ local function sync_raw(win, buffer)
   -- markview never attaches to 'nofile' buffers (LSP hover, previews). Rendering one
   -- here would repaint it on the first scroll, mid-view.
   if not require('markview.state').buf_attached(buffer) then return end
+  -- Insert and visual are not preview modes, markview has already cleared the buffer.
+  -- actions.render ignores the mode, so a repaint here would put the preview back mid-edit.
+  if not require('markview.actions').in_preview_mode() then return end
 
   local leftcol = vim.api.nvim_win_call(win, function() return vim.fn.winsaveview().leftcol end)
   local raw = vim.wo[win].wrap or leftcol > 0
@@ -239,7 +242,8 @@ vim.api.nvim_set_decoration_provider(off_ns, {
   end,
 })
 
-vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized', 'OptionSet', 'BufWinEnter' }, {
+-- InsertLeave catches a wrap or width change that landed while the render was suppressed.
+vim.api.nvim_create_autocmd({ 'WinScrolled', 'WinResized', 'OptionSet', 'BufWinEnter', 'InsertLeave' }, {
   callback = function(args)
     if args.event == 'OptionSet' and args.match ~= 'wrap' then return end
 
