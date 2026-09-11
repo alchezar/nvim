@@ -24,6 +24,24 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_markview_hl })
 apply_markview_hl()
 
+-- markview draws a table's closing border as inline virt_text on the row below it,
+-- which is no row at all when the table ends the file. Re-hang it under the last row.
+local function rehang_bottom_border(buffer, item)
+  local last = vim.api.nvim_buf_line_count(buffer)
+  if item.range.row_end < last then return end
+
+  local ns = vim.api.nvim_get_namespaces()['markview/markdown']
+  if not ns then return end
+
+  for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(buffer, ns, { last, 0 }, { last, -1 }, { details = true })) do
+    local details = mark[4]
+    if details.virt_text then
+      vim.api.nvim_buf_del_extmark(buffer, ns, mark[1])
+      vim.api.nvim_buf_set_extmark(buffer, ns, last - 1, 0, { virt_lines = { details.virt_text }, hl_mode = 'combine' })
+    end
+  end
+end
+
 -- markview's own table render only holds together at leftcol 0 without 'wrap'.
 -- Under 'wrap' draw our own word-wrapped table; a sideways scroll still degrades
 -- to raw markdown (the box would drift with leftcol).
@@ -31,7 +49,9 @@ local function render_table(buffer, item)
   local win = require('markview.utils').buf_getwin(buffer)
 
   if type(win) ~= 'number' then
-    return require('markview.renderers.markdown').table(buffer, item)
+    local drawn = require('markview.renderers.markdown').table(buffer, item)
+    rehang_bottom_border(buffer, item)
+    return drawn
   end
 
   local leftcol = vim.api.nvim_win_call(win, function() return vim.fn.winsaveview().leftcol end)
@@ -41,7 +61,9 @@ local function render_table(buffer, item)
   require('custom.markdown_table_wrap').clear(buffer, item)
   if leftcol > 0 then return end
 
-  return require('markview.renderers.markdown').table(buffer, item)
+  local drawn = require('markview.renderers.markdown').table(buffer, item)
+  rehang_bottom_border(buffer, item)
+  return drawn
 end
 
 require('markview').setup({

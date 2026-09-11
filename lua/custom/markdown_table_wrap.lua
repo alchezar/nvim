@@ -27,7 +27,6 @@ local function apply_hl()
   vim.api.nvim_set_hl(0, 'KinderTableText', { fg = theme.fg })
   vim.api.nvim_set_hl(0, 'KinderTableBold', { fg = theme.teal, bold = true })
   vim.api.nvim_set_hl(0, 'KinderTableItalic', { fg = theme.fg, italic = true })
-  vim.api.nvim_set_hl(0, 'KinderTableCode', { fg = theme.emerald })
   vim.api.nvim_set_hl(0, 'KinderTableLink', { fg = theme.blue })
 end
 apply_hl()
@@ -51,7 +50,7 @@ local function parse_inline(text)
     local lbl, url = rest:match('^%[([^%]]*)%]%(([^)]*)%)')
     local em = rest:match('^%*([^%*]+)%*')
     if code then
-      flush(); segs[#segs + 1] = { text = code, hl = 'KinderTableCode' }; i = i + #code + 2
+      flush(); segs[#segs + 1] = { text = code, hl = 'KinderMarkdownInlineCode' }; i = i + #code + 2
     elseif bold and #bold > 0 then
       flush(); segs[#segs + 1] = { text = bold, hl = 'KinderTableBold' }; i = i + #bold + 4
     elseif lbl then
@@ -384,6 +383,19 @@ function M.render(buffer, item, win)
       vim.api.nvim_buf_set_extmark(buffer, ns, row, 0, { conceal_lines = '' })
     end
     vim.list_extend(cur.lines, groups[k] or {})
+  end
+
+  -- nvim never scrolls past the buffer's last row, so virt_lines hung under it stay
+  -- off-screen. That anchor keeps the tail of its box and spills the head one segment up.
+  local tail_seg = segs[#segs]
+  local spill = tail_seg.anchor == vim.api.nvim_buf_line_count(buffer) - 1
+      and #tail_seg.lines - tail_seg.need or 0
+  if spill > 0 then
+    local prev, kept = segs[#segs - 1], {}
+    for i = 1, #tail_seg.lines do
+      if i <= spill then prev.lines[#prev.lines + 1] = tail_seg.lines[i] else kept[#kept + 1] = tail_seg.lines[i] end
+    end
+    tail_seg.lines = kept
   end
 
   for _, seg in ipairs(segs) do
