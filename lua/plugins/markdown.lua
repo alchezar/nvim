@@ -147,6 +147,25 @@ md_renderer.clear = function(buffer, from, to, hybrid)
   return md_clear(buffer, from, to, hybrid)
 end
 
+-- A quoted table's later rows reach markview's parser with their "> " still on, which
+-- its row grammar rejects, so they parsed to no cells. Cut each row's quote markers
+-- (its block_continuation node) off first.
+local md_parser = require('markview.parsers.markdown')
+local parse_table = md_parser.table
+md_parser.table = function(buffer, node, text, range)
+  for child in (node and node:iter_children() or function() end) do
+    if child:type() == 'block_continuation' then
+      local row, _, _, end_col = child:range()
+      local l = row - range.row_start + 1
+      if l > 1 and text[l] then text[l] = text[l]:sub(end_col + 1) end
+    end
+  end
+  return parse_table(buffer, node, text, range)
+end
+
+-- A table row starts with '|' after any indent and quote markers.
+local function is_table_row(line) return line:match('^[%s>]*|') ~= nil end
+
 -- Under 'wrap' our own box covers the table's source rows, but markview's inline
 -- pass still pads and conceals inside them, which moves the soft-wrap points the
 -- box is anchored on. Drop inline items sitting on a table row.
@@ -159,8 +178,7 @@ inline_renderer.render = function(buffer, content, heading_lines)
     for _, item in ipairs(content or {}) do
       local row = item.range and item.range.row_start
       if row and cache[row] == nil then
-        local line = vim.api.nvim_buf_get_lines(buffer, row, row + 1, false)[1] or ''
-        cache[row] = line:match('^%s*|') ~= nil
+        cache[row] = is_table_row(vim.api.nvim_buf_get_lines(buffer, row, row + 1, false)[1] or '')
       end
       if not row or not cache[row] then kept[#kept + 1] = item end
     end
@@ -194,7 +212,7 @@ local function pad_concealed(buffer, raw)
       if query.captures[id] == 'first' then end_col = col + 1 end
 
       local line = vim.api.nvim_buf_get_lines(buffer, row, row + 1, false)[1] or ''
-      if row == end_row and line:match('^%s*|') then
+      if row == end_row and is_table_row(line) then
         -- Per char: one extmark conceals its whole range to a single space.
         for c = col, end_col - 1 do
           vim.api.nvim_buf_set_extmark(buffer, pad_ns, row, c, {

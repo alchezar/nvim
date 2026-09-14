@@ -22,11 +22,13 @@ local B = { -- rounded box-drawing pieces
   br = '╯',
 }
 
+-- Italic and strike set no fg, so they stack over the bold or link color.
 local function apply_hl()
   vim.api.nvim_set_hl(0, 'KinderTableBorder', { fg = theme.silver })
   vim.api.nvim_set_hl(0, 'KinderTableText', { fg = theme.fg })
   vim.api.nvim_set_hl(0, 'KinderTableBold', { fg = theme.teal, bold = true })
-  vim.api.nvim_set_hl(0, 'KinderTableItalic', { fg = theme.fg, italic = true })
+  vim.api.nvim_set_hl(0, 'KinderTableItalic', { italic = true })
+  vim.api.nvim_set_hl(0, 'KinderTableStrike', { strikethrough = true })
   vim.api.nvim_set_hl(0, 'KinderTableLink', { fg = theme.blue })
 end
 apply_hl()
@@ -35,28 +37,47 @@ vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_hl })
 local function strwidth(s) return vim.api.nvim_strwidth(s) end
 
 -- Split cell text into styled segments, dropping the markup punctuation itself:
--- `code`, **bold**, *italic*, [label](url). Order matters - test ** before *.
-local function parse_inline(text)
-  local segs, plain, i = {}, {}, 1
+-- `code`, **bold**, *italic*, ~~strike~~, [label](url) and \ escapes. All but code
+-- nest, so inner text is parsed again with its hl stacked on the outer ones.
+-- Order matters - test *** before ** before *.
+local function parse_inline(text, hls, segs)
+  hls, segs = hls or { 'KinderTableText' }, segs or {}
+  local plain, i = {}, 1
   local function flush()
     if #plain > 0 then
-      segs[#segs + 1] = { text = table.concat(plain), hl = 'KinderTableText' }; plain = {}
+      segs[#segs + 1] = { text = table.concat(plain), hl = hls }; plain = {}
     end
+  end
+  local function nest(inner, ...)
+    flush()
+    parse_inline(inner, vim.list_extend(vim.list_extend({}, hls), { ... }), segs)
   end
   while i <= #text do
     local rest = text:sub(i)
+    local esc = rest:match('^\\(%p)')
     local code = rest:match('^`([^`]+)`')
+    local both = rest:match('^%*%*%*(.-)%*%*%*')
     local bold = rest:match('^%*%*(.-)%*%*')
+    local strike = rest:match('^~~(.-)~~')
     local lbl, url = rest:match('^%[([^%]]*)%]%(([^)]*)%)')
-    local em = rest:match('^%*([^%*]+)%*')
-    if code then
-      flush(); segs[#segs + 1] = { text = code, hl = 'KinderMarkdownInlineCode' }; i = i + #code + 2
+    -- The closing * must not touch another *, or "*a **b** c*" would end inside the **.
+    local em = rest:match('^%*([^%s%*].-[^%s%*])%*%f[^%*]') or rest:match('^%*([^%s%*])%*%f[^%*]')
+    if esc then
+      plain[#plain + 1] = esc; i = i + 2
+    elseif code then
+      flush()
+      segs[#segs + 1] = { text = code, hl = vim.list_extend(vim.list_extend({}, hls), { 'KinderMarkdownInlineCode' }) }
+      i = i + #code + 2
+    elseif both and #both > 0 then
+      nest(both, 'KinderTableBold', 'KinderTableItalic'); i = i + #both + 6
     elseif bold and #bold > 0 then
-      flush(); segs[#segs + 1] = { text = bold, hl = 'KinderTableBold' }; i = i + #bold + 4
+      nest(bold, 'KinderTableBold'); i = i + #bold + 4
+    elseif strike and #strike > 0 then
+      nest(strike, 'KinderTableStrike'); i = i + #strike + 4
     elseif lbl then
-      flush(); segs[#segs + 1] = { text = lbl, hl = 'KinderTableLink' }; i = i + #lbl + #url + 4
+      nest(lbl, 'KinderTableLink'); i = i + #lbl + #url + 4
     elseif em then
-      flush(); segs[#segs + 1] = { text = em, hl = 'KinderTableItalic' }; i = i + #em + 2
+      nest(em, 'KinderTableItalic'); i = i + #em + 2
     else
       plain[#plain + 1] = text:sub(i, i); i = i + 1
     end
@@ -80,44 +101,65 @@ local function segs_width(segs)
   return w
 end
 
--- Segments -> word tokens carrying their hl, so wrapping keeps the styling.
+-- Segments -> words, each a list of styled pieces. A word can span segments, as in
+-- "**bold**,", so wrapping never breaks it or puts a space inside it.
 local function tokenize(segs)
-  local toks = {}
+  local words, word = {}, nil
   for _, s in ipairs(segs) do
-    for word in s.text:gmatch('%S+') do toks[#toks + 1] = { text = word, hl = s.hl } end
+    for gap, run in s.text:gmatch('(%s*)(%S*)') do
+      if gap ~= '' then word = nil end
+      if run ~= '' then
+        if not word then
+          word = {}; words[#words + 1] = word
+        end
+        word[#word + 1] = { text = run, hl = s.hl }
+      end
+    end
   end
-  return toks
+  return words
 end
 
--- Greedy word wrap to a display-width limit; each screen line is a token list.
--- A token wider than the limit is split by character, keeping its hl.
-local function wrap_tokens(toks, limit)
+local function word_width(word)
+  local w = 0
+  for _, p in ipairs(word) do w = w + strwidth(p.text) end
+  return w
+end
+
+-- Greedy word wrap to a display-width limit; each screen line is a word list.
+-- A word wider than the limit is split by character, keeping each piece's hl.
+local function wrap_words(words, limit)
   if limit < 1 then limit = 1 end
   local lines, cur, curw = {}, {}, 0
   local function flush()
     lines[#lines + 1] = cur; cur, curw = {}, 0
   end
-  for _, t in ipairs(toks) do
-    local tw = strwidth(t.text)
-    if tw > limit then
+  for _, word in ipairs(words) do
+    local ww = word_width(word)
+    if ww > limit then
       if curw > 0 then flush() end
-      local piece = ''
-      for ch in t.text:gmatch('[%z\1-\127\194-\244][\128-\191]*') do
-        if strwidth(piece .. ch) > limit then
-          lines[#lines + 1] = { { text = piece, hl = t.hl } }; piece = ch
-        else
-          piece = piece .. ch
+      local piece, pw = {}, 0
+      for _, p in ipairs(word) do
+        for ch in p.text:gmatch('[%z\1-\127\194-\244][\128-\191]*') do
+          local chw = strwidth(ch)
+          if pw > 0 and pw + chw > limit then
+            lines[#lines + 1] = { piece }; piece, pw = {}, 0
+          end
+          local last = piece[#piece]
+          if last and last.hl == p.hl then
+            last.text = last.text .. ch
+          else
+            piece[#piece + 1] = { text = ch, hl = p.hl }
+          end
+          pw = pw + chw
         end
       end
-      if piece ~= '' then
-        cur = { { text = piece, hl = t.hl } }; curw = strwidth(piece)
-      end
+      if pw > 0 then cur, curw = { piece }, pw end
     else
-      local add = curw == 0 and tw or (curw + 1 + tw)
+      local add = curw == 0 and ww or (curw + 1 + ww)
       if curw > 0 and add > limit then
-        flush(); add = tw
+        flush(); add = ww
       end
-      cur[#cur + 1] = t; curw = add
+      cur[#cur + 1] = word; curw = add
     end
   end
   if #cur > 0 or #lines == 0 then flush() end
@@ -144,13 +186,15 @@ local function distribute(cols_count, natural, available)
 end
 
 -- One screen line of one cell -> chunk list " word word …" padded to the column.
-local function cell_chunks(tokens, w, align)
+local function cell_chunks(words, w, align)
   local chunks, used = {}, 0
-  for i, t in ipairs(tokens) do
+  for i, word in ipairs(words) do
     if i > 1 then
       chunks[#chunks + 1] = { ' ', 'KinderTableText' }; used = used + 1
     end
-    chunks[#chunks + 1] = { t.text, t.hl }; used = used + strwidth(t.text)
+    for _, p in ipairs(word) do
+      chunks[#chunks + 1] = { p.text, p.hl }; used = used + strwidth(p.text)
+    end
   end
   local missing = math.max(0, w - used)
   local left, right = 0, missing
@@ -179,7 +223,7 @@ end
 local function row_lines(cells, widths, aligns)
   local wrapped, height = {}, 1
   for i = 1, #widths do
-    wrapped[i] = wrap_tokens(tokenize(cells[i] or {}), widths[i])
+    wrapped[i] = wrap_words(tokenize(cells[i] or {}), widths[i])
     height = math.max(height, #wrapped[i])
   end
   local out = {}
@@ -302,6 +346,34 @@ local function wrap_starts(line, avail, win)
   return starts
 end
 
+-- Quote markers ahead of a quoted table's first column, taken from markview's own
+-- overlays on that row, so every box line keeps the quote bar. Returns chunks, width.
+local function quote_prefix(buffer, row, from, to)
+  if to <= from then return {}, 0 end
+  local line = vim.api.nvim_buf_get_lines(buffer, row, row + 1, false)[1] or ''
+  local mv = vim.api.nvim_get_namespaces()['markview/markdown']
+  local overlays = {}
+  if mv then
+    for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buffer, mv, { row, from }, { row, to - 1 }, { details = true })) do
+      if m[4].virt_text_pos == 'overlay' and m[4].virt_text then overlays[m[3]] = m[4].virt_text end
+    end
+  end
+  local chunks, width, col = {}, 0, from
+  while col < to do
+    local w, vt = 0, overlays[col]
+    if vt then
+      for _, c in ipairs(vt) do
+        chunks[#chunks + 1] = { c[1], c[2] or 'KinderTableText' }; w = w + strwidth(c[1])
+      end
+    else
+      local ch = line:sub(col + 1, col + 1)
+      chunks[#chunks + 1] = { ch, 'KinderTableText' }; w = strwidth(ch)
+    end
+    width, col = width + w, col + math.max(1, w)
+  end
+  return chunks, width
+end
+
 -- Clear this module's marks over the table, plus the anchor rows just outside it
 -- (a leading virt_lines block hangs on row_start-1 or row_end, not inside the range).
 function M.clear(buffer, item)
@@ -324,22 +396,25 @@ function M.render(buffer, item, win)
   if #src == 0 then return end
 
   local indent = break_indent(src[1], avail, win)
-  local groups = build(item, avail - indent)
+  -- Leading blanks already come back through 'breakindent'; the rest is quote markers.
+  local prefix, prefix_w = quote_prefix(buffer, row_start, #src[1]:match('^%s*'), item.range.col_start)
+  local groups = build(item, avail - indent - prefix_w)
   if not groups then return end
 
+  -- Continuation screen rows already start past the break indent, so only the first
+  -- screen row and hanging virt_lines take the pad; every line takes the quote prefix.
   local pad = indent > 0 and { (' '):rep(indent), 'KinderTableText' } or nil
-  local function shifted(line)
-    if not pad then return line end
-    local out = { pad }
-    vim.list_extend(out, line)
-    return out
+  local function shifted(line, padded)
+    local out = (padded and pad) and { pad } or {}
+    vim.list_extend(out, prefix)
+    return vim.list_extend(out, line)
   end
 
   -- An overlay only hides what it covers, so a box narrower than the text area
   -- would leave the raw tail of the row showing to its right.
   local box = 0
   for _, c in ipairs(groups[1][1]) do box = box + strwidth(c[1]) end
-  local tail = avail - indent - box
+  local tail = avail - indent - prefix_w - box
   local function filled(line)
     if tail <= 0 then return line end
     local out = vim.list_extend({}, line)
@@ -400,14 +475,14 @@ function M.render(buffer, item, win)
 
   for _, seg in ipairs(segs) do
     local rest, from = {}, seg.anchor and seg.need + 1 or 1
-    for i = from, #seg.lines do rest[#rest + 1] = shifted(seg.lines[i]) end
+    for i = from, #seg.lines do rest[#rest + 1] = shifted(seg.lines[i], true) end
 
     if seg.anchor then
       -- The row's own screen rows carry the first lines as overlays; only what
       -- does not fit hangs below as virtual lines.
       for i = 1, math.min(seg.need, #seg.lines) do
         vim.api.nvim_buf_set_extmark(buffer, ns, seg.anchor, starts[seg.index][i] or 0, {
-          virt_text = filled(i == 1 and shifted(seg.lines[i]) or seg.lines[i]),
+          virt_text = filled(shifted(seg.lines[i], i == 1)),
           virt_text_pos = 'overlay',
           priority = 5000,
         })
