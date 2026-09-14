@@ -42,6 +42,10 @@ local function rehang_bottom_border(buffer, item)
   end
 end
 
+-- Replays markview's inline marks for a table's rows; assigned below, next to the
+-- inline renderer it drives.
+local inline_marks
+
 -- markview's own table render only holds together at leftcol 0 without 'wrap'.
 -- Under 'wrap' draw our own word-wrapped table; a sideways scroll still degrades
 -- to raw markdown (the box would drift with leftcol).
@@ -56,7 +60,9 @@ local function render_table(buffer, item)
 
   local leftcol = vim.api.nvim_win_call(win, function() return vim.fn.winsaveview().leftcol end)
 
-  if vim.wo[win].wrap then return require('custom.markdown_table_wrap').render(buffer, item, win) end
+  if vim.wo[win].wrap then
+    return require('custom.markdown_table_wrap').render(buffer, item, win, inline_marks)
+  end
   -- Back to nowrap: drop our marks or they would sit over markview's own render.
   require('custom.markdown_table_wrap').clear(buffer, item)
   if leftcol > 0 then return end
@@ -166,6 +172,23 @@ end
 -- A table row starts with '|' after any indent and quote markers.
 local function is_table_row(line) return line:match('^[%s>]*|') ~= nil end
 
+-- What markview parsed for the render in progress: the inline items (a table replays
+-- the ones in its own cells) and every row its tables cover.
+local parsed = {}
+local mv_renderer = require('markview.renderer')
+local mv_render = mv_renderer.render
+mv_renderer.render = function(buffer, content)
+  local rows = {}
+  for _, item in ipairs(content and content.markdown or {}) do
+    if item.class == 'markdown_table' then
+      for r = item.range.row_start, item.range.row_end - 1 do rows[r] = true end
+    end
+  end
+  parsed[buffer] = { inline = content and content.markdown_inline or {}, table_rows = rows }
+  return mv_render(buffer, content)
+end
+vim.api.nvim_create_autocmd('BufWipeout', { callback = function(args) parsed[args.buf] = nil end })
+
 -- Under 'wrap' our own box covers the table's source rows, but markview's inline
 -- pass still pads and conceals inside them, which moves the soft-wrap points the
 -- box is anchored on. Drop inline items sitting on a table row.
@@ -173,18 +196,35 @@ local inline_renderer = require('markview.renderers.markdown_inline')
 local inline_render = inline_renderer.render
 inline_renderer.render = function(buffer, content, heading_lines)
   local win = require('markview.utils').buf_getwin(buffer)
-  if type(win) == 'number' and vim.wo[win].wrap then
-    local cache, kept = {}, {}
-    for _, item in ipairs(content or {}) do
-      local row = item.range and item.range.row_start
-      if row and cache[row] == nil then
-        cache[row] = is_table_row(vim.api.nvim_buf_get_lines(buffer, row, row + 1, false)[1] or '')
-      end
-      if not row or not cache[row] then kept[#kept + 1] = item end
-    end
-    content = kept
+  local rows = parsed[buffer] and parsed[buffer].table_rows
+  if rows and type(win) == 'number' and vim.wo[win].wrap then
+    content = vim.tbl_filter(function(item)
+      return not (item.range and rows[item.range.row_start])
+    end, content or {})
   end
   return inline_render(buffer, content, heading_lines)
+end
+
+-- The marks markview's inline pass would put on rows [from, to), drawn into a scratch
+-- namespace and read straight back, so a table replays them without them ever moving
+-- the real rows' wrap points.
+local replay_ns = vim.api.nvim_create_namespace('kinder_md_table_inline')
+inline_marks = function(buffer, from, to)
+  local items = {}
+  for _, item in ipairs(parsed[buffer] and parsed[buffer].inline or {}) do
+    local row = item.range and item.range.row_start
+    if row and row >= from and row < to then items[#items + 1] = item end
+  end
+  if #items == 0 then return {} end
+
+  local real = inline_renderer.ns
+  inline_renderer.ns = replay_ns
+  pcall(inline_render, buffer, items, {})
+  inline_renderer.ns = real
+
+  local marks = vim.api.nvim_buf_get_extmarks(buffer, replay_ns, { from, 0 }, { to - 1, -1 }, { details = true })
+  vim.api.nvim_buf_clear_namespace(buffer, replay_ns, 0, -1)
+  return marks
 end
 
 local pad_ns = vim.api.nvim_create_namespace('kinder_markdown_pad')
