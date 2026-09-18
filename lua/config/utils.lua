@@ -1041,6 +1041,8 @@ do
     symbol_kind_hl[(icons[kind] or '') .. kind] = 'TelescopeSymbolKind' .. kind
   end
 end
+-- Kind column width in both symbol pickers, sized to the widest label `typeparameter` plus its icon.
+local KIND_WIDTH = 16
 
 -- Preview the live, LSP-attached buffer instead of a disk copy, so the code
 -- keeps its real treesitter + semantic-token highlighting and diagnostics.
@@ -1212,10 +1214,10 @@ function M.document_symbols()
     focus_symbol_at_cursor(opts)
     return builtin.lsp_document_symbols(opts)
   end
-  -- Own displayer: line number first, then name, the visibility marker, and the kind column.
+  -- Columns are line number, visibility marker, kind, name.
   local displayer = require('telescope.pickers.entry_display').create({
     separator = ' ',
-    items = { { width = 5, right_justify = true }, { width = 60 }, { width = 2 }, { remaining = true } },
+    items = { { width = 5, right_justify = true }, { width = 2 }, { width = KIND_WIDTH }, { remaining = true } },
   })
   -- path_display hidden: every symbol lives in this one buffer, so drop the column.
   local opts = {
@@ -1245,7 +1247,7 @@ function M.document_symbols()
           or is_method
           and { icons.Method .. 'method', 'TelescopeSymbolKindMethod' }
           or { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] }
-      return displayer({ { tostring(e.lnum), 'TelescopeResultsLineNr' }, e.symbol_name, { icon, hl }, kind_col })
+      return displayer({ { tostring(e.lnum), 'TelescopeResultsLineNr' }, { icon, hl }, kind_col, e.symbol_name })
     end
     return entry
   end
@@ -1259,11 +1261,11 @@ function M.type_declarations()
   local icons = require('config.lsp_icons').icons
   local kinds = { 'Struct', 'Enum', 'Interface', 'TypeParameter', 'Class' }
   local symbols = vim.tbl_map(function(k) return icons[k] .. k end, kinds)
-  -- Own displayer: symbol name, then its kind (palette-colored like document_symbols),
-  -- then the mirrored path last - so the name leads and only the path root gets cut off.
+  -- Columns are kind (palette-colored like document_symbols), name, mirrored path.
+  -- The path goes last so a narrow window cuts only its root.
   local displayer = require('telescope.pickers.entry_display').create({
     separator = '  ',
-    items = { { width = 50 }, { width = 18 }, { remaining = true } },
+    items = { { width = KIND_WIDTH }, { width = 50 }, { remaining = true } },
   })
   local opts = { symbols = symbols }
   local default = require('telescope.make_entry').gen_from_lsp_symbols(opts)
@@ -1276,8 +1278,8 @@ function M.type_declarations()
         name_hl = 'TelescopeResultsFileName',
       })
       return displayer({
-        e.symbol_name,
         { e.symbol_type:lower(), symbol_kind_hl[e.symbol_type] },
+        e.symbol_name,
         { path,                  function() return style end },
       })
     end
