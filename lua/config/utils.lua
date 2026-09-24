@@ -533,25 +533,25 @@ function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end
 
--- Table rows among lines [first, last]. A table is a run of lines with a '|' holding a
--- delimiter row (`|---|:-:|`, `--- | ---`), behind any comment or quote leader.
-local function table_rows(first, last)
+-- Table blocks touching lines [first, last]. A block is a run of lines with a '|' holding
+-- a delimiter row (`|---|:-:|`, `--- | ---`), behind any comment or quote leader.
+local function table_blocks(first, last)
   local count = vim.api.nvim_buf_line_count(0)
   local function pipe(n) return vim.fn.getline(n):find('|', 1, true) ~= nil end
   local function delimiter(n)
     local line = vim.fn.getline(n)
     return line:find('-', 1, true) ~= nil and line:match('^[%s/#>*;%%"!]*[|:%-%s]+$') ~= nil
   end
-  local rows, n = {}, first
+  local blocks, n = {}, first
   while n <= last do
     if pipe(n) then
       -- The run may reach past the range, and its delimiter row with it.
       local s, e = n, n
       while s > 1 and pipe(s - 1) do s = s - 1 end
       while e < count and pipe(e + 1) do e = e + 1 end
-      for k = s, e do
-        if delimiter(k) then
-          for i = math.max(s, first), math.min(e, last) do rows[i] = true end
+      for d = s, e do
+        if delimiter(d) then
+          blocks[#blocks + 1] = { first = s, last = e, header = d - 1 }
           break
         end
       end
@@ -560,11 +560,73 @@ local function table_rows(first, last)
       n = n + 1
     end
   end
-  return rows
+  return blocks
 end
 
--- 'formatexpr' behind Q. Built-in gq joins table rows into one line, so it only gets
--- the runs between tables. Buffers with LSP range formatting keep that.
+-- Cells of a table row, split on unescaped pipes. Outer pipes are dropped, cells trimmed.
+local function row_cells(text)
+  text = vim.trim(text)
+  local cells, from, i = {}, 1, 1
+  while i <= #text do
+    local c = text:sub(i, i)
+    if c == '|' then
+      cells[#cells + 1] = vim.trim(text:sub(from, i - 1))
+      from = i + 1
+    end
+    i = i + (c == '\\' and 2 or 1)
+  end
+  cells[#cells + 1] = vim.trim(text:sub(from))
+  if text:sub(1, 1) == '|' then table.remove(cells, 1) end
+  if text:sub(-1) == '|' and cells[#cells] == '' then table.remove(cells) end
+  return cells
+end
+
+-- Table rows padded into columns the way prettier lays them out (`| a   |`, min width 3).
+-- nil when the rows do not parse as a table.
+local function aligned_table(lines)
+  -- Leader every row shares, like an indent, `>` or `///`.
+  local prefix = lines[1]:match('^[%s/#>*;%%"!%-]*')
+  for i = 2, #lines do
+    local lead, n = lines[i]:match('^[%s/#>*;%%"!%-]*'), 0
+    while n < #prefix and prefix:byte(n + 1) == lead:byte(n + 1) do n = n + 1 end
+    prefix = prefix:sub(1, n)
+  end
+  local rows, widths = {}, {}
+  for i, line in ipairs(lines) do
+    rows[i] = row_cells(line:sub(#prefix + 1))
+    if i ~= 2 then
+      for c, cell in ipairs(rows[i]) do
+        widths[c] = math.max(widths[c] or 3, vim.fn.strdisplaywidth(cell))
+      end
+    end
+  end
+  local delim = rows[2]
+  if not delim or #delim == 0 or #rows[1] ~= #delim then return nil end
+  for _, cell in ipairs(delim) do
+    if not cell:match('^:?%-+:?$') then return nil end
+  end
+
+  local out = {}
+  for i, cells in ipairs(rows) do
+    local parts = {}
+    for c, cell in ipairs(cells) do
+      local w, mark = widths[c] or 3, delim[c] or ''
+      local left, right = mark:sub(1, 1) == ':', mark:sub(-1) == ':'
+      if i == 2 then
+        parts[c] = (left and ':' or '-') .. ('-'):rep(w - 2) .. (right and ':' or '-')
+      else
+        local pad = w - vim.fn.strdisplaywidth(cell)
+        local before = right and (left and math.floor(pad / 2) or pad) or 0
+        parts[c] = (' '):rep(before) .. cell .. (' '):rep(pad - before)
+      end
+    end
+    out[i] = prefix .. '| ' .. table.concat(parts, ' | ') .. ' |'
+  end
+  return out
+end
+
+-- 'formatexpr' behind Q. Tables it touches get aligned whole, built-in gq wraps only the
+-- text between them (it would join table rows). LSP range formatting wins where offered.
 function M.formatexpr()
   -- Typing past 'textwidth' calls this too; without 't'/'c' the built-in leaves it be.
   local mode = vim.fn.mode()
@@ -572,19 +634,36 @@ function M.formatexpr()
   if next(vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/rangeFormatting' })) then
     return vim.lsp.formatexpr()
   end
+  local buf = vim.api.nvim_get_current_buf()
   local first, last = vim.v.lnum, vim.v.lnum + vim.v.count - 1
-  local rows = table_rows(first, last)
-  if not next(rows) then return 1 end
+  local blocks = table_blocks(first, last)
+  -- gw counts inline virtual text into the line width, and markview draws plenty of it.
+  local ok, mv_state = pcall(require, 'markview.state')
+  local markview = ok and mv_state.buf_attached(buf)
+  if #blocks == 0 and not markview then return 1 end
+  if markview then require('markview.actions').clear(buf) end
+
+  local skip = {}
+  for _, b in ipairs(blocks) do
+    for n = math.max(b.first, first), math.min(b.last, last) do skip[n] = true end
+    if b.header >= b.first and b.header <= last then
+      local lines = vim.api.nvim_buf_get_lines(0, b.header - 1, b.last, false)
+      local aligned = aligned_table(lines)
+      if aligned and not vim.deep_equal(aligned, lines) then
+        vim.api.nvim_buf_set_lines(0, b.header - 1, b.last, false, aligned)
+      end
+    end
+  end
 
   -- Bottom-up, so line numbers above stay valid. gw ignores 'formatexpr'.
   local count = vim.api.nvim_buf_line_count(0)
   local e = last
   while e >= first do
-    if rows[e] then
+    if skip[e] then
       e = e - 1
     else
       local s = e
-      while s > first and not rows[s - 1] do s = s - 1 end
+      while s > first and not skip[s - 1] do s = s - 1 end
       vim.cmd(('keepjumps normal! %dGgw%dG'):format(s, e))
       e = s - 1
     end
@@ -592,6 +671,7 @@ function M.formatexpr()
   -- gq leaves the cursor on the first non-blank of the last formatted line.
   vim.api.nvim_win_set_cursor(0, { last + vim.api.nvim_buf_line_count(0) - count, 0 })
   vim.cmd('normal! ^')
+  if markview then require('markview.actions').render(buf) end
   return 0
 end
 
