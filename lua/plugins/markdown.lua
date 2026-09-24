@@ -35,7 +35,7 @@ local function rehang_bottom_border(buffer, item)
 
   for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(buffer, ns, { last, 0 }, { last, -1 }, { details = true })) do
     local details = mark[4]
-    if details.virt_text then
+    if details and details.virt_text then
       vim.api.nvim_buf_del_extmark(buffer, ns, mark[1])
       vim.api.nvim_buf_set_extmark(buffer, ns, last - 1, 0, { virt_lines = { details.virt_text }, hl_mode = 'combine' })
     end
@@ -273,7 +273,6 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.opt_local.breakindent = true
     vim.opt_local.breakindentopt = 'list:-1'
     vim.opt_local.formatlistpat = [[^\s*[-*+]\s\+\|^\s*\d\+[.)]\s\+\|^\s*\[[ x]\]\s\+]]
-    vim.opt_local.formatoptions:remove('t')
   end,
 })
 

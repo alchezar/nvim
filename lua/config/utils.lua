@@ -533,6 +533,68 @@ function M.format()
   require('conform').format({ async = true, lsp_format = 'fallback' })
 end
 
+-- Table rows among lines [first, last]. A table is a run of lines with a '|' holding a
+-- delimiter row (`|---|:-:|`, `--- | ---`), behind any comment or quote leader.
+local function table_rows(first, last)
+  local count = vim.api.nvim_buf_line_count(0)
+  local function pipe(n) return vim.fn.getline(n):find('|', 1, true) ~= nil end
+  local function delimiter(n)
+    local line = vim.fn.getline(n)
+    return line:find('-', 1, true) ~= nil and line:match('^[%s/#>*;%%"!]*[|:%-%s]+$') ~= nil
+  end
+  local rows, n = {}, first
+  while n <= last do
+    if pipe(n) then
+      -- The run may reach past the range, and its delimiter row with it.
+      local s, e = n, n
+      while s > 1 and pipe(s - 1) do s = s - 1 end
+      while e < count and pipe(e + 1) do e = e + 1 end
+      for k = s, e do
+        if delimiter(k) then
+          for i = math.max(s, first), math.min(e, last) do rows[i] = true end
+          break
+        end
+      end
+      n = e + 1
+    else
+      n = n + 1
+    end
+  end
+  return rows
+end
+
+-- 'formatexpr' behind Q. Built-in gq joins table rows into one line, so it only gets
+-- the runs between tables. Buffers with LSP range formatting keep that.
+function M.formatexpr()
+  -- Typing past 'textwidth' calls this too; without 't'/'c' the built-in leaves it be.
+  local mode = vim.fn.mode()
+  if mode == 'i' or mode == 'R' then return 1 end
+  if next(vim.lsp.get_clients({ bufnr = 0, method = 'textDocument/rangeFormatting' })) then
+    return vim.lsp.formatexpr()
+  end
+  local first, last = vim.v.lnum, vim.v.lnum + vim.v.count - 1
+  local rows = table_rows(first, last)
+  if not next(rows) then return 1 end
+
+  -- Bottom-up, so line numbers above stay valid. gw ignores 'formatexpr'.
+  local count = vim.api.nvim_buf_line_count(0)
+  local e = last
+  while e >= first do
+    if rows[e] then
+      e = e - 1
+    else
+      local s = e
+      while s > first and not rows[s - 1] do s = s - 1 end
+      vim.cmd(('keepjumps normal! %dGgw%dG'):format(s, e))
+      e = s - 1
+    end
+  end
+  -- gq leaves the cursor on the first non-blank of the last formatted line.
+  vim.api.nvim_win_set_cursor(0, { last + vim.api.nvim_buf_line_count(0) - count, 0 })
+  vim.cmd('normal! ^')
+  return 0
+end
+
 -- A restarted server's stale diagnostics linger in every OTHER buffer until it re-analyzes; clear
 -- this client's push+pull namespaces (nvim.lsp.<name>.<id>[.<pull>]) across all buffers so phantom
 -- errors vanish everywhere at once, not just the focused file.

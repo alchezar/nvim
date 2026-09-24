@@ -8,11 +8,17 @@ vim.o.winborder = 'rounded'
 -- Relative line numbers
 vim.opt.number = true
 vim.opt.relativenumber = true
--- Force 80 even when bundled ftplugins (e.g. rust.vim sets 100) override it.
+-- 80 is only for Q (gq), nothing wraps while typing. FileType re-applies both, since
+-- bundled ftplugins override them (rust.vim sets 100, markdown.vim adds 'tc').
 vim.opt.textwidth = 80
+vim.opt.formatoptions:remove({ 't', 'c', 'a' })
 vim.api.nvim_create_autocmd('FileType', {
-  callback = function() vim.opt_local.textwidth = 80 end,
+  callback = function()
+    vim.opt_local.textwidth = 80
+    vim.opt_local.formatoptions:remove({ 't', 'c', 'a' })
+  end,
 })
+vim.opt.formatexpr = "v:lua.require'config.utils'.formatexpr()"
 vim.opt.scrolloff = 2
 -- Tabs / indent settings
 vim.opt.tabstop = 4
