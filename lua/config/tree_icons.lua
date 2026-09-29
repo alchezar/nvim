@@ -18,6 +18,7 @@ M.by_filename = {
   ['docker-compose.yml'] = { icon = '\u{f21f}', color = theme.blue, name = 'DockerCompose' },  -- 
   ['Dockerfile']         = { icon = '\u{f21f}', color = theme.blue, name = 'Dockerfile' },     -- 
   ['vite.config.ts']     = { icon = '\u{f013}', color = theme.orange, name = 'ViteConfigTs' }, -- 
+  ['README.md']          = { icon = '\u{e609}', color = theme.fg, name = 'ReadmeMd' },         -- 
 }
 
 -- Per extension.
@@ -35,6 +36,7 @@ M.by_extension = {
   yml     = { icon = '\u{ef70}', color = theme.silver, name = 'Yml' },   -- 
   yaml    = { icon = '\u{ef70}', color = theme.silver, name = 'Yaml' },  -- 
   css     = { icon = '\u{f13c}', color = theme.blue, name = 'Css' },     -- 
+  md      = { icon = '\u{e609}', color = theme.fg, name = 'Md' },        -- 
 }
 
 function M.setup()
