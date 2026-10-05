@@ -33,7 +33,14 @@ vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_hl })
 
 local function strwidth(s) return vim.api.nvim_strwidth(s) end
 
-local CHAR = '[%z\1-\127\194-\244][\128-\191]*'
+-- Grapheme clusters, the units nvim lays out. '🛡️' (emoji + VS16) is one 2-cell
+-- cluster, while its codepoints measure 2 + 1 apart.
+local function graphemes(s)
+  if s:find('[\128-\255]') then return vim.fn.split(s, '\\zs') end
+  local out = {}
+  for ch in s:gmatch('.') do out[#out + 1] = ch end
+  return out
+end
 
 -- The table's rows straight from the markdown tree, so quote markers, pipe-less rows
 -- and escaped pipes need no parsing: each row's cells as byte ranges, plus alignments.
@@ -178,8 +185,8 @@ local function decorations(buffer, parser, src, row_start, row_end, marks)
       -- An overlay hides as many cells as it draws.
       local text, cells, ec = src[r - row_start + 1] or '', 0, col
       for _, chunk in ipairs(d.virt_text) do cells = cells + strwidth(chunk[1]) end
-      while cells > 0 and ec < #text do
-        local ch = text:sub(ec + 1):match('^' .. CHAR) or text:sub(ec + 1, ec + 1)
+      for _, ch in ipairs(graphemes(text:sub(col + 1))) do
+        if cells <= 0 then break end
         ec, cells = ec + #ch, cells - strwidth(ch)
       end
       add(r, col, ec, nil, '', priority)
@@ -301,8 +308,8 @@ local function wrap_units(units, width)
       else
         -- Pieces are fresh tables: the units themselves are cached and must stay intact.
         for k = i, j - 1 do
-          for ch in units[k].text:gmatch(CHAR) do
-            local w = ch:byte() < 0x80 and 1 or strwidth(ch)
+          for _, ch in ipairs(graphemes(units[k].text)) do
+            local w = #ch == 1 and 1 or strwidth(ch)
             if used > 0 and used + w > width then flush() end
             local last = line[#line]
             if last and last.piece and last.hl == units[k].hl then
@@ -487,11 +494,19 @@ local function wrap_starts(line, avail, win)
   if lbr then for c in vim.o.breakat:gmatch('.') do brk[c] = true end end
   local n = #line
 
+  -- Byte length and cell width of each non-ASCII grapheme, by its first byte.
+  local clen, cwidth = {}, {}
+  if line:find('[\128-\255]') then
+    local k = 1
+    for _, g in ipairs(graphemes(line)) do
+      clen[k], cwidth[k] = #g, strwidth(g)
+      k = k + #g
+    end
+  end
+
   local function char_at(k)
-    local b = line:byte(k)
-    local len = b < 0x80 and 1 or (b < 0xE0 and 2 or (b < 0xF0 and 3 or 4))
-    local ch = line:sub(k, k + len - 1)
-    return ch, len, b < 0x80 and 1 or strwidth(ch)
+    local len = clen[k] or 1
+    return line:sub(k, k + len - 1), len, cwidth[k] or 1
   end
 
   -- Walk the word that follows a breakat char, then its trailing spaces, stopping
