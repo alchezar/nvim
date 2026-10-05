@@ -163,7 +163,7 @@ local function decorations(buffer, parser, src, row_start, row_end, marks)
       local conceal = metadata.conceal or m and m.conceal
       -- Same skips as the highlighter: private captures and spell markers draw nothing.
       local hl = not (name:sub(1, 1) == '_' or name == 'spell' or name == 'nospell')
-        and ('@' .. name .. '.' .. lang) or nil
+          and ('@' .. name .. '.' .. lang) or nil
       local last = (ec == 0 and er > sr) and er - 1 or er
       for r = math.max(sr, row_start), math.min(last, row_end - 1) do
         add(r, r == sr and sc or 0, r == er and ec or math.huge, hl, conceal, priority)
@@ -232,8 +232,12 @@ local function cell_units(text, deco, sc, ec)
     end
   end
   cut(sc); cut(ec)
-  for _, g in ipairs(deco.groups) do cut(g[1]); cut(g[2]) end
-  for _, c in ipairs(deco.conceals) do cut(c[1]); cut(c[2]) end
+  for _, g in ipairs(deco.groups) do
+    cut(g[1]); cut(g[2])
+  end
+  for _, c in ipairs(deco.conceals) do
+    cut(c[1]); cut(c[2])
+  end
   for _, v in ipairs(deco.inline) do cut(v[1]) end
   table.sort(cols)
 
@@ -455,7 +459,7 @@ local function build(buffer, item, src, inline_marks, width)
   local groups = {}
   for k, row in ipairs(rows) do
     groups[row.row - row_start + 1] = row.delimiter and { border(B.ml, B.mj, B.mr, widths) }
-      or row_lines(cells[k], widths, aligns)
+        or row_lines(cells[k], widths, aligns)
   end
   table.insert(groups[rows[1].row - row_start + 1], 1, border(B.tl, B.tj, B.tr, widths))
   local last = groups[rows[#rows].row - row_start + 1]

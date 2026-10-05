@@ -288,13 +288,16 @@ local function sync_raw(win, buffer)
   if not require('markview.actions').in_preview_mode() then return end
 
   local leftcol = vim.api.nvim_win_call(win, function() return vim.fn.winsaveview().leftcol end)
-  local raw = vim.wo[win].wrap or leftcol > 0
+  -- Wrap draws our box and a sideways scroll draws nothing. Both are raw, but going from
+  -- one to the other still has to repaint, as <M-z> on a long line does.
+  local mode = vim.wo[win].wrap and 'wrap' or leftcol > 0 and 'scrolled' or 'table'
+  local raw = mode ~= 'table'
 
   -- Width matters too: the box is laid out for one exact text width and its overlays
   -- sit on byte columns derived from it, so a resize has to repaint.
   local width = vim.api.nvim_win_get_width(win) - vim.fn.getwininfo(win)[1].textoff
-  if vim.w[win].markview_raw == raw and vim.w[win].markview_width == width then return end
-  vim.w[win].markview_raw, vim.w[win].markview_width = raw, width
+  if vim.w[win].markview_mode == mode and vim.w[win].markview_width == width then return end
+  vim.w[win].markview_mode, vim.w[win].markview_width = mode, width
 
   vim.wo[win].conceallevel = raw and 2 or 3
   pad_concealed(buffer, raw)
