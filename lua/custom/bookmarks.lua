@@ -4,6 +4,7 @@
 --   dm{group}           delete the group in the current buffer
 --   <M-m>     on a clean line: add a plain bookmark; otherwise clear the line
 --   <leader>m list project bookmarks (Telescope); dd on a row deletes it
+--   <leader>M list bookmarks from every project
 --
 -- Bookmarks live as extmarks (so they follow edits in-session) and are saved
 -- to a JSON store keyed by absolute path. Each record keeps the line text, so
@@ -271,9 +272,15 @@ end
 
 local SEP = '  '
 
-local function list()
+-- `all` skips the project scope, as the tree buffer (no root) already does.
+local function list(all)
   sync_all()
-  local root, in_scope = current_scope()
+  local root, in_scope
+  if all then
+    in_scope = function() return true end
+  else
+    root, in_scope = current_scope()
+  end
   local entries = {}
   for file, recs in pairs(M.store) do
     if in_scope(file) then
@@ -367,7 +374,8 @@ for c = string.byte('a'), string.byte('z') do map_group(string.char(c), { '`', "
 for c = string.byte('A'), string.byte('Z') do map_group(string.char(c), { '`', "'" }) end
 
 vim.keymap.set('n', '<M-m>', plain_or_delete, { desc = 'Toggle plain bookmark / clear marks on line' })
-vim.keymap.set('n', '<leader>m', list, { desc = 'List all bookmarks (Telescope)', silent = true })
+vim.keymap.set('n', '<leader>m', function() list() end, { desc = 'List project bookmarks (Telescope)', silent = true })
+vim.keymap.set('n', '<leader>M', function() list(true) end, { desc = 'List bookmarks from all projects (Telescope)', silent = true })
 
 local group = vim.api.nvim_create_augroup('UserBookmarks', { clear = true })
 vim.api.nvim_create_autocmd('BufReadPost', {
