@@ -52,6 +52,21 @@ local function normalize(lines, width)
   return ok and out or lines
 end
 
+-- On a type's own name (`Foo {`, `Self`) the type's hover is the cursor's again. The
+-- head before the first `---` (path and signature) matches, the layout line may not.
+local function repeats(own, doc)
+  local head = {}
+  for _, line in ipairs(doc) do
+    if line == '---' then break end
+    table.insert(head, line)
+  end
+  -- A hover with no doc ends on the fence, without the blank before `---`.
+  while head[#head] == '' do table.remove(head) end
+  if #head == 0 then return false end
+  local text = '\n' .. table.concat(own, '\n') .. '\n'
+  return text:find('\n' .. table.concat(head, '\n') .. '\n', 1, true) ~= nil
+end
+
 -- `between`: rows of the dividers that split whole hovers, drawn red.
 local function draw(lines, between)
   if not visible() then return end
@@ -104,9 +119,11 @@ local function request()
     -- Each hover normalized on its own, so the only blank before the red line is ours.
     local lines, between = normalize(strip_link_targets(own), width), {}
     for _, doc in ipairs(types or {}) do
-      vim.list_extend(lines, { '', string.rep('\u{2500}', width) })
-      between[#lines] = true
-      vim.list_extend(lines, normalize(strip_link_targets(doc), width))
+      if not repeats(own, doc) then
+        vim.list_extend(lines, { '', string.rep('\u{2500}', width) })
+        between[#lines] = true
+        vim.list_extend(lines, normalize(strip_link_targets(doc), width))
+      end
     end
     draw(lines, between)
   end
