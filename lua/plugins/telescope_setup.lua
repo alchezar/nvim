@@ -77,7 +77,7 @@ require('telescope').setup({
     -- Mirrored path wherever the row ends with one; live_grep keeps the plain
     -- leading `path:line:col:` since there the path is not the trailing column.
     find_files                    = { path_display = utils.mirror_path_display },
-    oldfiles                      = { path_display = utils.mirror_path_display },
+    oldfiles                      = { path_display = utils.project_path_display, disable_devicons = true },
     -- `dd` in normal mode closes the buffer under the cursor without leaving the picker.
     buffers                       = { mappings = { n = { dd = actions.delete_buffer } } },
     lsp_references                = { entry_maker = lsp_entry_maker({ mark = true }) },

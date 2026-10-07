@@ -1238,6 +1238,7 @@ local PATH_ARROW = '\\'
 -- nearest one out to the root, so a narrow window cuts the root and never the
 -- file. The `\` separators mark it as mirrored - no real path runs this way.
 -- `opts.suffix` (`:lnum`) rides along with the file name; `opts.name_hl` colors it.
+-- `opts.prefix` (project and file icons) leads the row ahead of the file name.
 -- `opts.sep_hl`/`opts.tail_hl` retarget the trail for callers outside telescope.
 function M.mirror_path(path, opts)
   opts          = opts or {}
@@ -1245,10 +1246,12 @@ function M.mirror_path(path, opts)
   local tail_hl = opts.tail_hl or 'TelescopeResultsComment'
   local parts   = vim.split(M.relpath(path), '/', { plain = true, trimempty = true })
   local name    = table.remove(parts) or path
-  local text    = name .. (opts.suffix or '')
+  local prefix  = opts.prefix or ''
+  local text    = prefix .. name .. (opts.suffix or '')
+  local name_to = #prefix + #name
   local style   = {}
-  if opts.name_hl then style[#style + 1] = { { 0, #name }, opts.name_hl } end
-  if opts.suffix then style[#style + 1] = { { #name, #text }, 'TelescopeResultsLineNr' } end
+  if opts.name_hl then style[#style + 1] = { { #prefix, name_to }, opts.name_hl } end
+  if opts.suffix then style[#style + 1] = { { name_to, #text }, 'TelescopeResultsLineNr' } end
   for i = #parts, 1, -1 do
     local at = #text
     text = text .. PATH_ARROW .. parts[i]
@@ -1261,6 +1264,58 @@ end
 -- `path_display` hook: telescope hands over an absolute path and applies the style.
 function M.mirror_path_display(_, path)
   return M.mirror_path(path)
+end
+
+-- Projects from config/projects.lua, longest root first so a nested project
+-- wins over its parent. Read once, like the require cache it comes from.
+local projects
+local function load_projects()
+  if projects then return projects end
+  projects = { list = {}, width = 0 }
+  local ok, groups = pcall(require, 'config.projects')
+  if not ok or type(groups) ~= 'table' then return projects end
+  for key, group in pairs(groups) do
+    if key ~= '_order' and type(group) == 'table' then
+      for _, item in ipairs(group) do
+        local path = type(item) == 'table' and item.path or item
+        if type(path) == 'string' then
+          local icon = type(item) == 'table' and item.icon or nil
+          table.insert(projects.list, { root = vim.fs.normalize(path), icon = icon })
+          if icon then projects.width = math.max(projects.width, vim.api.nvim_strwidth(icon)) end
+        end
+      end
+    end
+  end
+  table.sort(projects.list, function(a, b) return #a.root > #b.root end)
+  return projects
+end
+
+-- Icon of the project holding `path`, padded to the widest one plus a two-space
+-- gap so the file icons stay aligned. Blank outside an iconed project, '' with no icons at all.
+function M.project_icon(path)
+  local p = load_projects()
+  if p.width == 0 then return '' end
+  local abs = vim.fs.normalize(vim.fn.fnamemodify(path, ':p'))
+  local icon
+  for _, proj in ipairs(p.list) do
+    if abs == proj.root or abs:sub(1, #proj.root + 1) == proj.root .. '/' then
+      icon = proj.icon
+      break
+    end
+  end
+  icon = icon or ''
+  return icon .. string.rep(' ', p.width - vim.api.nvim_strwidth(icon) + 2)
+end
+
+-- `path_display` for oldfiles, which mixes files of several projects. The picker
+-- runs with `disable_devicons`, so the file icon is drawn here after the project one.
+function M.project_path_display(_, path)
+  local project = M.project_icon(path)
+  local icon, icon_hl = require('telescope.utils').get_devicons(path)
+  icon = icon or ''
+  local text, style = M.mirror_path(path, { prefix = project .. (icon ~= '' and icon .. ' ' or '') })
+  if icon_hl then table.insert(style, 1, { { #project, #project + #icon }, icon_hl }) end
+  return text, style
 end
 
 local function set_symbol_hl()
@@ -1651,9 +1706,14 @@ function M.buffers(opts)
     local entry = default(element)
     if not entry then return entry end
     local st = entry.path and status[vim.fs.normalize(entry.path)]
+    -- Project icon shares the file icon's column; every prefix is the same width.
+    local project = M.project_icon(entry.filename)
     displayer = displayer or require('telescope.pickers.entry_display').create({
       separator = ' ',
-      items = { { width = opts.bufnr_width }, { width = 4 }, { width = icon_width }, { remaining = true } },
+      items = {
+        { width = opts.bufnr_width }, { width = 4 },
+        { width = vim.api.nvim_strwidth(project) + icon_width }, { remaining = true },
+      },
     })
     entry.display = function(e)
       -- Mirrored path so the name leads; git-touched files tint it by diff state.
@@ -1663,10 +1723,10 @@ function M.buffers(opts)
       })
       local icon, icon_hl = telutils.get_devicons(e.filename, opts.disable_devicons)
       return displayer({
-        { e.bufnr,     'TelescopeResultsNumber' },
-        { e.indicator, 'TelescopeResultsComment' },
-        { icon,        icon_hl },
-        { name,        function() return style end },
+        { e.bufnr,         'TelescopeResultsNumber' },
+        { e.indicator,     'TelescopeResultsComment' },
+        { project .. icon, icon_hl and function() return { { { #project, #project + #icon }, icon_hl } } end },
+        { name,            function() return style end },
       })
     end
     return entry
