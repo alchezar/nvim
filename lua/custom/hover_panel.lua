@@ -1,5 +1,6 @@
 -- Hover panel: the `gh` float's content (line diagnostics + LSP hover) as a live
--- right-hand split, refreshed on every cursor move. Shares one slot with the
+-- right-hand split, refreshed on every cursor move. Below it the hover of the type
+-- under the cursor (T for an `Option<T>` field). Shares one slot with the
 -- markdown table of contents, see custom/side_panel.lua.
 --   <leader>O  toggle; q closes. Nothing to show means an empty panel.
 
@@ -13,9 +14,11 @@ local DEBOUNCE_MS = 100
 
 -- The `---` separators come back as a full-width run of box glyphs; without an
 -- explicit color they take Normal's, which the theme leaves unset (so: white).
--- Match the hover float's border instead.
+-- Match the hover float's border instead. Whole hovers (the cursor's, then each of its
+-- types) are split by a red one, so it can't pass for a hover's own part.
 local function apply_hl()
   vim.api.nvim_set_hl(0, 'HoverPanelDivider', { fg = theme.dark --[[@as string]] })
+  vim.api.nvim_set_hl(0, 'HoverPanelTypeDivider', { fg = theme.red --[[@as string]] })
 end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_hl })
 apply_hl()
@@ -49,7 +52,8 @@ local function normalize(lines, width)
   return ok and out or lines
 end
 
-local function draw(lines)
+-- `between`: rows of the dividers that split whole hovers, drawn red.
+local function draw(lines, between)
   if not visible() then return end
   vim.bo[buf].modifiable = true
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
@@ -59,8 +63,8 @@ local function draw(lines)
   for i, line in ipairs(lines) do
     -- A quantifier binds to the last byte of a multibyte glyph, so no `^─+$` here.
     if line ~= '' and (line:gsub('\u{2500}', '')) == '' then
-      vim.api.nvim_buf_set_extmark(buf, ns, i - 1, 0,
-        { end_col = #line, hl_group = 'HoverPanelDivider' })
+      local group = between and between[i] and 'HoverPanelTypeDivider' or 'HoverPanelDivider'
+      vim.api.nvim_buf_set_extmark(buf, ns, i - 1, 0, { end_col = #line, hl_group = group })
     end
   end
   -- New content, new document: show it from the top rather than wherever the
@@ -85,12 +89,34 @@ local function request()
   seq = seq + 1
   local mine = seq
   local src_buf = vim.api.nvim_win_get_buf(target)
-  utils.hover_lines(target, function(lines)
-    if not visible() or mine ~= seq then return end
+  -- The cursor's own hover and its type's, drawn as each lands: the type's comes
+  -- after its definition is found, so it should not hold up the first.
+  local own, types
+  local function show()
+    if not visible() or mine ~= seq or not own then return end
+    local width = vim.api.nvim_win_get_width(win)
     -- Nothing under the cursor (a blank line between functions, say): show what the
     -- file itself is about rather than an empty panel.
-    if #lines == 0 then lines = utils.file_header_doc(src_buf) end
-    draw(normalize(strip_link_targets(lines), vim.api.nvim_win_get_width(win)))
+    if #own == 0 then
+      draw(normalize(strip_link_targets(utils.file_header_doc(src_buf)), width))
+      return
+    end
+    -- Each hover normalized on its own, so the only blank before the red line is ours.
+    local lines, between = normalize(strip_link_targets(own), width), {}
+    for _, doc in ipairs(types or {}) do
+      vim.list_extend(lines, { '', string.rep('\u{2500}', width) })
+      between[#lines] = true
+      vim.list_extend(lines, normalize(strip_link_targets(doc), width))
+    end
+    draw(lines, between)
+  end
+  utils.hover_lines(target, function(lines)
+    own = lines
+    show()
+  end)
+  utils.type_hovers(target, function(docs)
+    types = docs
+    if #docs > 0 then show() end
   end)
 end
 
@@ -103,7 +129,7 @@ local function schedule_request()
   timer:start(DEBOUNCE_MS, 0, vim.schedule_wrap(request))
 end
 
--- side_panel provider interface ------------------------------------------------
+-- side_panel provider interface -----------------------------------------------
 
 function M.panel_buf()
   if buf and vim.api.nvim_buf_is_valid(buf) then return buf end

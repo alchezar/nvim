@@ -295,6 +295,95 @@ function M.hover_lines(win, on_done)
   end
 end
 
+-- std types that only wrap the one being read about: for `Option<T>` the doc wanted
+-- is T's. Global and RandomState are default params the source never spells
+-- (`Vec<T, Global>`, `HashMap<K, V, RandomState>`).
+local STD_WRAPPERS = {
+  Option = true,
+  Result = true,
+  Box = true,
+  Rc = true,
+  Arc = true,
+  Vec = true,
+  VecDeque = true,
+  Cell = true,
+  RefCell = true,
+  Mutex = true,
+  RwLock = true,
+  Pin = true,
+  Cow = true,
+}
+local STD_DEFAULTS = { Global = true, RandomState = true }
+
+-- rust-analyzer walks the whole type, outer first: `Option<Foo>` answers Option and
+-- Foo. The project's (and crates') own types win; std ones only when nothing else is
+-- there, and then without the wrapper around the one that matters.
+local function pick_type_targets(locations)
+  local own, std = {}, {}
+  for _, loc in ipairs(locations) do
+    local uri = loc.targetUri or loc.uri
+    local range = loc.targetSelectionRange or loc.range
+    if uri and range then
+      local target = { uri = uri, position = range.start }
+      local fname = vim.uri_to_fname(uri)
+      if fname:find('/lib/rustlib/src/rust/library/', 1, true) then
+        local ok, file = pcall(vim.fn.readfile, fname, '', range.start.line + 1)
+        target.name = ok and (file[#file] or ''):sub(range.start.character + 1):match('^[%w_]+')
+        if not STD_DEFAULTS[target.name] then table.insert(std, target) end
+      else
+        table.insert(own, target)
+      end
+    end
+  end
+  if #own > 0 then return own end
+  local inner = vim.tbl_filter(function(t) return not STD_WRAPPERS[t.name] end, std)
+  return #inner > 0 and inner or { std[1] }
+end
+
+-- Hovers of the types behind `win`'s cursor (a field, a local, a method call's
+-- result), one list of markdown lines per type. Async: `on_done` gets `{}` when none.
+function M.type_hovers(win, on_done)
+  local bufnr = vim.api.nvim_win_get_buf(win)
+  local client = vim.lsp.get_clients({ bufnr = bufnr, method = 'textDocument/typeDefinition' })[1]
+  if not client then
+    on_done({})
+    return
+  end
+  local params = vim.lsp.util.make_position_params(win, client.offset_encoding)
+  client:request('textDocument/typeDefinition', params, function(err, result)
+    if err or type(result) ~= 'table' then
+      on_done({})
+      return
+    end
+    -- The spec also allows a bare Location instead of a list.
+    if result.uri or result.targetUri then result = { result } end
+    local targets = pick_type_targets(result)
+    if #targets == 0 then
+      on_done({})
+      return
+    end
+
+    -- The definition may sit in a file nobody opened (std, a crate); rust-analyzer
+    -- answers for it all the same.
+    local docs, remaining = {}, #targets
+    for i, target in ipairs(targets) do
+      local hover_params = { textDocument = { uri = target.uri }, position = target.position }
+      client:request('textDocument/hover', hover_params, function(herr, hover)
+        if not herr and hover and hover.contents then
+          docs[i] = reflow_signatures(vim.lsp.util.convert_input_to_markdown_lines(hover.contents))
+        end
+        remaining = remaining - 1
+        if remaining > 0 then return end
+        local found = {}
+        for j = 1, #targets do
+          if docs[j] and #docs[j] > 0 then table.insert(found, docs[j]) end
+        end
+        on_done(found)
+      end, bufnr)
+    end
+  end, bufnr)
+end
+
 -- Markdown prose carries no treesitter group of its own, so it falls back to Normal,
 -- which the theme leaves without a foreground (so: white). One blanket below
 -- treesitter's priority grays it; headings, code and links keep their own colors.
@@ -307,17 +396,33 @@ end
 vim.api.nvim_create_autocmd('ColorScheme', { callback = apply_prose_hl })
 apply_prose_hl()
 
+-- `---` before the hover is normalized, a full-width run of box glyphs after.
+local function is_divider(line)
+  return line == '---' or (line ~= '' and (line:gsub('\u{2500}', '')) == '')
+end
+
 -- rust-analyzer opens a hover with the item's module path in a code block of its own.
 -- Injected rust colors it (`@variable.rust` is white), but it is context, not the item.
-local function module_path_row(lines)
-  if not (lines[1] or ''):match('^```') then return nil end
-  if not (lines[3] or ''):match('^```%s*$') then return nil end
-  local path = lines[2] or ''
-  if path == '' or path:find('%s') then return nil end
-  -- A single block is the item itself (`u32`), not the module around it.
-  for i = 5, #lines do
-    if lines[i]:match('^```%a') then return 2 end
+-- Every section can open with one: the hover panel stacks the type's hover below.
+local function module_path_rows(lines)
+  local rows, start = {}, 1
+  for i = 1, #lines + 1 do
+    if i > #lines or is_divider(lines[i]) then
+      local path = lines[start + 1] or ''
+      if (lines[start] or ''):match('^```') and start + 2 < i and lines[start + 2]:match('^```%s*$')
+          and path ~= '' and not path:find('%s') then
+        -- A single block is the item itself (`u32`), not the module around it.
+        for j = start + 4, i - 1 do
+          if lines[j]:match('^```%a') then
+            table.insert(rows, start + 1)
+            break
+          end
+        end
+      end
+      start = i + 1
+    end
   end
+  return rows
 end
 
 -- Gray the plain text of a rendered markdown buffer (hover float or panel). `ns` lets
@@ -335,8 +440,7 @@ function M.gray_prose(bufnr, ns)
     priority = 90,
   })
   -- Above treesitter's priority, unlike the blanket: this one has to win over rust.
-  local path_row = module_path_row(lines)
-  if path_row then
+  for _, path_row in ipairs(module_path_rows(lines)) do
     vim.api.nvim_buf_set_extmark(bufnr, ns or prose_ns, path_row - 1, 0,
       { end_col = #lines[path_row], hl_group = 'HoverModulePath', priority = 150 })
   end
