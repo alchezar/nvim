@@ -36,8 +36,10 @@ local function total_projects(projects)
 end
 
 -- `tcd <path> | Startify` refreshes Recent/Sessions against the new cwd.
+-- The project icon leads the name, padded like in the telescope pickers.
 function _G.startify_projects_group(group_name)
   local group   = load_projects()[group_name] or {}
+  local utils   = require('config.utils')
   local entries = {}
   for _, item in ipairs(group) do
     local path, name
@@ -49,7 +51,7 @@ function _G.startify_projects_group(group_name)
       name = item.name or vim.fn.fnamemodify(path, ':t')
     end
     table.insert(entries, {
-      line = name,
+      line = utils.project_icon(path) .. name,
       cmd  = 'tcd ' .. vim.fn.fnameescape(path) .. ' | Startify',
     })
   end
