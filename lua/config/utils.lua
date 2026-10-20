@@ -1108,15 +1108,14 @@ function M.search_visual(forward)
 end
 
 -- macOS Speak-selection (Option+Esc) only reads the window title in Neovide: the
--- GPU-drawn grid exposes no AXSelectedText, so pipe the selection to `say` here.
--- Pressing it again stops playback, the way the system hotkey does.
--- Words per minute (`say` defaults to 175); each voice needs its own to sound the same speed.
-local speech_rate_en = 160
-local speech_rate_uk = 220
+-- GPU-drawn grid exposes no AXSelectedText, so hand the selection to the same speaker
+-- the Hammerspoon hotkey uses. Pressing it again stops playback, the way the system hotkey does.
+-- Voices, rates and the per-word language split live in the script, shared with Hammerspoon.
+local speech_script = vim.fn.expand('~/.hammerspoon/speak.js')
 local speech_job
 local speech_watches_exit
 
--- `say` outlives nvim, so a quit mid-sentence would keep talking with no way to stop it.
+-- The speaker outlives nvim, so a quit mid-sentence would keep talking with no way to stop it.
 local function speech_stop_on_exit()
   if speech_watches_exit then return end
   speech_watches_exit = vim.api.nvim_create_autocmd('VimLeavePre', {
@@ -1126,7 +1125,7 @@ local function speech_stop_on_exit()
   })
 end
 
--- `say` pauses at every newline, so join each paragraph into one line; blank lines still separate them.
+-- The voice pauses at every newline, so join each paragraph into one line; blank lines still separate them.
 local function speech_paragraphs(lines)
   local paragraphs, current = {}, {}
   local function flush()
@@ -1154,18 +1153,15 @@ function M.speak_selection()
   local lines = vim.fn.getregion(vim.fn.getpos('v'), vim.fn.getpos('.'), { type = mode })
   vim.cmd('normal! \27') -- <Esc>: drop the selection, playback has the text now
   local text = speech_paragraphs(lines)
-  if text == '' or vim.fn.executable('say') == 0 then return end
+  if text == '' or not vim.uv.fs_stat(speech_script) then return end
 
-  -- Cyrillic (U+04xx) starts with these bytes; an English voice spells it out letter by letter.
-  local cyrillic = text:find('[\208\209]') ~= nil
-  local cmd = { 'say', '-r', tostring(cyrillic and speech_rate_uk or speech_rate_en) }
-  if cyrillic then vim.list_extend(cmd, { '-v', 'Lesya' }) end
+  local cmd = { 'osascript', '-l', 'JavaScript', speech_script, text }
 
   speech_stop_on_exit()
-  speech_job = vim.system(cmd, { stdin = text }, vim.schedule_wrap(function(r)
+  speech_job = vim.system(cmd, {}, vim.schedule_wrap(function(r)
     speech_job = nil
     if r.code ~= 0 and r.signal == 0 then
-      vim.notify('say: ' .. vim.trim(r.stderr or ''), vim.log.levels.WARN)
+      vim.notify('speak: ' .. vim.trim(r.stderr or ''), vim.log.levels.WARN)
     end
   end))
 end
