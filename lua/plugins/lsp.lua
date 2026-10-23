@@ -11,8 +11,9 @@ vim.g.rustaceanvim = {
         cargo = { allFeatures = true, targetDir = true, extraEnv = { CARGO_INCREMENTAL = '0' } },
         -- Default limit of 128 is eaten by dependency modules, hiding workspace types.
         workspace = { symbol = { search = { limit = 4096, scope = 'workspace', kind = 'only_types' } } },
-        -- Suppress dim/underline on #[cfg]-gated branches.
-        diagnostics = { disabled = { 'inactive-code' } },
+        -- Suppress dim/underline on #[cfg]-gated branches. Newer rust-analyzer
+        -- reports the code as `inactive_code`, older as `inactive-code`.
+        diagnostics = { disabled = { 'inactive-code', 'inactive_code' } },
         -- Defaults of 5 truncate wider structs and enums to `/* ... */` in hover.
         hover = { show = { fields = 128, enumVariants = 128, traitAssocItems = 32 } },
         semanticHighlighting = {

@@ -169,6 +169,37 @@ md_parser.table = function(buffer, node, text, range)
   return parse_table(buffer, node, text, range)
 end
 
+-- markview sizes table cells with its own string grammar, which reads `[text][label]`
+-- as two links and counts the hidden label too. Cut the label off before measuring.
+local ref_query = vim.treesitter.query.parse('markdown_inline', [[
+  (full_reference_link (link_text) @text)
+  (collapsed_reference_link (link_text) @text)
+  (image (image_description) @text)
+]])
+
+local function drop_ref_labels(text)
+  if not text or not text:find('][', 1, true) then return text end
+  local ok, parser = pcall(vim.treesitter.get_string_parser, text, 'markdown_inline')
+  if not ok then return text end
+
+  local cuts = {}
+  for _, node in ref_query:iter_captures(parser:parse()[1]:root(), text) do
+    -- The text node ends at its ']'; a '[' right after it opens the label.
+    local _, _, _, from = node:range()
+    local _, _, _, to = node:parent():range()
+    if text:sub(from + 2, from + 2) == '[' then cuts[#cuts + 1] = { from + 2, to } end
+  end
+  table.sort(cuts, function(a, b) return a[1] > b[1] end)
+  for _, cut in ipairs(cuts) do text = text:sub(1, cut[1] - 1) .. text:sub(cut[2] + 1) end
+  return text
+end
+
+local md_tostring = require('markview.renderers.markdown.tostring')
+local tostring_text = md_tostring.tostring
+md_tostring.tostring = function(buffer, text, update_cache)
+  return tostring_text(buffer, drop_ref_labels(text), update_cache)
+end
+
 -- A table row starts with '|' after any indent and quote markers.
 local function is_table_row(line) return line:match('^[%s>]*|') ~= nil end
 
