@@ -8,9 +8,13 @@ local utils = require('config.utils')
 
 local M = {}
 
--- Checked in order, relative to the project root. Rollback dirs (`migrations_down`)
+-- Checked in order in each package dir searched. Rollback dirs (`migrations_down`)
 -- are deliberately absent - an older definition there would shadow the live one.
 local DIRS = { 'migrations', 'db/migrations', 'supabase/migrations', 'migration', 'sql' }
+
+-- Migrations sit beside a package manifest (sqlx resolves them from CARGO_MANIFEST_DIR),
+-- so only such dirs are searched below the root. A stray `sql/` of notes is not one.
+local MANIFESTS = { 'Cargo.toml', 'package.json', 'pyproject.toml', 'go.mod' }
 
 local MAX_FILES = 500
 local MAX_LINES = 5000
@@ -30,8 +34,14 @@ local MULTIWORD_TYPES = {
 
 -- Table body entries that constrain rather than declare a column.
 local CONSTRAINTS = {
-  PRIMARY = true, FOREIGN = true, UNIQUE = true, CHECK = true, CONSTRAINT = true,
-  EXCLUDE = true, LIKE = true, DEFERRABLE = true,
+  PRIMARY = true,
+  FOREIGN = true,
+  UNIQUE = true,
+  CHECK = true,
+  CONSTRAINT = true,
+  EXCLUDE = true,
+  LIKE = true,
+  DEFERRABLE = true,
 }
 
 -- text helpers ----------------------------------------------------------------
@@ -475,12 +485,12 @@ end
 -- it below is the usual way to change a signature, and the recreate must still inherit
 -- the original description. Entries still marked when the scan ends are really gone.
 local DROP_KINDS = {
-  { pattern = '^DROP%s+FUNCTION%f[%W]', keyword = 'FUNCTION', store = 'functions' },
-  { pattern = '^DROP%s+PROCEDURE%f[%W]', keyword = 'PROCEDURE', store = 'functions' },
-  { pattern = '^DROP%s+MATERIALIZED%s+VIEW%f[%W]', keyword = 'VIEW', store = 'tables' },
-  { pattern = '^DROP%s+TABLE%f[%W]', keyword = 'TABLE', store = 'tables' },
-  { pattern = '^DROP%s+VIEW%f[%W]', keyword = 'VIEW', store = 'tables' },
-  { pattern = '^DROP%s+TYPE%f[%W]', keyword = 'TYPE', store = 'types' },
+  { pattern = '^DROP%s+FUNCTION%f[%W]',            keyword = 'FUNCTION',  store = 'functions' },
+  { pattern = '^DROP%s+PROCEDURE%f[%W]',           keyword = 'PROCEDURE', store = 'functions' },
+  { pattern = '^DROP%s+MATERIALIZED%s+VIEW%f[%W]', keyword = 'VIEW',      store = 'tables' },
+  { pattern = '^DROP%s+TABLE%f[%W]',               keyword = 'TABLE',     store = 'tables' },
+  { pattern = '^DROP%s+VIEW%f[%W]',                keyword = 'VIEW',      store = 'tables' },
+  { pattern = '^DROP%s+TYPE%f[%W]',                keyword = 'TYPE',      store = 'types' },
 }
 
 local function parse_drop(index, lines, i)
@@ -535,23 +545,40 @@ local function scan_file(index, path, label)
   end
 end
 
--- Migrations dir for a root: the first of DIRS that exists, or an explicit override.
-local function migrations_dir(root)
+local function under(path, root)
+  return path == root or path:sub(1, #root + 1) == root .. '/'
+end
+
+local function is_package(dir)
+  for _, name in ipairs(MANIFESTS) do
+    if vim.uv.fs_stat(dir .. '/' .. name) then return true end
+  end
+  return false
+end
+
+-- Nearest migrations dir from `start` up to `root`, or an explicit override. The git
+-- root alone misses a service nested in the repo with its own migrations.
+local function migrations_dir(start, root)
   local override = vim.g.sql_docs_migrations
   if override and override ~= '' then
     local path = override:sub(1, 1) == '/' and override or (root .. '/' .. override)
     return vim.fn.isdirectory(path) == 1 and path or nil
   end
-  for _, dir in ipairs(DIRS) do
-    local path = root .. '/' .. dir
-    if vim.fn.isdirectory(path) == 1 then return path end
+  local dir = under(start, root) and start or root
+  while true do
+    if dir == root or is_package(dir) then
+      for _, name in ipairs(DIRS) do
+        local path = dir .. '/' .. name
+        if vim.fn.isdirectory(path) == 1 then return path end
+      end
+    end
+    local parent = vim.fs.dirname(dir)
+    if dir == root or parent == dir then return nil end
+    dir = parent
   end
 end
 
-local function build(root)
-  local dir = migrations_dir(root)
-  if not dir then return nil end
-
+local function build(dir)
   local files = {}
   for name, kind in vim.fs.dir(dir) do
     if kind == 'file' and name:lower():match('%.sql$') then files[#files + 1] = name end
@@ -580,17 +607,25 @@ end
 
 -- public ----------------------------------------------------------------------
 
-local cache = {} -- project root -> index (false when the project has no migrations)
+local cache = {} -- migrations dir -> index (false when it holds no .sql files)
+local dirs = {}  -- buffer dir -> migrations dir (false when none is found)
 
 function M.for_buf(bufnr)
-  -- Scratch buffers (the dbee editor, a `:new` query pad) have no path to walk up from.
-  -- The config keeps one global cwd for the whole session, so it names the same project.
-  local root = utils.project_root(bufnr or 0)
-      or vim.fs.root(vim.fn.getcwd(), utils.project_root_markers)
-      or vim.fn.getcwd()
-  if not root then return nil end
-  if cache[root] == nil then cache[root] = build(root) or false end
-  return cache[root] or nil
+  bufnr = bufnr or 0
+  local root, start = utils.project_root(bufnr), nil
+  if root then
+    start = vim.fs.dirname(vim.api.nvim_buf_get_name(bufnr)) --[[@as string]]
+  else
+    -- Scratch buffers (the dbee editor, a `:new` query pad) have no path to walk up from.
+    -- The config keeps one global cwd for the whole session, so it names the same project.
+    start = vim.fn.getcwd()
+    root = vim.fs.root(start, utils.project_root_markers) or start
+  end
+  if dirs[start] == nil then dirs[start] = migrations_dir(start, root) or false end
+  local dir = dirs[start]
+  if not dir then return nil end
+  if cache[dir] == nil then cache[dir] = build(dir) or false end
+  return cache[dir] or nil
 end
 
 -- Entry for `name`, or nil. Schema-qualified names fall back to the bare name.
@@ -628,7 +663,15 @@ function M.columns_named(bufnr, column)
 end
 
 function M.clear(root)
-  if root then cache[root] = nil else cache = {} end
+  if not root then
+    cache, dirs = {}, {}
+    return
+  end
+  for _, store in ipairs({ cache, dirs }) do
+    for key in pairs(store) do
+      if under(key, root) then store[key] = nil end
+    end
+  end
 end
 
 vim.api.nvim_create_autocmd('BufWritePost', {
