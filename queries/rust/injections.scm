@@ -311,6 +311,27 @@
  (#set! injection.language "sql")
  (#set! injection.priority 110))
 
+; qb.push(/* language=sql */ "...") - any function or method call. The tag is `(_)`
+; for the same grammar-extras reason as the binding forms below.
+((arguments
+   (_) @_tag
+   .
+   (string_literal) @injection.content)
+ (#lua-match? @_tag "language=sql")
+ (#offset! @injection.content 0 1 0 -1)
+ (#set! injection.include-children)
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
+; qb.push(/* language=sql */ r"...")
+((arguments
+   (_) @_tag
+   .
+   (raw_string_literal (string_content) @injection.content))
+ (#lua-match? @_tag "language=sql")
+ (#set! injection.language "sql")
+ (#set! injection.priority 110))
+
 ; // language=sql  ->  let / const SQL: &str = "..."; / static SQL: &str = "...";
 ((_
    (line_comment) @_tag
