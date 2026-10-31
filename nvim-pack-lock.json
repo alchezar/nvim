@@ -65,7 +65,7 @@
       "src": "https://github.com/alchezar/fishbone.nvim"
     },
     "gitsigns.nvim": {
-      "rev": "fd780920613e541cbdfac41bf711583ed49f9249",
+      "rev": "1e9d0fbfe7ff848bc402d2c2e2854fb4eff2dce7",
       "src": "https://github.com/lewis6991/gitsigns.nvim"
     },
     "hex.nvim": {
@@ -85,11 +85,11 @@
       "src": "https://github.com/chentoast/marks.nvim"
     },
     "markview.nvim": {
-      "rev": "49d2cf7ced872db74083a144ded1f94fe224d09a",
+      "rev": "ecc5a8867daa1856f8bcc5fdbceca8f5a5ce5f5d",
       "src": "https://github.com/OXY2DEV/markview.nvim"
     },
     "mini.icons": {
-      "rev": "f916635dc5ae2f479fbb9ab8184bb9444b62e86c",
+      "rev": "eab3e692d796d78ea6ffc978d8a380ff26fcf4e3",
       "src": "https://github.com/echasnovski/mini.icons"
     },
     "noice.nvim": {
@@ -129,7 +129,7 @@
       "src": "https://github.com/brenoprata10/nvim-highlight-colors"
     },
     "nvim-lspconfig": {
-      "rev": "45a3a444b710511c39abca3b60bb6e23a21e3de5",
+      "rev": "460bb34e7be114f1fda7815781696bc701e60f83",
       "src": "https://github.com/neovim/nvim-lspconfig"
     },
     "nvim-nio": {
@@ -137,15 +137,15 @@
       "src": "https://github.com/nvim-neotest/nvim-nio"
     },
     "nvim-scrollbar": {
-      "rev": "f8e87b96cd6362ef8579be456afee3b38fd7e2a8",
+      "rev": "00fe857e7cd97ee5e556de643ee920b003a96b03",
       "src": "https://github.com/petertriho/nvim-scrollbar"
     },
     "nvim-tree.lua": {
-      "rev": "355bcc85a48f45b3e728219f10b880d569928965",
+      "rev": "45f82f7b2c68c3e2bedbf6ad1d8d687a78e6faf4",
       "src": "https://github.com/nvim-tree/nvim-tree.lua"
     },
     "nvim-treesitter": {
-      "rev": "d4a9b23a383266bdb0bfb42d565f31e83f27be5e",
+      "rev": "a2f694478be07f89c2d03cc17858a8745a400c4b",
       "src": "https://github.com/nvim-treesitter/nvim-treesitter"
     },
     "nvim-web-devicons": {
@@ -161,7 +161,7 @@
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "rustaceanvim": {
-      "rev": "a968f5133b8b24f481de12f08cd79420d1ace559",
+      "rev": "3da79b08f963341193755bec04796b73a99c655e",
       "src": "https://github.com/mrcjkb/rustaceanvim"
     },
     "snacks.nvim": {
@@ -189,7 +189,7 @@
       "src": "https://github.com/tpope/vim-dadbod"
     },
     "vim-dadbod-completion": {
-      "rev": "a8dac0b3cf6132c80dc9b18bef36d4cf7a9e1fe6",
+      "rev": "8c65c6b02e8434e5360fc78097e489c05e899697",
       "src": "https://github.com/kristijanhusak/vim-dadbod-completion"
     },
     "vim-dadbod-ui": {
