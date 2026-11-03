@@ -212,10 +212,15 @@ vim.api.nvim_create_autocmd('LspAttach', {
         buffer = args.buf,
         callback = vim.lsp.buf.document_highlight,
       })
+      -- Keep the marks while the cursor stays on the same word, else they blink.
       vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
         group = group,
         buffer = args.buf,
-        callback = vim.lsp.buf.clear_references,
+        callback = function()
+          if not require('custom.lsp_reference_tint').under_cursor(args.buf) then
+            vim.lsp.buf.clear_references()
+          end
+        end,
       })
     end
   end,

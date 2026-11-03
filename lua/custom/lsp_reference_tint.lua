@@ -6,6 +6,8 @@ local theme = require('config.theme_colors')
 local util = vim.lsp.util
 local Kind = vim.lsp.protocol.DocumentHighlightKind
 
+local M = {}
+
 local ns = vim.api.nvim_create_namespace('nvim.lsp.references')
 -- Relative luminance below which a colour counts as dark (silver, brown, dark).
 local DARK_LUM = 0.2
@@ -89,8 +91,21 @@ local function groups_for(fg)
   return set
 end
 
+-- True while the cursor sits inside a painted reference. In insert mode the
+-- cursor rests one past the last char, so the end column counts as inside.
+function M.under_cursor(bufnr)
+  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  local pad = vim.fn.mode():match('^i') and 1 or 0
+  for _, m in ipairs(vim.api.nvim_buf_get_extmarks(bufnr, ns, { row - 1, 0 }, { row - 1, -1 }, { details = true })) do
+    if col >= m[3] and col < m[4].end_col + pad then return true end
+  end
+  return false
+end
+
+-- Replaces the marks in one go, so a re-request for the same word never blinks.
 ---@diagnostic disable-next-line: duplicate-set-field
 util.buf_highlight_references = function(bufnr, references, encoding)
+  vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
   if #references == 0 then return end
   local fg
   if bufnr == vim.api.nvim_get_current_buf() then
@@ -109,3 +124,5 @@ util.buf_highlight_references = function(bufnr, references, encoding)
       { priority = vim.hl.priorities.user })
   end
 end
+
+return M
