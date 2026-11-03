@@ -20,6 +20,8 @@ vim.api.nvim_create_autocmd('FileType', {
 })
 vim.opt.formatexpr = "v:lua.require'config.utils'.formatexpr()"
 vim.opt.scrolloff = 2
+-- CursorHold delay. The default 4 s makes the reference highlight feel broken.
+vim.opt.updatetime = 100
 -- Tabs / indent settings
 vim.opt.tabstop = 4
 vim.opt.shiftwidth = 4

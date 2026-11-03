@@ -204,6 +204,32 @@ vim.api.nvim_create_autocmd('LspAttach', {
     if vim.bo[args.buf].filetype == 'vue' and (client.name == 'ts_ls' or client.name == 'vue_ls') then
       client.server_capabilities.inlayHintProvider = false
     end
+    -- Highlight other uses of the symbol under the cursor once it rests there.
+    if client:supports_method('textDocument/documentHighlight', args.buf) then
+      local group = vim.api.nvim_create_augroup('kinder_lsp_references_' .. args.buf, { clear = true })
+      vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
+        group = group,
+        buffer = args.buf,
+        callback = vim.lsp.buf.document_highlight,
+      })
+      vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
+        group = group,
+        buffer = args.buf,
+        callback = vim.lsp.buf.clear_references,
+      })
+    end
+  end,
+})
+
+-- Drop the reference autocmds when the last client that answered them leaves.
+vim.api.nvim_create_autocmd('LspDetach', {
+  callback = function(args)
+    local left = vim.tbl_filter(function(c)
+      return c.id ~= args.data.client_id
+    end, vim.lsp.get_clients({ bufnr = args.buf, method = 'textDocument/documentHighlight' }))
+    if #left > 0 then return end
+    pcall(vim.api.nvim_del_augroup_by_name, 'kinder_lsp_references_' .. args.buf)
+    vim.lsp.buf.clear_references()
   end,
 })
 
