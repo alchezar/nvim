@@ -5,6 +5,8 @@ local compare = require('cmp.config.compare')
 local kinds = require('cmp.types').lsp.CompletionItemKind
 local theme = require('config.theme_colors')
 
+local kind_rank = { [kinds.Field] = 0, [kinds.Property] = 0, [kinds.Snippet] = 2 }
+
 -- Teal tint for the origin column (the trait/module a method comes from).
 local function set_origin_hl()
   vim.api.nvim_set_hl(0, 'CmpItemMenuOrigin', { fg = theme.teal })
@@ -88,11 +90,10 @@ cmp.setup({
   },
   sorting = {
     comparators = {
-      -- Snippets always sort last, below LSP methods/variables.
+      -- Fields first, snippets last; the rest keep cmp's usual order between them.
       function(a, b)
-        local a_snip = a:get_kind() == kinds.Snippet
-        local b_snip = b:get_kind() == kinds.Snippet
-        if a_snip ~= b_snip then return not a_snip end
+        local ra, rb = kind_rank[a:get_kind()] or 1, kind_rank[b:get_kind()] or 1
+        if ra ~= rb then return ra < rb end
       end,
       compare.offset,
       compare.exact,
