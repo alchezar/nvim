@@ -23,14 +23,11 @@ vim.api.nvim_set_hl(0, "NormalFloat", { bg = "none" })
 
 vim.api.nvim_set_hl(0, "Visual", { bg = colors.cobalt })
 
--- Other uses of the symbol under the cursor (document highlight); writes stand out.
+-- Other uses of the symbol under the cursor (document highlight). Fallback only:
+-- custom/lsp_reference_tint.lua paints them in the symbol's own colour instead.
 vim.api.nvim_set_hl(0, "LspReferenceText", { bg = colors.dark })
 vim.api.nvim_set_hl(0, "LspReferenceRead", { bg = colors.dark })
 vim.api.nvim_set_hl(0, "LspReferenceWrite", { bg = colors.dark, bold = true })
--- Same, over text that is itself `dark` (custom/lsp_reference_contrast.lua).
-vim.api.nvim_set_hl(0, "LspReferenceTextDark", { bg = colors.dark, fg = colors.black })
-vim.api.nvim_set_hl(0, "LspReferenceReadDark", { bg = colors.dark, fg = colors.black })
-vim.api.nvim_set_hl(0, "LspReferenceWriteDark", { bg = colors.dark, fg = colors.black, bold = true })
 
 vim.api.nvim_set_hl(0, "Search", { bg = colors.purple, fg = colors.bg })
 vim.api.nvim_set_hl(0, "CurSearch", { bg = colors.purple, fg = colors.bg, bold = true })
