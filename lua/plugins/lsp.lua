@@ -210,7 +210,12 @@ vim.api.nvim_create_autocmd('LspAttach', {
       vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
         group = group,
         buffer = args.buf,
-        callback = vim.lsp.buf.document_highlight,
+        -- Inside an injected SQL query the names come from treesitter, not the server.
+        callback = function()
+          if not require('custom.sql_references').highlight(args.buf) then
+            vim.lsp.buf.document_highlight()
+          end
+        end,
       })
       -- Keep the marks while the cursor stays on the same word, else they blink.
       vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
