@@ -1,3 +1,4 @@
 .claude/
 **/projects.lua
 /old
+/.deps
