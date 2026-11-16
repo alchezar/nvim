@@ -349,26 +349,30 @@ local function parse_alter_table(index, lines, i, file)
   -- would otherwise still carry it and its leading word would read as a column name.
   local actions = (stmt:sub(pos):gsub(';%s*$', ''))
   for _, action in ipairs(split_commas(actions)) do
-    local upper = action:upper()
-    local col, rest = action:match('[Cc][Oo][Ll][Uu][Mm][Nn]%s+"?([%w_]+)"?%s*(.*)$')
-    if not col then
-      -- `ADD`/`DROP` may omit the COLUMN keyword; a constraint entry must not pass.
-      if upper:match('^ADD%f[%W]') or upper:match('^DROP%f[%W]') then
-        col, rest = action:match('^%a+%s+"?([%w_]+)"?%s*(.*)$')
+    -- The leading verb alone names the action: searched for anywhere in the text,
+    -- `ALTER COLUMN x DROP NOT NULL` would read as a dropped column.
+    local verb, tail = action:match('^(%a+)%s+(.*)$')
+    verb = verb and verb:upper()
+    local col, rest
+    if verb == 'ADD' or verb == 'DROP' or verb == 'RENAME' or verb == 'ALTER' then
+      col, rest = tail:match('^[Cc][Oo][Ll][Uu][Mm][Nn]%s+"?([%w_]+)"?%s*(.*)$')
+      if not col then
+        -- The COLUMN keyword is optional; a constraint entry must not pass.
+        col, rest = tail:match('^"?([%w_]+)"?%s*(.*)$')
         if col and CONSTRAINTS[col:upper()] then col = nil end
       end
     end
     if col then
-      if upper:find('%f[%w]DROP%f[%W]') then
+      if verb == 'DROP' then
         for k = #entry.cols, 1, -1 do
           if entry.cols[k].name:lower() == col:lower() then table.remove(entry.cols, k) end
         end
-      elseif upper:find('%f[%w]RENAME%f[%W]') then
+      elseif verb == 'RENAME' then
         local to = rest:match('^[Tt][Oo]%s+"?([%w_]+)"?')
         for _, c in ipairs(entry.cols) do
           if c.name:lower() == col:lower() and to then c.name = to end
         end
-      elseif upper:find('%f[%w]ADD%f[%W]') then
+      elseif verb == 'ADD' then
         local col_type = base_type(rest)
         local existing
         for _, c in ipairs(entry.cols) do
@@ -379,10 +383,13 @@ local function parse_alter_table(index, lines, i, file)
         else
           entry.cols[#entry.cols + 1] = { name = col, type = col_type, decl = rest }
         end
-      elseif upper:find('%f[%w]TYPE%f[%W]') then
+      else
+        -- Of the ALTER COLUMN forms only a retype changes the listing; DEFAULT,
+        -- NOT NULL and the rest leave the column and its type as they were.
+        local retyped = rest:match('^[Ss][Ee][Tt]%s+[Dd][Aa][Tt][Aa]%s+[Tt][Yy][Pp][Ee]%s+(.*)$')
+            or rest:match('^[Tt][Yy][Pp][Ee]%s+(.*)$')
         for _, c in ipairs(entry.cols) do
-          if c.name:lower() == col:lower() then
-            local retyped = (rest:gsub('^[Tt][Yy][Pp][Ee]%s+', ''))
+          if retyped and c.name:lower() == col:lower() then
             c.type, c.decl = base_type(retyped), retyped
           end
         end
