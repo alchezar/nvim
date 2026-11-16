@@ -141,6 +141,10 @@ require('markview').setup({
     icon_provider = 'devicons',                   -- real language icons (TS, etc.) instead of the internal blanks
     hybrid_modes = hybrid_mode and { 'n' } or {}, -- raw cursor line in normal mode (see flag above)
     linewise_hybrid_mode = true,                  -- de-render the whole cursor line, not just the element under it
+    -- markview's default condition answers false while experimental.fancy_comments is
+    -- off. Until f246f45 that false was swallowed into nil; now it is honoured and
+    -- markview attaches to nothing. nil hands the choice back to filetypes/ignore_buftypes.
+    condition = function() return nil end,
   },
 })
 
