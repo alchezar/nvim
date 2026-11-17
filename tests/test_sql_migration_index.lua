@@ -1,5 +1,5 @@
--- ALTER TABLE replayed on top of CREATE TABLE in sql_migration_index. Guards
--- ff810bc, where ALTER COLUMN ... DROP NOT NULL/DEFAULT dropped the column.
+-- sql_migration_index: the project's own SQL objects, as a query file in the
+-- project sees them after every migration has been replayed.
 local new_set, eq = MiniTest.new_set, MiniTest.expect.equality
 local child = MiniTest.new_child_neovim()
 
@@ -58,12 +58,86 @@ T['ALTER TABLE users'] = new_set({
   },
 })
 
+-- ff810bc: ALTER COLUMN ... DROP NOT NULL/DEFAULT dropped the column.
 T['ALTER TABLE users']['replays onto the columns'] = function(action, want)
   local root = make_project({
     ['0001_init.sql'] = CREATE_USERS,
     ['0002_alter.sql'] = { 'ALTER TABLE users ' .. action .. ';' },
   })
   eq(users_columns(root), want)
+end
+
+-- Write `tree` (path -> lines) under a fresh dir and return it.
+local function make_tree(tree)
+  local root = vim.fn.tempname()
+  for path, lines in pairs(tree) do
+    vim.fn.mkdir(vim.fs.dirname(root .. '/' .. path), 'p')
+    vim.fn.writefile(lines, root .. '/' .. path)
+  end
+  return root
+end
+
+-- Kind and doc of `name` from a query file at `query` under `root`, or false.
+local function lookup(root, query, name)
+  child.cmd('edit ' .. vim.fn.fnameescape(root .. '/' .. query))
+  return child.lua([[
+    local e = require('custom.sql_migration_index').lookup(0, ...)
+    return e and { e.kind, table.concat(e.doc, ' ') } or false
+  ]], { name })
+end
+
+-- 099dd7e: only the repo root was searched, so a nested service with its own
+-- migrations next to its Cargo.toml had no index.
+T['nested service uses its own migrations'] = function()
+  local root = make_tree({
+    ['.git/HEAD'] = {},
+    ['services/api/Cargo.toml'] = {},
+    ['services/api/migrations/0001.sql'] = { 'CREATE TABLE orders (id INT);' },
+  })
+  eq(lookup(root, 'services/api/src/q.sql', 'orders'), { 'table', '' })
+end
+
+T['sql dir outside a package is not migrations'] = function()
+  local root = make_tree({
+    ['.git/HEAD'] = {},
+    ['migrations/0001.sql'] = { 'CREATE TABLE users (id INT);' },
+    ['docs/sql/notes.sql'] = { 'CREATE TABLE notes (id INT);' },
+  })
+  eq(lookup(root, 'docs/q.sql', 'users'), { 'table', '' })
+  eq(lookup(root, 'docs/q.sql', 'notes'), false)
+end
+
+T['docs come from COMMENT ON, else the comment above'] = function()
+  local root = make_tree({
+    ['Cargo.lock'] = {},
+    ['migrations/0001.sql'] = {
+      '-- People who can sign in.',
+      'CREATE TABLE users (id INT);',
+      '-- Shipping orders.',
+      'CREATE TABLE orders (id INT);',
+      "COMMENT ON TABLE orders IS 'Orders placed by users.';",
+    },
+  })
+  eq(lookup(root, 'q.sql', 'users'), { 'table', 'People who can sign in.' })
+  eq(lookup(root, 'q.sql', 'orders'), { 'table', 'Orders placed by users.' })
+end
+
+T['a later CREATE OR REPLACE keeps the first doc, DROP removes'] = function()
+  local root = make_tree({
+    ['Cargo.lock'] = {},
+    ['migrations/0001.sql'] = {
+      '-- Total of an order.',
+      'CREATE FUNCTION order_total(id INT) RETURNS INT AS $$ SELECT 1 $$ LANGUAGE sql;',
+      'CREATE TABLE tmp (id INT);',
+    },
+    ['migrations/0002.sql'] = {
+      '-- Fix rounding.',
+      'CREATE OR REPLACE FUNCTION order_total(id INT) RETURNS INT AS $$ SELECT 2 $$ LANGUAGE sql;',
+      'DROP TABLE tmp;',
+    },
+  })
+  eq(lookup(root, 'q.sql', 'order_total'), { 'function', 'Total of an order.' })
+  eq(lookup(root, 'q.sql', 'tmp'), false)
 end
 
 return T
