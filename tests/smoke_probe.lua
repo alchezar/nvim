@@ -13,7 +13,8 @@ vim.api.nvim_create_autocmd('VimEnter', {
         if not ok then failed[#failed + 1] = mod .. ': ' .. tostring(err) end
       end
       vim.fn.writefile({ vim.json.encode({ config = config, failed = failed }) }, vim.env.SMOKE_REPORT)
-      vim.cmd('qall!')
+      -- Skip VimLeavePre, where bookmarks would rewrite the real store.
+      os.exit(0)
     end)
   end,
 })
