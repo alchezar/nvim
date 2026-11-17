@@ -11,21 +11,23 @@ function H.new_child()
 
   -- opts.plugins are paths under the pack dir; opts.treesitter adds parsers,
   -- nvim-treesitter queries and this config's queries, ordered as in real use.
+  -- opts.runtime puts the config itself on 'runtimepath' (colors/, queries/).
   function child.setup(opts)
     opts = opts or {}
     child.restart({ '-u', 'tests/minimal_init.lua' })
     child.lua([[
-      local root, site, pack, plugins, ts = ...
+      local root, site, pack, plugins, ts, runtime = ...
       if ts then
         vim.opt.rtp:prepend(pack .. '/nvim-treesitter/runtime')
         vim.opt.rtp:prepend(site)
       end
       for _, p in ipairs(plugins) do vim.opt.rtp:prepend(pack .. '/' .. p) end
-      if ts then
+      if ts or runtime then
         vim.opt.rtp:prepend(root)
         vim.opt.rtp:append(root .. '/after')
       end
-    ]], { H.root, H.site, H.pack, opts.plugins or {}, opts.treesitter or false })
+    ]], { H.root, H.site, H.pack, opts.plugins or {}, opts.treesitter or false,
+      opts.runtime or false })
   end
 
   return child
