@@ -28,7 +28,8 @@ T['hit'] = new_set({
     { 'fn connect(pool: sqlx::PgPool) {}' },
     { 'query.execute(&mut *tx).await?;' },
     { 'use std::{fmt, io};' },
-    -- d1698f5: a qualified variant looked like an import line and was skipped.
+    -- Before d1698f5, a qualified variant looked like an import line and was
+    -- skipped.
     { '        sqlx::Error::RowNotFound,' },
   },
 })
@@ -37,13 +38,13 @@ T['hit']['is found'] = function(line) eq(hits(line), true) end
 T['miss'] = new_set({
   parametrize = {
     { 'let x = 1;' },
-    -- 7fed973: `let Enum::` read as a `let x:` annotation.
+    -- Before 7fed973, `let Enum::` read as a `let x:` annotation.
     { 'let Shape::Circle(r) = shape;' },
-    -- cc2a8bc: a line inside a multi-line `use` block.
+    -- Before cc2a8bc, a line inside a multi-line `use` block.
     { '    postgres::PgPool,' },
-    -- 23fdf0a: any `&mut *x` reborrow counted, not only transactions.
+    -- Before 23fdf0a, any `&mut *x` reborrow counted, not only transactions.
     { 'read(&mut *conn).await?;' },
-    -- f95c618: a type path quoted in a doc comment.
+    -- Before f95c618, a type path quoted in a doc comment.
     { '/// Takes a `sqlx::PgPool` from the state.' },
   },
 })

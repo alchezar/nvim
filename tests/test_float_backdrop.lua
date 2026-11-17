@@ -46,8 +46,8 @@ T['covers the screen while a dialog is open, then goes'] = function()
   eq(backdrop(false), false)
 end
 
--- 8c3e15e: a resize while the dialog stayed open left the old size, so part
--- of the screen went undimmed.
+-- Before 8c3e15e, a resize while the dialog stayed open left the old size, so
+-- part of the screen went undimmed.
 T['follows a resize'] = function()
   open_dialog()
   backdrop(true)
@@ -55,8 +55,8 @@ T['follows a resize'] = function()
   eq(backdrop(true), { 102, 26, 100, 24 })
 end
 
--- 8c3e15e: a dialog closed without autocmds (gitsigns' preview on cursor move)
--- left the backdrop up for good.
+-- Before 8c3e15e, a dialog closed without autocmds (gitsigns' preview on cursor
+-- move) left the backdrop up for good.
 T['goes when the dialog closes silently'] = function()
   local dialog = open_dialog()
   backdrop(true)

@@ -25,8 +25,8 @@ local function spaces_shown()
   ]])
 end
 
--- 5ffbb74: the expansion was set globally, so every window without a local
--- value of its own showed it too.
+-- Before 5ffbb74, the expansion was set globally, so every window without a
+-- local value of its own showed it too.
 T['visual mode expands only the current window'] = function()
   child.cmd('vsplit')
   child.type_keys('v')

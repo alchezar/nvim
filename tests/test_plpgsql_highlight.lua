@@ -55,7 +55,7 @@ T['paints body tokens, leaves SQL outside alone'] = function()
   eq(groups(FUNC, WORDS), WANT)
 end
 
--- 6fb2b62: since 0.12 a missing sql parser is nil, not an error, and the
+-- Before 6fb2b62, since 0.12 a missing sql parser is nil, not an error, and the
 -- FileType handler crashed. The body is still painted, minus parameters.
 T['works without the sql parser'] = function()
   child.setup()

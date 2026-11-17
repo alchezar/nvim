@@ -56,7 +56,7 @@ T['a saved mark follows its text to a new line'] = function()
   eq(signs(), { '3:2:UserBookmark2' })
 end
 
--- a4a3187: :colorscheme clears every group, and the signs went grey.
+-- Before a4a3187, :colorscheme clears every group, and the signs went grey.
 T['signs keep their color after a colorscheme change'] = function()
   load()
   child.cmd('colorscheme default')

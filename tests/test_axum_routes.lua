@@ -47,19 +47,19 @@ T['utoipa attr alone gives the relative path'] = function()
   eq(endpoints(utoipa('post', '/items', 'create_item')), { 'POST /items create_item' })
 end
 
--- 7d08bd1: any comment naming a route counted, even over a type.
+-- Before 7d08bd1, any comment naming a route counted, even over a type.
 T['route comment over a type is ignored'] = function()
   eq(endpoints({ '// GET /api/users', 'pub struct UsersPage {}' }), {})
 end
 
--- 5dc131e: prose naming another endpoint became a ghost entry.
+-- Before 5dc131e, prose naming another endpoint became a ghost entry.
 T['route mentioned in prose is ignored'] = function()
   local lines = with({ '/// Same data as GET /api/legacy, newer shape.' },
     utoipa('get', '/users', 'list_users'))
   eq(endpoints(lines), { 'GET /users list_users' })
 end
 
--- f3d565e: a documented query string broke the match with utoipa's path.
+-- Before f3d565e, a documented query string broke the match with utoipa's path.
 T['query string in the comment still matches'] = function()
   eq(endpoints(with({ '// GET /api/users?page=1' }, utoipa('get', '/users', 'list_users'))),
     { 'GET /api/users?page=1 list_users' })

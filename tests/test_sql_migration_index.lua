@@ -58,7 +58,7 @@ T['ALTER TABLE users'] = new_set({
   },
 })
 
--- ff810bc: ALTER COLUMN ... DROP NOT NULL/DEFAULT dropped the column.
+-- Before ff810bc, ALTER COLUMN ... DROP NOT NULL/DEFAULT dropped the column.
 T['ALTER TABLE users']['replays onto the columns'] = function(action, want)
   local root = make_project({
     ['0001_init.sql'] = CREATE_USERS,
@@ -86,8 +86,8 @@ local function lookup(root, query, name)
   ]], { name })
 end
 
--- 099dd7e: only the repo root was searched, so a nested service with its own
--- migrations next to its Cargo.toml had no index.
+-- Before 099dd7e, only the repo root was searched, so a nested service with its
+-- own migrations next to its Cargo.toml had no index.
 T['nested service uses its own migrations'] = function()
   local root = make_tree({
     ['.git/HEAD'] = {},

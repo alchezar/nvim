@@ -46,7 +46,7 @@ T['leaves a single param alone'] = function()
   eq(hover('fn one(a: u32) -> u32'), wrap({ 'fn one(a: u32) -> u32' }))
 end
 
--- 2b05ae4: the first `(` on the line was taken as the param list, so
+-- Before 2b05ae4, the first `(` on the line was taken as the param list, so
 -- `pub(crate)` and a `Fn(..)` bound broke the split.
 T['finds params past pub(crate)'] = function()
   eq(hover('pub(crate) fn connect(url: &str, retries: u32) -> Pool'),
@@ -104,7 +104,8 @@ T['panel shows the type below the field'] = function()
     { 1, true, true })
 end
 
--- e75f308: on the type's own name the type's hover repeated the cursor's.
+-- Before e75f308, on the type's own name the type's hover repeated the
+-- cursor's.
 T['panel skips the type when it is the cursor'] = function()
   local text, sections = unpack(panel(STATUS, STATUS))
   local _, count = text:gsub('enum Status', '')

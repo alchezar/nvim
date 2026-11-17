@@ -44,7 +44,7 @@ end
 T['SQL keyword'] = new_set({
   parametrize = {
     { 'sqlx macro',           { 'let r = sqlx::query!("SELECT id FROM users");' } },
-    -- ca41487: a multi-line plain string got no SQL region at all.
+    -- Before ca41487, a multi-line plain string got no SQL region at all.
     { 'multi-line string',    { 'let r = sqlx::query!("', '    SELECT id FROM users', '");' } },
     { 'raw string',           { 'let r = sqlx::query!(r#"SELECT id FROM users"#);' } },
     { 'bare macro',           { 'let r = query_as!(User, "SELECT id FROM users");' } },

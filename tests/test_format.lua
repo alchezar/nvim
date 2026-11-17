@@ -25,14 +25,15 @@ local function buf_lines() return child.api.nvim_buf_get_lines(0, 0, -1, false) 
 
 local LONG = ('word '):rep(25) .. 'end'
 
--- 5212f2d: the markdown ftplugin re-added 't', so lines broke while typing.
+-- Before 5212f2d, the markdown ftplugin re-added 't', so lines broke while
+-- typing.
 T['typing past textwidth does not wrap'] = function()
   markdown({ '' })
   child.type_keys('i', LONG, '<Esc>')
   eq(buf_lines(), { LONG })
 end
 
--- 5212f2d: built-in gq joined the table rows into the paragraph.
+-- Before 5212f2d, built-in gq joined the table rows into the paragraph.
 T['Q wraps prose and leaves table rows apart'] = function()
   markdown({ LONG, '', '| a | b |', '| --- | --- |', '| 1 | 2 |' })
   child.type_keys('gg', 'gqG')

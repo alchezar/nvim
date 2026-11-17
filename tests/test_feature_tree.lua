@@ -43,8 +43,8 @@ T['groups each feature across layers'] = function()
     { 'orders', 'api.rs', 'db.rs' })
 end
 
--- f9bf395: mod.rs was skipped outright, so a feature that is a dir with its
--- own mod.rs vanished from the tree.
+-- Before f9bf395, mod.rs was skipped outright, so a feature that is a dir with
+-- its own mod.rs vanished from the tree.
 T['dir feature with mod.rs is kept'] = function()
   eq(rows({ 'api/orders.rs', 'db/orders.rs', 'api/sync/mod.rs', 'db/sync/mod.rs' }),
     { 'orders', 'api.rs', 'db.rs', 'sync', 'api.rs', 'db.rs' })
