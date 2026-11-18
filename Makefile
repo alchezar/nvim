@@ -8,11 +8,11 @@ RUN = $(NVIM) --headless --clean -u tests/minimal_init.lua
 .PHONY: test test-file
 
 test: .deps/mini.test
-	$(RUN) -c "lua MiniTest.run()"
+	$(RUN) -c "lua MiniTest.run()" -c "cquit 1"
 
 # make test-file FILE=tests/test_smoke.lua
 test-file: .deps/mini.test
-	$(RUN) -c "lua MiniTest.run_file('$(FILE)')"
+	$(RUN) -c "lua MiniTest.run_file('$(FILE)')" -c "cquit 1"
 
 .deps/mini.test:
 	git clone --filter=blob:none --branch $(MINI_TEST_REF) https://github.com/nvim-mini/mini.test $@
