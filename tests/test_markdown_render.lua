@@ -1,0 +1,163 @@
+-- markview plus the config's own word-wrapped table renderer, checked by what
+-- the screen shows under 'wrap' (the config's default for markdown).
+local H = require('tests.helpers')
+local new_set = MiniTest.new_set
+local expect = MiniTest.expect
+local child = H.new_child()
+
+local T = new_set({
+  hooks = {
+    pre_case = function()
+      child.setup({
+        treesitter = true,
+        plugins = { 'nvim-web-devicons', 'markview.nvim' },
+      })
+      child.o.lines, child.o.columns = 16, 50
+      -- No statusline or ruler: the temp file name would change every run.
+      child.o.laststatus, child.o.ruler, child.o.showcmd = 0, false, false
+      child.lua([[
+        vim.o.wrap, vim.o.linebreak, vim.o.breakindent = true, true, true
+        require('plugins.markdown')
+      ]])
+    end,
+    post_once = child.stop,
+  },
+})
+
+-- Open a markdown file and wait until markview has drawn it.
+local function open(lines)
+  local file = vim.fn.tempname() .. '.md'
+  vim.fn.writefile(lines, file)
+  child.cmd('edit ' .. file)
+  child.lua([[
+    vim.wait(2000, function()
+      for name, id in pairs(vim.api.nvim_get_namespaces()) do
+        if name:match('^markview') and #vim.api.nvim_buf_get_extmarks(0, id, 0, -1, {}) > 0 then
+          return true
+        end
+      end
+    end)
+  ]])
+end
+
+local function shot() expect.reference_screenshot(child.get_screenshot()) end
+
+local WIDE = {
+  '| Name | Notes |',
+  '| --- | --- |',
+  '| alpha | a long note that cannot fit in one row of this narrow window |',
+  '| beta | short |',
+}
+
+-- Before a7036e9, markview's condition fix made it attach to nothing at all.
+T['wide table wraps words inside the box'] = function()
+  open(vim.list_extend(vim.deepcopy(WIDE), { '', 'after' }))
+  shot()
+end
+
+-- Before 33954a1, with no row below the table there was nowhere to hang its
+-- bottom.
+T['table at the end of the file is closed'] = function()
+  open(WIDE)
+  shot()
+end
+
+-- Before 926bf2b, wrapped rows of a list item got markview's padding on top.
+T['wrapped list item lines up with its text'] = function()
+  open({ '- ' .. ('item text '):rep(8), '', ('plain prose '):rep(6) })
+  shot()
+end
+
+-- Before 731bd8f, the 'block' style padded lines to the widest one, and under
+-- wrap the padding spilled into rows of stray background.
+T['code block under wrap'] = function()
+  open({ '```lua', 'local x = 1', 'print("' .. ('x'):rep(60) .. '")', '```' })
+  shot()
+end
+
+-- Before ce15fcc, punctuation, nested markup and block quotes broke the wrapped
+-- box.
+T['table with markup inside a quote'] = function()
+  open({
+    '> | Key | Value |',
+    '> | --- | --- |',
+    '> | **bold**, `code` | a note, with commas; and *more* text than fits |',
+  })
+  shot()
+end
+
+-- Before dcfee7f, an emoji with VS16 measured 3 cells while wrapping, not 2,
+-- and the rows past it overran the border. Asserted on border columns, since
+-- screenshot files drop VS16 and a reference can't hold it.
+T['emoji with VS16 keeps the border straight'] = function()
+  local e = '\u{26A0}\u{FE0F}'
+  open({ '| Flag | Meaning |', '| --- | --- |', '| x | ' .. (e .. ' warn '):rep(8) .. '|' })
+  local rows = child.lua([[
+    local out = {}
+    for row = 1, vim.o.lines do
+      local cols = {}
+      for col = 1, vim.o.columns do
+        if vim.fn.screenstring(row, col) == '\u{2502}' then cols[#cols + 1] = col end
+      end
+      if #cols > 0 then out[#out + 1] = table.concat(cols, ',') end
+    end
+    return out
+  ]])
+  MiniTest.expect.equality(#rows > 2, true)
+  for _, r in ipairs(rows) do MiniTest.expect.equality(r, rows[1]) end
+end
+
+-- Before 53d039a, without wrap markview sized the column with the link's hidden
+-- label, leaving the cell padded far too wide.
+T['reference link width without wrap'] = function()
+  open({
+    '| Doc | Link |',
+    '| --- | --- |',
+    '| guide | [the guide][a-rather-long-reference-label] |',
+    '',
+    '[a-rather-long-reference-label]: https://example.com',
+  })
+  child.lua([[vim.wo.wrap = false; vim.cmd('redraw'); vim.wait(300)]])
+  shot()
+end
+
+-- Before 862dd6e, a repaint during insert mode (a resize, an option set) put
+-- the preview back over the line being edited.
+T['insert mode stays raw through a resize'] = function()
+  open(WIDE)
+  child.type_keys('3G', 'A', ' more')
+  child.o.columns = 48
+  child.lua([[vim.wait(300)]])
+  shot()
+  child.type_keys('<Esc>')
+end
+
+-- Before 4292ff8, hover and preview floats are nofile buffers markview must
+-- skip.
+T['nofile float stays raw'] = function()
+  open({ 'text' })
+  child.lua([[
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { '# Title', '**bold**' })
+    vim.bo[buf].filetype = 'markdown'
+    vim.api.nvim_open_win(buf, false, { relative = 'editor', row = 3, col = 5, width = 20, height = 3 })
+    vim.wait(300)
+  ]])
+  shot()
+end
+
+-- Before 76cc84e, a new sign narrowed the text area with no event, and the box
+-- kept its old width.
+T['table refits when a sign appears'] = function()
+  open(WIDE)
+  child.lua([[
+    vim.wo.signcolumn = 'auto'
+    local ns = vim.api.nvim_create_namespace('test_sign')
+    vim.api.nvim_buf_set_extmark(0, ns, 0, 0, { sign_text = 'S' })
+    vim.cmd('redraw')
+    vim.wait(300)
+  ]])
+  shot()
+end
+
+return T

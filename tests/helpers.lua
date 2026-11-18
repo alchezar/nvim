@@ -21,7 +21,13 @@ function H.new_child()
         vim.opt.rtp:prepend(pack .. '/nvim-treesitter/runtime')
         vim.opt.rtp:prepend(site)
       end
-      for _, p in ipairs(plugins) do vim.opt.rtp:prepend(pack .. '/' .. p) end
+      for _, p in ipairs(plugins) do
+        vim.opt.rtp:prepend(pack .. '/' .. p)
+        -- Startup already sourced plugin/ dirs; do it for the late arrivals.
+        for _, f in ipairs(vim.fn.glob(pack .. '/' .. p .. '/plugin/**/*.{lua,vim}', true, true)) do
+          vim.cmd.source(f)
+        end
+      end
       if ts or runtime then
         vim.opt.rtp:prepend(root)
         vim.opt.rtp:append(root .. '/after')
