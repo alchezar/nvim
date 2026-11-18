@@ -42,11 +42,12 @@ end
 -- In-process fake language server attached to the child's current buffer. It
 -- answers `responses[method .. ' ' .. uri .. ':' .. line]` first, else
 -- `responses[method]`, so a test scripts exactly what the server "knows".
+-- Its cmd stays at _G.fake_lsp_cmd, so a test can attach it again later.
 function H.start_fake_lsp(child, responses, capabilities, name)
   child.lua([[
     local responses, caps, name = ...
     _G.fake_lsp_responses = responses
-    local function server(dispatchers)
+    _G.fake_lsp_cmd = function(dispatchers)
       local closing = false
       return {
         request = function(method, params, callback)
@@ -68,10 +69,13 @@ function H.start_fake_lsp(child, responses, capabilities, name)
           return true
         end,
         is_closing = function() return closing end,
-        terminate = function() closing = true end,
+        terminate = function()
+          if not closing then dispatchers.on_exit(0, 15) end
+          closing = true
+        end,
       }
     end
-    vim.lsp.start({ name = name, cmd = server, root_dir = vim.fn.getcwd() })
+    vim.lsp.start({ name = name, cmd = _G.fake_lsp_cmd, root_dir = vim.fn.getcwd() })
     local ok = vim.wait(2000, function()
       return #vim.lsp.get_clients({ bufnr = 0, name = name }) > 0
     end)
