@@ -69,6 +69,19 @@ T['entries stay put when the tree opens beside'] = function()
   eq(beside.entries[1], alone.entries[1])
 end
 
+-- Before f8c667e, startify's window-local EndOfBuffer map, which hides '~'
+-- when Normal has a bg, was copied into every split off the dashboard.
+T['a split off the dashboard keeps the eob markers'] = function()
+  child.lua([[
+    vim.o.termguicolors = true
+    vim.api.nvim_set_hl(0, 'Normal', { bg = '#101010' })
+  ]])
+  open_dashboard()
+  child.lua([[_G.settle()]])
+  child.cmd('vsplit')
+  eq(child.lua_get([[vim.wo.winhighlight:find('StartifyEndOfBuffer') == nil]]), true)
+end
+
 -- Before 4f40346, startify's frozen left padding ignored the centering, so
 -- entries and their section title drifted apart.
 T['entries line up under their title'] = function()
