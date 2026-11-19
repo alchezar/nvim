@@ -58,15 +58,16 @@ T['first open lights only the tree'] = function()
   eq(cursorlines(), { NvimTree = true, [''] = false })
 end
 
--- a8e0f4a clears the cursorline a split from the tree used to inherit. Current
--- nvim-tree no longer passes it on by itself; this guards it.
-T['a file opened from the tree into a split has no cursorline'] = function()
+-- Before a8e0f4a, a file opened from the tree as the only window landed in a
+-- split of the tree window and inherited its cursorline.
+T['a file opened from a lone tree has no cursorline'] = function()
   open_tree()
   child.lua([[
     local api = require('nvim-tree.api')
     api.tree.focus()
+    vim.cmd('only')
     api.tree.find_file({ buf = vim.fn.bufadd(...), open = true, focus = true })
-    api.node.open.vertical()
+    api.node.open.edit()
     vim.wait(1000, function() return vim.bo.filetype == 'rust' end)
   ]], { root .. '/src/main.rs' })
   eq(cursorlines().rust, false)
