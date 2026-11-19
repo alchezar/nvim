@@ -1,5 +1,6 @@
 -- nvim-tree as plugins/file-tree.lua sets it up. Cursorline lives in the tree
 -- window only, the tree keeps no stray syntax, and no window keeps a local cwd.
+-- Rows sort naturally with landmark notes.
 local H = require('tests.helpers')
 local eq = MiniTest.expect.equality
 local child = H.new_child()
@@ -51,6 +52,26 @@ local function cursorlines()
   ]])
 end
 
+-- Tree rows below the root line as `name [note]`, the note being the hint the
+-- config draws at the end of the row.
+local function rows()
+  return child.lua([=[
+    local buf = vim.fn.bufnr('NvimTree_*')
+    local notes = {}
+    for _, m in ipairs(vim.api.nvim_buf_get_extmarks(buf, -1, 0, -1, { details = true })) do
+      local row, d = m[2], m[4]
+      if d.virt_text_pos == 'eol' then
+        notes[row] = (notes[row] or '') .. ' ' .. d.virt_text[1][1]
+      end
+    end
+    local out = {}
+    for i, l in ipairs(vim.api.nvim_buf_get_lines(buf, 1, -1, false)) do
+      out[i] = l:match('(%S+)%s*$') .. (notes[i] or '')
+    end
+    return out
+  ]=])
+end
+
 -- Before 2de74ef the first open showed no cursorline: BufWinEnter came before
 -- the filetype was set.
 T['first open lights only the tree'] = function()
@@ -97,6 +118,27 @@ T['a window-local cwd is dropped on the next window switch'] = function()
   child.cmd('lcd ' .. vim.fn.fnameescape(root .. '/src'))
   child.cmd('wincmd p | wincmd p')
   eq(child.lua_get('vim.fn.haslocaldir()'), 0)
+end
+
+-- Before 2775046, names sorted as plain text (item10 before item2), and a
+-- mod.rs or readme.md below subdirs gave no hint of which dir it was in.
+T['a dir lists subdirs, landmarks naming it, then files in natural order'] = function()
+  vim.fn.delete(root .. '/README.md')
+  for _, f in ipairs({ 'item10.rs', 'item2.rs', 'item9.rs', 'mod.rs', 'readme.md', 'sub/mod.rs', 'sub/x.rs' }) do
+    vim.fn.mkdir(vim.fs.dirname(root .. '/src/' .. f), 'p')
+    vim.fn.writefile({}, root .. '/src/' .. f)
+  end
+  open_tree()
+  child.lua([[
+    local api, done = require('nvim-tree.api'), false
+    api.events.subscribe('TreeRendered', function() done = true end)
+    api.tree.expand_all()
+    vim.wait(3000, function() return done end)
+  ]])
+  eq(rows(), {
+    'src', 'sub', 'mod.rs', 'x.rs', 'readme.md [src]', 'mod.rs [src]',
+    'item2.rs', 'item9.rs', 'item10.rs', 'main.rs',
+  })
 end
 
 return T
