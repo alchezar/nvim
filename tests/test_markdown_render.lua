@@ -24,20 +24,39 @@ local T = new_set({
   },
 })
 
--- Open a markdown file and wait until markview has drawn it.
-local function open(lines)
+-- Run the callbacks queued so far and the ones they queue, then redraw.
+local function settle()
+  child.lua([[
+    for _ = 1, 3 do
+      local done = false
+      vim.schedule(function() done = true end)
+      vim.wait(1000, function() return done end)
+    end
+    vim.cmd('redraw')
+  ]])
+end
+
+local function edit(lines)
   local file = vim.fn.tempname() .. '.md'
   vim.fn.writefile(lines, file)
   child.cmd('edit ' .. file)
+end
+
+-- Open a markdown file and wait until markview or the table box has drawn it.
+local function open(lines)
+  edit(lines)
   child.lua([[
     vim.wait(2000, function()
       for name, id in pairs(vim.api.nvim_get_namespaces()) do
-        if name:match('^markview') and #vim.api.nvim_buf_get_extmarks(0, id, 0, -1, {}) > 0 then
+        if (name:match('^markview') or name == 'kinder_md_table_wrap')
+            and #vim.api.nvim_buf_get_extmarks(0, id, 0, -1, {}) > 0 then
           return true
         end
       end
+      return false
     end)
   ]])
+  settle()
 end
 
 local function shot() expect.reference_screenshot(child.get_screenshot()) end
@@ -67,18 +86,10 @@ end
 T['scrolling a tall table shows every row'] = function()
   local lines = { 'top', '', '| Row | Note |', '| --- | --- |' }
   for i = 1, 60 do lines[#lines + 1] = ('| r%02d | x |'):format(i) end
-  -- Not open(). Markview puts no marks of its own on a bare table, so its wait
-  -- would just time out. The box is ready once ours exist and sync_raw ran.
-  local file = vim.fn.tempname() .. '.md'
-  vim.fn.writefile(vim.list_extend(lines, { '', 'end' }), file)
-  child.cmd('edit ' .. file)
+  open(vim.list_extend(lines, { '', 'end' }))
   -- Walk down with <C-e> and collect the row labels shown on screen. The
   -- cursor's screen row is left out because it may show the raw source.
   local seen = child.lua([[
-    local ns = vim.api.nvim_create_namespace('kinder_md_table_wrap')
-    vim.wait(2000, function()
-      return vim.wo.conceallevel == 2 and #vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {}) > 0
-    end)
     local seen = {}
     vim.cmd('normal! gg')
     for _ = 1, 400 do
@@ -161,7 +172,8 @@ T['reference link width without wrap'] = function()
     '',
     '[a-rather-long-reference-label]: https://example.com',
   })
-  child.lua([[vim.wo.wrap = false; vim.cmd('redraw'); vim.wait(300)]])
+  child.lua([[vim.wo.wrap = false]])
+  settle()
   shot()
 end
 
@@ -171,7 +183,7 @@ T['insert mode stays raw through a resize'] = function()
   open(WIDE)
   child.type_keys('3G', 'A', ' more')
   child.o.columns = 48
-  child.lua([[vim.wait(300)]])
+  settle()
   shot()
   child.type_keys('<Esc>')
 end
@@ -179,14 +191,15 @@ end
 -- Before 4292ff8, hover and preview floats are nofile buffers markview must
 -- skip.
 T['nofile float stays raw'] = function()
-  open({ 'text' })
+  edit({ 'text' })
+  settle()
   child.lua([[
     local buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buf, 0, -1, false, { '# Title', '**bold**' })
     vim.bo[buf].filetype = 'markdown'
     vim.api.nvim_open_win(buf, false, { relative = 'editor', row = 3, col = 5, width = 20, height = 3 })
-    vim.wait(300)
   ]])
+  settle()
   shot()
 end
 
@@ -198,9 +211,8 @@ T['table refits when a sign appears'] = function()
     vim.wo.signcolumn = 'auto'
     local ns = vim.api.nvim_create_namespace('test_sign')
     vim.api.nvim_buf_set_extmark(0, ns, 0, 0, { sign_text = 'S' })
-    vim.cmd('redraw')
-    vim.wait(300)
   ]])
+  settle()
   shot()
 end
 
