@@ -15,6 +15,10 @@ function H.new_child()
   function child.setup(opts)
     opts = opts or {}
     child.restart({ '-u', 'tests/minimal_init.lua' })
+    -- Plugins and config modules keep state under data/state (bookmarks.json,
+    -- logs); a child gets its own, so a run can't rewrite the real files.
+    local tmp = vim.fn.tempname()
+    child.lua('vim.env.XDG_DATA_HOME, vim.env.XDG_STATE_HOME = ...', { tmp .. '/data', tmp .. '/state' })
     child.lua([[
       local root, site, pack, plugins, ts, runtime = ...
       if ts then
