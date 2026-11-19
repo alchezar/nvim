@@ -45,8 +45,9 @@ local function hunks_after_review(dir, file)
   ]])
 end
 
--- 9e86e1f fixed a renamed file getting no base (an absolute path looked up in
--- a map keyed by repo paths). gitsigns resolves it itself now; this guards it.
+-- Before 9e86e1f, a renamed file got no base, as gitsigns looked its absolute
+-- path up in a map keyed by repo paths. Today's gitsigns resolves it itself,
+-- so this fails only with the gitsigns locked back then.
 T['a file renamed since the base diffs against its old name'] = function()
   local tmp = vim.fn.tempname()
   vim.fn.mkdir(tmp, 'p')
