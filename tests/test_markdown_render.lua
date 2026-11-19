@@ -62,6 +62,50 @@ T['table at the end of the file is closed'] = function()
   shot()
 end
 
+-- Before e8e6c69, the whole box hung off one row as a single virt_lines block,
+-- and scrolling past that row skipped the rest of a tall table.
+T['scrolling a tall table shows every row'] = function()
+  local lines = { 'top', '', '| Row | Note |', '| --- | --- |' }
+  for i = 1, 60 do lines[#lines + 1] = ('| r%02d | x |'):format(i) end
+  -- Not open(). Markview puts no marks of its own on a bare table, so its wait
+  -- would just time out. The box is ready once ours exist and sync_raw ran.
+  local file = vim.fn.tempname() .. '.md'
+  vim.fn.writefile(vim.list_extend(lines, { '', 'end' }), file)
+  child.cmd('edit ' .. file)
+  -- Walk down with <C-e> and collect the row labels shown on screen. The
+  -- cursor's screen row is left out because it may show the raw source.
+  local seen = child.lua([[
+    local ns = vim.api.nvim_create_namespace('kinder_md_table_wrap')
+    vim.wait(2000, function()
+      return vim.wo.conceallevel == 2 and #vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {}) > 0
+    end)
+    local seen = {}
+    vim.cmd('normal! gg')
+    for _ = 1, 400 do
+      vim.cmd('redraw')
+      local cursor = vim.fn.winline()
+      for row = 1, vim.api.nvim_win_get_height(0) do
+        if row ~= cursor then
+          local text = {}
+          for col = 1, vim.o.columns do text[col] = vim.fn.screenstring(row, col) end
+          for label in table.concat(text):gmatch('r%d%d') do seen[label] = true end
+        end
+      end
+      local view = vim.fn.winsaveview()
+      vim.cmd.normal({ args = { vim.keycode('<C-e>') }, bang = true })
+      local now = vim.fn.winsaveview()
+      if now.topline == view.topline and now.topfill == view.topfill then break end
+    end
+    return seen
+  ]])
+  local missing = {}
+  for i = 1, 60 do
+    local label = ('r%02d'):format(i)
+    if not seen[label] then missing[#missing + 1] = label end
+  end
+  MiniTest.expect.equality(missing, {})
+end
+
 -- Before 926bf2b, wrapped rows of a list item got markview's padding on top.
 T['wrapped list item lines up with its text'] = function()
   open({ '- ' .. ('item text '):rep(8), '', ('plain prose '):rep(6) })
