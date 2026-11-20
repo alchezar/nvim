@@ -48,6 +48,31 @@ T['a buffer with no client gets one again'] = function()
   end)]]), true)
 end
 
+-- Before 1b8446b, the restart re-read the file with :edit, which refuses a
+-- buffer with unsaved changes, so its server never came back.
+T['a buffer with unsaved changes gets its server back'] = function()
+  -- Detected from the name, as :edit would detect a real file type.
+  child.lua([[vim.filetype.add({ extension = { fake = 'faketype' } })]])
+  local file = vim.fn.tempname() .. '.fake'
+  vim.fn.writefile({ 'saved' }, file)
+  child.cmd('edit ' .. file)
+  H.start_fake_lsp(child, {}, {})
+  child.api.nvim_buf_set_lines(0, 0, -1, false, { 'unsaved' })
+  local old = child.lua_get([[vim.lsp.get_clients({ bufnr = 0, name = 'fake' })[1].id]])
+  child.lua([[require('config.utils').restart_buf_lsp()]])
+  local back = child.lua([[
+    local old = ...
+    return vim.wait(3000, function()
+      for _, c in ipairs(vim.lsp.get_clients({ bufnr = 0, name = 'fake' })) do
+        if c.id ~= old then return true end
+      end
+      return false
+    end)
+  ]], { old })
+  eq({ back = back, text = child.api.nvim_buf_get_lines(0, 0, -1, false) },
+    { back = true, text = { 'unsaved' } })
+end
+
 -- Before 69f194d, only the current buffer's diagnostics were reset. Files the
 -- server reported on without them being open kept errors it no longer sees.
 T['restart clears stale diagnostics of files not open'] = function()
