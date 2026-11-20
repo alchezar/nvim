@@ -89,4 +89,28 @@ function H.start_fake_lsp(child, responses, capabilities, name)
   ]], { responses, capabilities, name or 'fake' })
 end
 
+-- Treesitter captures at the first `needle` in `lines` of a `lang` buffer, as
+-- `lang:capture`.
+function H.captures(child, lang, lines, needle)
+  child.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+  child.cmd('noautocmd setlocal filetype=' .. lang)
+  return child.lua([[
+    local lang, needle = ...
+    for row, line in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
+      local col = line:find(needle, 1, true)
+      if col then
+        -- Captures come from the highlighter, as on screen.
+        vim.treesitter.start(0, lang)
+        vim.treesitter.get_parser(0):parse(true)
+        local out = {}
+        for _, c in ipairs(vim.treesitter.get_captures_at_pos(0, row - 1, col - 1)) do
+          out[#out + 1] = c.lang .. ':' .. c.capture
+        end
+        return out
+      end
+    end
+    error('needle not found: ' .. needle)
+  ]], { lang, needle })
+end
+
 return H

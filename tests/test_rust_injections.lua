@@ -11,28 +11,7 @@ local T = new_set({
   },
 })
 
--- Captures at the first `needle` in `lines`, as `lang:capture`.
-local function captures(lines, needle)
-  child.api.nvim_buf_set_lines(0, 0, -1, false, lines)
-  child.cmd('noautocmd setlocal filetype=rust')
-  return child.lua([[
-    local needle = ...
-    for row, line in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
-      local col = line:find(needle, 1, true)
-      if col then
-        -- Captures come from the highlighter, as on screen.
-        vim.treesitter.start(0, 'rust')
-        vim.treesitter.get_parser(0):parse(true)
-        local out = {}
-        for _, c in ipairs(vim.treesitter.get_captures_at_pos(0, row - 1, col - 1)) do
-          out[#out + 1] = c.lang .. ':' .. c.capture
-        end
-        return out
-      end
-    end
-    error('needle not found: ' .. needle)
-  ]], { needle })
-end
+local function captures(lines, needle) return H.captures(child, 'rust', lines, needle) end
 
 local function has(caps, prefix)
   for _, c in ipairs(caps) do
@@ -52,7 +31,7 @@ T['SQL keyword'] = new_set({
     { 'QueryBuilder',         { 'let mut qb = QueryBuilder::new("SELECT id FROM users");' } },
     { 'tagged format!',       { 'let q = format!(/* language=sql */ "SELECT id FROM {t}");' } },
     -- 3a67ee0. A `\` continuation split the string, losing words.
-    { 'tagged binding',       { '// language=sql', 'let q = "SELECT id \\', '    FROM users";' }, 'FROM' },
+    { 'tagged binding',       { '// language=sql', 'let q = "SELECT id \\', '    FROM users";' },       'FROM' },
     { 'tagged call argument', { 'qb.push(/* language=sql */ "SELECT id FROM users");' } },
   },
 })
