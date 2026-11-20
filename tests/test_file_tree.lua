@@ -1,7 +1,7 @@
 -- nvim-tree as plugins/file-tree.lua sets it up. Cursorline lives in the tree
 -- window only, the tree keeps no stray syntax, and no window keeps a local cwd.
--- Rows sort naturally with landmark notes, and the root follows the edited
--- project without a reload per focus.
+-- Rows sort naturally with landmark notes, the root follows the edited project
+-- without a reload per focus, and a replaced explorer never draws.
 local H = require('tests.helpers')
 local eq = MiniTest.expect.equality
 local child = H.new_child()
@@ -89,13 +89,19 @@ local function git_init(dir)
 end
 
 -- Put a git on the child's PATH that logs the args of each run to <bin>/log.
+-- Creating <bin>/slow delays the next run. That run touches slow.started,
+-- waits, then runs git and touches slow.done.
 local function fake_git()
   local bin, git = new_dir(), vim.fn.exepath('git')
   vim.fn.writefile({
     '#!/bin/sh',
     'export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1',
-    'echo "$*" >> "$(dirname "$0")/log"',
-    'exec ' .. git .. ' "$@"',
+    'd=$(dirname "$0")',
+    'echo "$*" >> "$d/log"',
+    '[ -e "$d/slow" ] || exec ' .. git .. ' "$@"',
+    'rm "$d/slow"; touch "$d/slow.started"; sleep 0.3',
+    git .. ' "$@"; rc=$?',
+    'touch "$d/slow.done"; exit $rc',
   }, bin .. '/git')
   vim.fn.setfperm(bin .. '/git', 'rwxr-xr-x')
   child.lua([[vim.env.PATH = ... .. ':' .. vim.env.PATH]], { bin })
@@ -131,6 +137,34 @@ local function edit_from_subdir()
   open_tree()
   child.cmd('edit ' .. vim.fn.fnameescape(root .. '/src/main.rs'))
   return bin
+end
+
+-- Re-root the tree onto another project while git still reports on this one.
+-- A new file here starts a slow git status, and the cd lands before it ends.
+-- The other project holds api/ and api.rs.
+local function reroot_during_slow_git()
+  local bin = fake_git()
+  git_init(root)
+  local other = new_dir()
+  vim.fn.mkdir(other .. '/api', 'p')
+  vim.fn.writefile({}, other .. '/api/x.rs')
+  vim.fn.writefile({}, other .. '/api.rs')
+  git_init(other)
+  open_tree()
+  child.lua([[
+    local bin, root, other = ...
+    local function exists(p) return vim.uv.fs_stat(p) ~= nil end
+    local renders = 0
+    require('nvim-tree.api').events.subscribe('TreeRendered', function() renders = renders + 1 end)
+    vim.fn.writefile({}, bin .. '/slow')
+    vim.fn.writefile({}, root .. '/new.txt')
+    vim.wait(3000, function() return exists(bin .. '/slow.started') end, 10)
+    vim.cmd.cd(other)
+    vim.wait(3000, function() return exists(bin .. '/slow.done') end, 10)
+    -- A late draw of the old tree would come right after git exits.
+    local before = renders
+    vim.wait(300, function() return renders > before end, 10)
+  ]], { bin, root, other })
 end
 
 -- Before 2de74ef the first open showed no cursorline: BufWinEnter came before
@@ -242,6 +276,23 @@ T['focusing the tree after a file outside any project runs no git'] = function()
   child.cmd('edit ' .. vim.fn.fnameescape(outside .. '/notes.md'))
   wait_root(outside)
   eq(git_on_focus(bin), {})
+end
+
+-- Before 54a6f33, the old project's git callback drew the explorer it had
+-- captured, painting the old tree over the new one.
+T['a re-root during a slow git keeps the new tree'] = function()
+  reroot_during_slow_git()
+  eq(rows(), { '.git', 'api', 'api.rs [mod]' })
+end
+
+-- Before 6c393dc, a draw of the old tree also got the new tree's notes, on
+-- whichever old rows sat at their lines.
+T['notes never land on rows of another tree'] = function()
+  reroot_during_slow_git()
+  local stray = vim.tbl_filter(function(r)
+    return r:find(' [', 1, true) ~= nil and r ~= 'api.rs [mod]'
+  end, rows())
+  eq(stray, {})
 end
 
 return T
