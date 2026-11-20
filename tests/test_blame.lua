@@ -39,6 +39,39 @@ local function heat(n)
   ]], { n })
 end
 
+-- Before 4ebcd76, both panes got a scroll step of 25, which a pane shorter
+-- than that rejects with E49.
+T['blame in a short window gives both panes one step'] = function()
+  child.o.lines = 20
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, 'p')
+  vim.fn.writefile({ 'one', 'two', 'three' }, dir .. '/f.txt')
+  for _, args in ipairs({ { 'init', '-q' }, { 'add', '.' }, { 'commit', '-q', '-m', 'c' } }) do
+    local res = vim.system(vim.list_extend({ 'git', '-c', 'user.name=t', '-c', 'user.email=t@t' }, args), {
+      cwd = dir,
+      env = { GIT_CONFIG_GLOBAL = '/dev/null', GIT_CONFIG_NOSYSTEM = '1' },
+    }):wait()
+    assert(res.code == 0, res.stderr)
+  end
+  local got = child.lua([[
+    vim.cmd.edit(... .. '/f.txt')
+    vim.cmd('BlameToggle window')
+    vim.wait(3000, function() return #vim.api.nvim_tabpage_list_wins(0) > 1 end)
+    -- The step is pinned from a scheduled callback; let it and its kin run.
+    for _ = 1, 3 do
+      local done = false
+      vim.schedule(function() done = true end)
+      vim.wait(1000, function() return done end)
+    end
+    local steps = {}
+    for _, w in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
+      if vim.wo[w].scrollbind then steps[#steps + 1] = vim.wo[w].scroll end
+    end
+    return { error = vim.fn.execute('messages'):match('E%d+: [^\n]*'), panes = #steps, same = steps[1] == steps[2] }
+  ]], { dir })
+  eq(got, { panes = 2, same = true })
+end
+
 -- Before 35740c5, blame.nvim's spread inset both palette ends, so the oldest
 -- commit got a washed-out color and past 2N+1 commits some got no fg at all.
 T['many commits all get colors, ends on the gradient ends'] = function()
