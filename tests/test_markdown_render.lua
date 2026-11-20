@@ -97,6 +97,30 @@ end
 
 local function boxed(rows) return has(rows, '╭') end
 
+local function words(text)
+  local out = {}
+  for w in text:gmatch('%w+') do out[#out + 1] = w end
+  return out
+end
+
+-- Words drawn for buffer line `lnum`, in screen order. A word broken across
+-- two rows comes out as two.
+local function drawn_words(lnum)
+  return child.lua([[
+    vim.cmd('redraw')
+    local lnum = ...
+    local first = vim.fn.screenpos(0, lnum, 1).row
+    local height = vim.api.nvim_win_text_height(0, { start_row = lnum - 1, end_row = lnum - 1 }).all
+    local out = {}
+    for r = first, first + height - 1 do
+      local cells = {}
+      for c = 1, vim.o.columns do cells[c] = vim.fn.screenstring(r, c) end
+      for w in table.concat(cells):gmatch('%w+') do out[#out + 1] = w end
+    end
+    return out
+  ]], { lnum })
+end
+
 local WIDE = {
   '| Name | Notes |',
   '| --- | --- |',
@@ -174,6 +198,31 @@ end
 T['wrapped list item lines up with its text'] = function()
   open({ '- ' .. ('item text '):rep(8), '', ('plain prose '):rep(6) })
   shot()
+end
+
+-- Before d52ea71, nothing turned 'linebreak' on for markdown, so prose wrapped
+-- mid-word.
+T['prose breaks between words without a linebreak of its own'] = function()
+  child.o.linebreak = false
+  local prose = ('plain prose '):rep(6)
+  open({ 'top', '', prose })
+  eq(drawn_words(3), words(prose))
+end
+
+-- Before d52ea71, hidden markup in prose was concealed to spaces, a width only
+-- table rows need, which left gaps around the bold word.
+T['bold prose shows no gaps where its stars hid'] = function()
+  open({ 'top', '', 'plain **bold** words' })
+  eq(has(screen(), 'plain bold words'), true)
+end
+
+-- Before 7ef41e5, the markdown ftplugin's 't' broke lines at 'textwidth'
+-- while typing. 5212f2d moved the fix into config/options.lua.
+T['typing a long line keeps it whole'] = function()
+  child.lua([[require('config.options')]])
+  edit({ '' })
+  child.type_keys('i', ('word '):rep(20), '<Esc>')
+  eq(#child.api.nvim_buf_get_lines(0, 0, -1, false), 1)
 end
 
 -- Before 731bd8f, the 'block' style padded lines to the widest one, and under
