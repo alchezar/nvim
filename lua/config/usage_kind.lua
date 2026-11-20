@@ -7,6 +7,7 @@
 --   * `++` / `--`                               -> write
 --   * struct-literal field (`Foo { x: v }` / shorthand `Foo { x }`) -> write
 --   * field/element access (`a.b = x`, `a[i] = x`) reads the *container* `a`
+--     and the index `i`, a value that builds the target (`&mut P::new(x)`) too
 --   * everything else                           -> read
 --
 -- This is type-blind on purpose: mutation through a method (`vec.push(x)`) takes
@@ -19,14 +20,9 @@ local M = {}
 local ASSIGN_TARGET = {
   assignment_expression           = 'left', -- rust, c, js/ts
   compound_assignment_expr        = 'left', -- rust
-  augmented_assignment_expression = 'left', -- python, js/ts
-  assignment                      = 'left', -- generic fallback
-}
-
--- Container access: writing `a.b`/`a[i]` still only *reads* `a`.
-local CONTAINER = {
-  field_expression = true,
-  index_expression = true,
+  augmented_assignment_expression = 'left', -- js/ts
+  augmented_assignment            = 'left', -- python
+  assignment                      = 'left', -- python, generic fallback
 }
 
 -- Postfix/prefix mutation (`x++`, `--x`) in C/JS-family grammars.
@@ -34,58 +30,98 @@ local UPDATE = {
   update_expression = true,
 }
 
--- Is `inner`'s range fully inside `outer`'s?
-local function range_contains(outer, inner)
-  local osr, osc, oer, oec = outer:range()
-  local isr, isc, ier, iec = inner:range()
-  local after_start        = isr > osr or (isr == osr and isc >= osc)
-  local before_end         = ier < oer or (ier == oer and iec <= oec)
-  return after_start and before_end
+-- Parents through which a usage still names the place being accessed, like
+-- the field side of an access or a deref. The value is the slot that keeps
+-- the place, `true` for any.
+local PLACE = {
+  field_expression   = 'field',     -- rust, c
+  member_expression  = 'property',  -- js/ts
+  attribute          = 'attribute', -- python
+  scoped_identifier  = 'name',      -- rust `m::X`
+  pointer_expression = true,        -- c `*p`
+}
+
+-- Destructuring targets (`(a, b) = ...`, `S { n: a } = ...`) and their parts.
+-- They keep the place for an assignment only, as anywhere else such a list
+-- builds a temporary out of reads.
+local PATTERN = {
+  tuple_expression          = true, -- rust
+  array_expression          = true,
+  struct_expression         = 'body',
+  field_initializer_list    = true,
+  field_initializer         = 'value',
+  call_expression           = 'arguments', -- tuple struct `S(a, b) = ...`
+  arguments                 = true,
+  array_pattern             = true,        -- js/ts
+  object_pattern            = true,
+  pair_pattern              = 'value',
+  rest_pattern              = true,
+  assignment_pattern        = 'left',
+  object_assignment_pattern = 'left',
+  pattern_list              = true, -- python
+  tuple_pattern             = true,
+  list_pattern              = true,
+  list_splat_pattern        = true,
+}
+
+-- Field of `parent` that `child` sits in, or nil.
+local function slot(parent, child)
+  for c, field in parent:iter_children() do
+    if c:id() == child:id() then return field end
+  end
 end
 
--- Walk up from the usage node, deciding access kind at the first node that fixes it.
+-- Does `set` list `parent` as keeping its child in slot `at`?
+local function keeps(set, parent, at)
+  local keep = set[parent:type()]
+  return keep == true or (keep ~= nil and keep == at)
+end
+
+-- Of the rust unary operators only a deref `*p` names a place.
+local function is_deref(node)
+  return node:type() == 'unary_expression' and node:child(0):type() == '*'
+end
+
+-- Walk up from the usage node while it names the accessed place or a part of
+-- a destructuring target, deciding at the first node that uses it.
 local function classify_node(node)
-  local cur = node
-  for _ = 1, 6 do
+  local cur, destructured = node, false
+  while true do
     local parent = cur:parent()
-    if not parent then break end
-    local ptype = parent:type()
+    if not parent then return 'read' end
+    local ptype, at = parent:type(), slot(parent, cur)
 
-    -- Container access: if `cur` is the object being indexed/dotted, it's a read,
-    -- even when the whole access is assigned to.
-    if CONTAINER[ptype] then
-      local obj = parent:field('value')[1] or parent:named_child(0)
-      if obj and obj:id() == cur:id() then return 'read' end
-    end
-
-    if UPDATE[ptype] then return 'write' end
+    local target = ASSIGN_TARGET[ptype]
+    if target then return at == target and 'write' or 'read' end
 
     -- Struct/record literal: `Foo { name: value }` writes the field `name`.
-    if ptype == 'field_initializer' then
-      local fname = parent:field('field')[1]
-      if fname and fname:id() == node:id() then return 'write' end
-    end
+    if ptype == 'field_initializer' and at == 'field' then return 'write' end
 
     -- Shorthand `Foo { name }`: also initializes the field `name`.
     if ptype == 'shorthand_field_initializer' then return 'write' end
 
-    local field = ASSIGN_TARGET[ptype]
-    if field then
-      local target = parent:field(field)[1]
-      if target and range_contains(target, node) then return 'write' end
-      return 'read' -- sitting on the RHS
-    end
+    -- Past a destructuring list the usage is part of a temporary, which `++`,
+    -- `&mut` or an access only read.
+    if UPDATE[ptype] then return destructured and 'read' or 'write' end
 
-    -- Rust `&mut x` mutable borrow.
+    -- Rust `&mut x` mutable borrow; a shared `&x` only reads.
     if ptype == 'reference_expression' then
+      if destructured then return 'read' end
       for child in parent:iter_children() do
         if child:type() == 'mutable_specifier' then return 'write' end
       end
+      return 'read'
     end
 
+    if keeps(PATTERN, parent, at) then
+      destructured = true
+    elseif ptype ~= 'parenthesized_expression' then
+      if destructured or not (keeps(PLACE, parent, at) or is_deref(parent)) then
+        return 'read'
+      end
+    end
     cur = parent
   end
-  return 'read'
 end
 
 -- Returns 'read' | 'write' | nil (nil = couldn't parse / no node).
