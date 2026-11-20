@@ -52,10 +52,12 @@ function H.start_fake_lsp(child, responses, capabilities, name)
     local responses, caps, name = ...
     _G.fake_lsp_responses = responses
     _G.fake_lsp_cmd = function(dispatchers)
-      local closing = false
+      local closing, last_id = false, 0
       return {
         request = function(method, params, callback)
-          local res
+          -- Handlers such as semantic tokens drop a reply whose id isn't theirs.
+          last_id = last_id + 1
+          local id, res = last_id, nil
           if method == 'initialize' then
             res = { capabilities = caps }
           else
@@ -65,8 +67,8 @@ function H.start_fake_lsp(child, responses, capabilities, name)
             res = key and _G.fake_lsp_responses[key]
             if res == nil then res = _G.fake_lsp_responses[method] end
           end
-          vim.schedule(function() callback(nil, res) end)
-          return true, 1
+          vim.schedule(function() callback(nil, res, id) end)
+          return true, id
         end,
         notify = function(method)
           if method == 'exit' then dispatchers.on_exit(0, 15) end
