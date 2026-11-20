@@ -1,20 +1,27 @@
 -- nvim-tree as plugins/file-tree.lua sets it up. Cursorline lives in the tree
 -- window only, the tree keeps no stray syntax, and no window keeps a local cwd.
--- Rows sort naturally with landmark notes.
+-- Rows sort naturally with landmark notes, and the root follows the edited
+-- project without a reload per focus.
 local H = require('tests.helpers')
 local eq = MiniTest.expect.equality
 local child = H.new_child()
 
 local root -- fixture project the tree shows
 
+-- A fresh dir, resolved. macOS temp paths sit behind a /private symlink.
+local function new_dir()
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir, 'p')
+  return vim.uv.fs_realpath(dir) or dir
+end
+
 local T = MiniTest.new_set({
   hooks = {
     pre_case = function()
       child.setup({ plugins = { 'nvim-web-devicons', 'nvim-tree.lua' } })
       child.o.lines, child.o.columns = 30, 120
-      local tmp = vim.fn.tempname()
-      vim.fn.mkdir(tmp .. '/src', 'p')
-      root = vim.uv.fs_realpath(tmp) or tmp
+      root = new_dir()
+      vim.fn.mkdir(root .. '/src', 'p')
       vim.fn.writefile({ 'fn main() {}' }, root .. '/src/main.rs')
       vim.fn.writefile({ '# readme' }, root .. '/README.md')
       child.lua([[
@@ -26,13 +33,14 @@ local T = MiniTest.new_set({
   },
 })
 
--- Open the tree without focus and wait for its first render.
+-- Open the tree, wait for its first render and go back to the editor window.
 local function open_tree()
   child.lua([[
-    local done = false
+    local editor, done = vim.api.nvim_get_current_win(), false
     require('nvim-tree.api').events.subscribe('TreeRendered', function() done = true end)
-    require('nvim-tree.api').tree.open({ focus = false })
+    require('nvim-tree.api').tree.open()
     vim.wait(3000, function() return done end)
+    vim.api.nvim_set_current_win(editor)
     -- The tree's cursorline is set a tick after its filetype lands.
     vim.wait(1000, function()
       local w = require('nvim-tree.api').tree.winid()
@@ -70,6 +78,59 @@ local function rows()
     end
     return out
   ]=])
+end
+
+local function git_init(dir)
+  local res = vim.system({ 'git', 'init', '-q' }, {
+    cwd = dir,
+    env = { GIT_CONFIG_GLOBAL = '/dev/null', GIT_CONFIG_NOSYSTEM = '1' },
+  }):wait()
+  assert(res.code == 0, res.stderr)
+end
+
+-- Put a git on the child's PATH that logs the args of each run to <bin>/log.
+local function fake_git()
+  local bin, git = new_dir(), vim.fn.exepath('git')
+  vim.fn.writefile({
+    '#!/bin/sh',
+    'export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1',
+    'echo "$*" >> "$(dirname "$0")/log"',
+    'exec ' .. git .. ' "$@"',
+  }, bin .. '/git')
+  vim.fn.setfperm(bin .. '/git', 'rwxr-xr-x')
+  child.lua([[vim.env.PATH = ... .. ':' .. vim.env.PATH]], { bin })
+  return bin
+end
+
+-- The tree's root once it reaches `dir`, or wherever it stayed.
+local function wait_root(dir)
+  return child.lua([[
+    local core, dir = require('nvim-tree.core'), ...
+    vim.wait(1000, function() return core.get_cwd() == dir end, 10)
+    return core.get_cwd()
+  ]], { dir })
+end
+
+-- Git runs while :NvimTreeFocus (<leader>e) moves into the tree.
+local function git_on_focus(bin)
+  return child.lua([[
+    local log = ... .. '/log'
+    local function runs() return vim.uv.fs_stat(log) and vim.fn.readfile(log) or {} end
+    local before = #runs()
+    vim.cmd('NvimTreeFocus')
+    return vim.list_slice(runs(), before + 1)
+  ]], { bin })
+end
+
+-- A session started in src/ of the fixture project, made a repo, editing
+-- src/main.rs. Returns the fake git's dir.
+local function edit_from_subdir()
+  local bin = fake_git()
+  git_init(root)
+  child.cmd('cd ' .. vim.fn.fnameescape(root .. '/src'))
+  open_tree()
+  child.cmd('edit ' .. vim.fn.fnameescape(root .. '/src/main.rs'))
+  return bin
 end
 
 -- Before 2de74ef the first open showed no cursorline: BufWinEnter came before
@@ -139,6 +200,48 @@ T['a dir lists subdirs, landmarks naming it, then files in natural order'] = fun
     'src', 'sub', 'mod.rs', 'x.rs', 'readme.md [src]', 'mod.rs [src]',
     'item2.rs', 'item9.rs', 'item10.rs', 'main.rs',
   })
+end
+
+-- Between 1fd52e2 and b21666d, a session started in a project subdir kept the
+-- subdir as the tree root.
+T['a session started in a subdir re-roots the tree on the project'] = function()
+  edit_from_subdir()
+  eq(wait_root(root), root)
+end
+
+-- Before 1fd52e2, and again from b21666d to b4131b4, a session started in a
+-- project subdir kept the tree window's cwd on the subdir, off the tree root,
+-- so every focus reloaded the tree in full.
+T['a session started in a subdir focuses the tree without a reload'] = function()
+  local bin = edit_from_subdir()
+  wait_root(root)
+  eq(git_on_focus(bin), {})
+end
+
+-- From 1fd52e2 to b4131b4, a file of another project left the tree on the old
+-- root. 1fd52e2 dropped the re-root, and the one b21666d added collided with
+-- update_root (E367).
+T['a file of another project re-roots the tree on it'] = function()
+  local other = new_dir()
+  vim.fn.writefile({}, other .. '/main.rs')
+  git_init(other)
+  open_tree()
+  child.cmd('edit ' .. vim.fn.fnameescape(other .. '/main.rs'))
+  eq(wait_root(other), other)
+end
+
+-- Before 1fd52e2, and again from b21666d to b4131b4, a file outside any
+-- project re-rooted the tree on its dir but left the tree window's cwd
+-- behind, so every focus reloaded the tree in full.
+T['focusing the tree after a file outside any project runs no git'] = function()
+  local bin = fake_git()
+  git_init(root)
+  local outside = new_dir()
+  vim.fn.writefile({ 'notes' }, outside .. '/notes.md')
+  open_tree()
+  child.cmd('edit ' .. vim.fn.fnameescape(outside .. '/notes.md'))
+  wait_root(outside)
+  eq(git_on_focus(bin), {})
 end
 
 return T
