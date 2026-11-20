@@ -56,6 +56,9 @@ local function set_mark(buf, s, e)
     sign_text = SIGN,
     sign_hl_group = 'PRReviewComment',
     end_row = e - 1,
+    -- Both ends sit at column 0; a line opened above the last one must push
+    -- the end down with it, or the comment slips onto the new line.
+    end_right_gravity = true,
     priority = 200,
   })
 end
