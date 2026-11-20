@@ -252,7 +252,7 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
 
     local is_special = node and node.name
         and (node.name == 'mod.rs' or node.name:lower() == 'readme.md')
-    if is_special and node.parent and node.parent.name and node.parent.nodes then
+    if is_special and node.parent and node.parent.absolute_path and node.parent.nodes then
       -- Skip when there are no sibling subdirs: parent is obvious from the row above.
       local has_subdir = false
       for _, sibling in ipairs(node.parent.nodes) do
@@ -262,8 +262,10 @@ require('nvim-tree.api').events.subscribe('TreeRendered', function(payload)
         end
       end
       if has_subdir then
+        -- The root node is named '..', so take the dir name from its path.
+        local dir = vim.fs.basename(node.parent.absolute_path)
         vim.api.nvim_buf_set_extmark(bufnr, mod_ns, line - 1, 0, {
-          virt_text = { { '[' .. node.parent.name .. ']', 'NvimTreeModRsParent' } },
+          virt_text = { { '[' .. dir .. ']', 'NvimTreeModRsParent' } },
           virt_text_pos = 'eol',
         })
       end
