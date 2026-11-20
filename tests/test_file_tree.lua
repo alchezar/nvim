@@ -236,6 +236,13 @@ T['a dir lists subdirs, landmarks naming it, then files in natural order'] = fun
   })
 end
 
+-- Before f6e2073, a landmark at the top of the tree was noted `[..]`, the name
+-- nvim-tree gives its root node.
+T['a landmark at the root names the root dir'] = function()
+  open_tree()
+  eq(rows(), { 'src', 'README.md [' .. vim.fs.basename(root) .. ']' })
+end
+
 -- Between 1fd52e2 and b21666d, a session started in a project subdir kept the
 -- subdir as the tree root.
 T['a session started in a subdir re-roots the tree on the project'] = function()
