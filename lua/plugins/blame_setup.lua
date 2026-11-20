@@ -138,17 +138,18 @@ require('blame').setup({
   },
 })
 
--- Pin `&scroll` so both panes step by the same buffer-line count regardless of height.
+-- Pin `&scroll` so both panes step by the same buffer-line count.
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'blame',
   callback = function()
     -- Defer: blame.nvim sets `scrollbind` on the editor AFTER FileType fires.
     vim.schedule(function()
-      for _, win in ipairs(vim.api.nvim_tabpage_list_wins(0)) do
-        if vim.wo[win].scrollbind then
-          vim.wo[win].scroll = 25
-        end
-      end
+      local wins = vim.tbl_filter(function(win) return vim.wo[win].scrollbind end,
+        vim.api.nvim_tabpage_list_wins(0))
+      -- A step over a pane's height fails with E49, so short panes share less.
+      local step = 25
+      for _, win in ipairs(wins) do step = math.min(step, vim.fn.winheight(win)) end
+      for _, win in ipairs(wins) do vim.wo[win].scroll = step end
     end)
   end,
 })
