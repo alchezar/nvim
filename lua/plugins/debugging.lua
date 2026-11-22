@@ -45,7 +45,8 @@ dap.configurations.cpp = {
     stopOnEntry = false,
     args = function()
       local input = vim.fn.input('Args (space-separated): ')
-      return vim.split(input, ' ', { trimempty = true })
+      -- Any run of spaces parts two args, so none of them comes out empty.
+      return vim.split(input, '%s+', { trimempty = true })
     end,
   },
 }
