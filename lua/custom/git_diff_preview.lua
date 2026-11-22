@@ -98,7 +98,8 @@ function M.git_status(opts)
         { cwd = vim.fs.dirname(path), text = true },
         vim.schedule_wrap(function(res)
           if not vim.api.nvim_buf_is_valid(bufnr) then return end
-          local out = vim.split(res.stdout or '', '\n', { plain = true })
+          -- The output's final newline is no line of the diff.
+          local out = vim.split(res.stdout or '', '\n', { plain = true, trimempty = true })
           if res.code ~= 0 or not render(bufnr, out, ft, opts) then preview_file() end
         end)
       )
