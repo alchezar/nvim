@@ -140,4 +140,39 @@ T['a later CREATE OR REPLACE keeps the first doc, DROP removes'] = function()
   eq(lookup(root, 'q.sql', 'tmp'), false)
 end
 
+-- `kind name: def` of `name` from a query file in a project whose single
+-- migration is `migration`, or false.
+local function object(migration, name)
+  local root = make_tree({ ['Cargo.lock'] = {}, ['migrations/0001.sql'] = migration })
+  child.cmd('edit ' .. vim.fn.fnameescape(root .. '/q.sql'))
+  return child.lua([[
+    local e = require('custom.sql_migration_index').lookup(0, ...)
+    return e and (e.kind .. ' ' .. e.name .. (e.def and (': ' .. e.def) or '')) or false
+  ]], { name })
+end
+
+T['an enum gains each added label in its declared place'] = function()
+  eq(object({
+    "CREATE TYPE status AS ENUM ('new', 'done');",
+    "ALTER TYPE status ADD VALUE 'paid' BEFORE 'done';",
+    "ALTER TYPE status ADD VALUE IF NOT EXISTS 'void';",
+    "ALTER TYPE status ADD VALUE 'held' AFTER 'new';",
+    "ALTER TYPE status ADD VALUE IF NOT EXISTS 'new';",
+  }, 'status'), "type status: AS ENUM ('new', 'held', 'paid', 'done', 'void')")
+end
+
+T['a renamed type is found by its new name only'] = function()
+  local m = { 'CREATE TYPE mood AS (calm BOOLEAN);', 'ALTER TYPE mood RENAME TO feeling;' }
+  eq({ object(m, 'feeling'), object(m, 'mood') }, { 'type feeling: AS (calm BOOLEAN)', false })
+end
+
+T['views and materialized views are known by name'] = function()
+  local m = {
+    'CREATE VIEW active_users AS SELECT 1;',
+    'CREATE MATERIALIZED VIEW IF NOT EXISTS daily_stats AS SELECT 2;',
+  }
+  eq({ object(m, 'active_users'), object(m, 'daily_stats') },
+    { 'view active_users', 'materialized view daily_stats' })
+end
+
 return T
