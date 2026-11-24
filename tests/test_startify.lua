@@ -91,4 +91,38 @@ T['entries line up under their title'] = function()
   for _, col in ipairs(l.entries) do eq(col, l.title - 3) end
 end
 
+T['a project group is its own section and its entry cds there'] = function()
+  local dir = assert(vim.uv.fs_realpath(vim.fn.tempname():match('.*/'))) .. '/'
+      .. vim.fn.fnamemodify(vim.fn.tempname(), ':t')
+  vim.fn.mkdir(dir, 'p')
+  child.lua([[
+    package.loaded['config.projects'] = { _order = { 'Work' }, Work = { { path = ..., name = 'shop', icon = 'W' } } }
+  ]], { dir })
+  open_dashboard()
+  child.lua('_G.settle()')
+  local lines = vim.tbl_map(vim.trim, child.api.nvim_buf_get_lines(0, 0, -1, false))
+  local at = vim.fn.index(lines, 'Work')
+  local section = { lines[at + 1], lines[at + 3] }
+  child.api.nvim_win_set_cursor(0, { at + 3, 0 })
+  -- Startify opens it under `silent!` with a stray E490 left in v:errmsg,
+  -- which type_keys would take for a failure.
+  child.cmd([[execute "normal \<CR>"]])
+  eq({ section, child.fn.getcwd() }, { { 'Work', '[0]  W  shop' }, dir })
+end
+
+-- The pool is random, so the copy is checked against the balloon on screen.
+T['y copies the quote or tip on show as one line'] = function()
+  open_dashboard()
+  child.lua('_G.settle()')
+  local balloon = {}
+  for _, l in ipairs(child.api.nvim_buf_get_lines(0, 0, -1, false)) do
+    local text = l:match('│ (.-)%s*│')
+    if text then balloon[#balloon + 1] = text end
+  end
+  child.type_keys('y')
+  local copied = child.fn.getreg('"')
+  local function words(t) return (t:gsub('%s+->%s+', ' '):gsub('%s+', ' ')) end
+  eq({ copied:find('\n') == nil, words(copied) }, { true, words(table.concat(balloon, ' ')) })
+end
+
 return T
