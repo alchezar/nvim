@@ -44,4 +44,75 @@ T['trait origin goes to the menu column'] = function()
   eq(got.menu, '(as Display)')
 end
 
+-- Real completion in a rust buffer from a fake server answering `items`;
+-- the menu is opened on the text `a`.
+local function menu(items)
+  child.setup({ plugins = { 'nvim-cmp', 'LuaSnip', 'cmp-nvim-lsp' } })
+  child.o.lines, child.o.columns = 30, 200
+  child.lua([[
+    require('plugins.completion_setup')
+    require('cmp_nvim_lsp').setup()
+    vim.cmd('enew | setfiletype rust')
+  ]])
+  H.start_fake_lsp(child, { ['textDocument/completion'] = items, ['completionItem/resolve'] = vim.NIL },
+    { completionProvider = { resolveProvider = false } })
+  child.type_keys('i', 'a', '<C-Space>')
+  child.lua([[vim.wait(2000, function() return require('cmp').visible() end)]])
+end
+
+local function labels()
+  return child.lua([[
+    return vim.tbl_map(function(e) return e:get_completion_item().label end, require('cmp').get_entries())
+  ]])
+end
+
+local K = { Function = 3, Field = 5, Property = 10, Snippet = 15 }
+
+T['fields come first and snippets last'] = function()
+  menu({
+    { label = 'alpha',  kind = K.Function },
+    { label = 'asnip',  kind = K.Snippet, insertText = 'asnip' },
+    { label = 'afield', kind = K.Field },
+    { label = 'aprop',  kind = K.Property },
+  })
+  eq(labels(), { 'afield', 'aprop', 'alpha', 'asnip' })
+end
+
+local DOC = '```rust\nfn abc(a: u8, b: Vec<(u8, u8)>) -> u8\n```\nDoes it.'
+
+local function selected()
+  return child.lua(
+  [[local e = require('cmp').get_selected_entry(); return e and e:get_completion_item().label or false]])
+end
+
+T['tab moves the selection without typing it, shift-tab goes back'] = function()
+  menu({ { label = 'abc', kind = K.Function }, { label = 'alpha', kind = K.Function } })
+  child.type_keys('<Tab>', '<Tab>')
+  local down = { selected(), child.api.nvim_get_current_line() }
+  child.type_keys('<S-Tab>')
+  eq({ down, selected() }, { { 'alpha', 'a' }, 'abc' })
+end
+
+-- Lines of the markdown docs float beside the menu.
+local function docs()
+  return child.lua([[
+    vim.wait(1000, function()
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        if vim.bo[vim.api.nvim_win_get_buf(w)].filetype == 'markdown' then return true end
+      end
+    end)
+    for _, w in ipairs(vim.api.nvim_list_wins()) do
+      local b = vim.api.nvim_win_get_buf(w)
+      if vim.bo[b].filetype == 'markdown' then return vim.api.nvim_buf_get_lines(b, 0, -1, false) end
+    end
+    return false
+  ]])
+end
+
+T['docs keep markdown and put each parameter on its own line'] = function()
+  menu({ { label = 'abc', kind = K.Function, documentation = { kind = 'markdown', value = DOC } } })
+  child.type_keys('<Tab>')
+  eq(docs(), { '```rust', 'fn abc(', '    a: u8,', '    b: Vec<(u8, u8)>,', ') -> u8', '```', 'Does it.' })
+end
+
 return T
