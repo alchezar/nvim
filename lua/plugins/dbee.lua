@@ -179,7 +179,9 @@ local function hide_float(self, key)
     return
   end
   -- Fallback: drawer -> origin window.
-  for _, w in ipairs({ self.drawer_win, self.origin_win }) do
+  -- By key, as a nil window would end an ipairs over the windows themselves.
+  for _, key in ipairs({ 'drawer_win', 'origin_win' }) do
+    local w = self[key]
     if w and vim.api.nvim_win_is_valid(w) then
       vim.api.nvim_set_current_win(w)
       return
@@ -219,7 +221,10 @@ function FloatLayout:open()
 end
 
 function FloatLayout:close()
-  for _, w in ipairs({ self.editor_win, self.result_win, self.log_win, self.drawer_win }) do
+  -- Walk by key. The lazy call log window is nil until first shown, and a nil
+  -- would end an ipairs over the windows before the drawer.
+  for _, key in ipairs({ 'editor_win', 'result_win', 'log_win', 'drawer_win' }) do
+    local w = self[key]
     if w and vim.api.nvim_win_is_valid(w) then
       pcall(vim.api.nvim_win_close, w, true)
     end
