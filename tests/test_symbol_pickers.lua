@@ -155,4 +155,17 @@ T['a type declaration row shows its kind and place'] = function()
     { '> struct Point lib.rs:1\\src', 'enum Dir lib.rs:4\\src' })
 end
 
+-- Markdown has no server here; the outline comes from the buffer itself.
+T['a markdown file lists its headings and enter jumps to one'] = function()
+  child.api.nvim_buf_set_lines(0, 0, -1, false, { '# Guide', 'Intro.', '## Install', 'Steps.', '## Usage' })
+  child.cmd('setfiletype markdown')
+  child.api.nvim_win_set_cursor(0, { 4, 0 })
+  local list = rows([[require('config.utils').document_symbols()]])
+  child.cmd('stopinsert')
+  child.type_keys('<CR>')
+  child.lua('vim.wait(100)')
+  eq({ list, child.api.nvim_win_get_cursor(0)[1] },
+    { { '1 Guide', '> 3 Install', '5 Usage' }, 3 })
+end
+
 return T
