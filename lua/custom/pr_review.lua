@@ -214,7 +214,7 @@ function M.push(verdict, on_done)
     end
     has_pending(pr, function(pending)
       if pending then
-        vim.notify('PR review: a pending draft already exists - submit it in snacks first', vim.log.levels.WARN)
+        vim.notify('PR review: a pending draft already exists - submit it on GitHub first', vim.log.levels.WARN)
         return
       end
       local payload = { commit_id = commit_id, event = verdict.event }
@@ -224,7 +224,7 @@ function M.push(verdict, on_done)
         payload.comments = vim.tbl_map(comment_for_api, M.comments)
       end
       local label = verdict.event and ('submitted as ' .. verdict.label:lower())
-          or 'draft pushed - view & submit in snacks (gh_pr)'
+          or 'draft pushed - finish it on GitHub'
       post_review(pr, payload, label, on_done)
     end)
   end)

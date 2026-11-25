@@ -38,7 +38,6 @@ require('plugins.dbee')                   -- Database client UI
 require('custom.sql_hover')               -- SQL hover: project migrations + Postgres reference
 require('plugins.blame_setup')            -- Inline git blame
 require('plugins.diffview_setup')         -- Git diff and history viewer
-require('plugins.snacks_setup')           -- Snacks picker: GitHub PR/issue sources
 require('custom.branch_review')           -- :ReviewMode - gutter + tree marks vs branch base
 require('custom.pr_review')               -- Local PR review: collect comments, submit the review
 require('custom.feature_tree')            -- Virtual feature/layer tree + [f/]f layer switcher

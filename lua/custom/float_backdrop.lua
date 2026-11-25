@@ -1,14 +1,13 @@
 -- Dim + blur the editor behind dialog-like floating windows (telescope, the PR
--- review editor, yazi/lazygit, etc.), the way snacks' picker does it. A single
--- full-screen semi-transparent float sits under them; Neovide blurs whatever
--- shows through. Skipped: fidget/notify/hover (not focusable), completion popups
--- (cmp: high zindex), and snacks (it has its own backdrop).
+-- review window, yazi/lazygit, etc.). A single full-screen semi-transparent
+-- float sits under them; Neovide blurs whatever shows through. Skipped are
+-- fidget/notify/hover (not focusable) and completion popups (cmp, high zindex).
 
 local theme = require('config.theme_colors')
 
 local M = {}
 local Z = 30     -- under dialogs (default 50) and fidget (45), over splits
-local BLEND = 60 -- 0 opaque .. 100 invisible; matches snacks' default
+local BLEND = 60 -- 0 opaque .. 100 invisible
 
 local function set_hl()
   vim.api.nvim_set_hl(0, 'FloatBackdrop', { bg = theme.black })
@@ -16,7 +15,7 @@ end
 set_hl()
 
 -- A float we want to dim behind. focusable rules out fidget/notify/hover; the
--- zindex cap drops cmp completion menus (1001); snacks brings its own backdrop.
+-- zindex cap drops cmp completion menus (1001).
 local function qualifies(win)
   if vim.w[win].float_backdrop then return false end
   local cfg = vim.api.nvim_win_get_config(win)
@@ -25,7 +24,7 @@ local function qualifies(win)
   if cfg.hide then return false end
   if cfg.zindex and cfg.zindex > 100 then return false end
   local ft = vim.bo[vim.api.nvim_win_get_buf(win)].filetype
-  return not (ft:match('^snacks') or ft:match('^cmp'))
+  return not ft:match('^cmp')
 end
 
 local function any_dialog()

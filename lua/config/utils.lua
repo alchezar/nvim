@@ -941,7 +941,7 @@ function M.auto_cd_to_project_root(bufnr)
   end
 end
 
--- Plugins still set a window-local cwd (snacks lcd action, startify tcd); cd clears it.
+-- Plugins still set a window-local cwd (startify tcd); cd clears it.
 function M.drop_window_local_cwd()
   if vim.fn.haslocaldir() == 1 then
     vim.cmd.cd(vim.fn.getcwd(-1, -1))
@@ -1585,21 +1585,6 @@ function M.type_declarations()
     return entry
   end
   require('telescope.builtin').lsp_dynamic_workspace_symbols(opts)
-end
-
--- One GitHub entry point: pick a snacks source for the current repo.
-function M.github_menu()
-  local picker = require('snacks').picker
-  local items = {
-    { label = 'Pull Requests', open = picker.gh_pr },
-    { label = 'Issues',        open = picker.gh_issue },
-  }
-  vim.ui.select(items, {
-    prompt = 'GitHub',
-    format_item = function(item) return item.label end,
-  }, function(choice)
-    if choice then choice.open() end
-  end)
 end
 
 -- Neovide smears cursorline into ghost bands during smooth (touchpad) scroll. Hide cursorline
