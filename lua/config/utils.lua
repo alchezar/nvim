@@ -558,13 +558,15 @@ function M.go_to_interface()
   end
 
   -- Extract trait name from "impl [<gens>] [path::]Trait[<gens>] for ...".
-  local before_for = impl_text:match('^%s*impl%s+(.-)%s+for%s')
+  -- `impl<T>` takes no space, and its generics may nest (`<T: Into<U>>`).
+  local before_for = impl_text:match('^%s*impl%s*(.-)%s+for%s')
   if not before_for then
     vim.notify('Could not parse impl line: ' .. impl_text, vim.log.levels.WARN)
     return
   end
-  before_for = before_for:gsub('^<[^>]+>%s+', '')
-  local trait_name = before_for:match('([%w_]+)')
+  before_for = before_for:gsub('^%b<>%s*', '')
+  -- The trait is the last segment of its path, `geo::Shape` -> `Shape`.
+  local trait_name = (before_for:match('^[%w_:]+') or ''):match('([%w_]+)$')
   if not trait_name then
     vim.notify('Could not extract trait name from: ' .. impl_text, vim.log.levels.WARN)
     return
