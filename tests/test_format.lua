@@ -55,4 +55,19 @@ T[':w keeps tables as typed while prettier formats the rest'] = function()
   eq(vim.fn.readfile(file), { '# Title', '', '- item', '', '|a|bb|', '|-|-|', '|ccc|d|' })
 end
 
+-- shiftwidth of a rust file in a dir whose rustfmt.toml holds `toml`.
+local function rust_indent(toml)
+  local dir = vim.fn.tempname()
+  vim.fn.mkdir(dir .. '/src', 'p')
+  if toml then vim.fn.writefile(toml, dir .. '/rustfmt.toml') end
+  vim.fn.writefile({ 'fn main() {}' }, dir .. '/src/main.rs')
+  child.cmd('edit ' .. dir .. '/src/main.rs')
+  return { child.bo.shiftwidth, child.bo.tabstop, child.bo.softtabstop }
+end
+
+-- A file with no rustfmt.toml above keeps the ftplugin's indent, not the 2.
+T['a rust file takes its indent from the nearest rustfmt.toml'] = function()
+  eq({ rust_indent({ 'edition = "2021"', 'tab_spaces = 2' }), rust_indent()[1] ~= 2 }, { { 2, 2, 2 }, true })
+end
+
 return T
