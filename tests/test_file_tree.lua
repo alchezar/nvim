@@ -302,4 +302,72 @@ T['notes never land on rows of another tree'] = function()
   eq(stray, {})
 end
 
+-- Focus the tree with its cursor on the row naming `name`; returns that row.
+local function tree_row(name)
+  return child.lua([[
+    local name = ...
+    local w = require('nvim-tree.api').tree.winid()
+    vim.api.nvim_set_current_win(w)
+    for i, l in ipairs(vim.api.nvim_buf_get_lines(0, 0, -1, false)) do
+      if l:find(name, 1, true) then
+        vim.api.nvim_win_set_cursor(w, { i, 0 })
+        return i
+      end
+    end
+    error('no row ' .. name)
+  ]], { name })
+end
+
+local function click()
+  local pos = child.lua([[
+    local w = vim.api.nvim_get_current_win()
+    local row, col = unpack(vim.api.nvim_win_get_position(w))
+    return { row + vim.api.nvim_win_get_cursor(w)[1] - 1, col + 8 }
+  ]])
+  child.api.nvim_input_mouse('left', 'press', '', 0, pos[1], pos[2])
+  child.api.nvim_input_mouse('left', 'release', '', 0, pos[1], pos[2])
+  child.lua('vim.wait(200)')
+end
+
+T['gh on a file shows its module doc'] = function()
+  vim.fn.writefile({ '//! Parses orders.', 'fn f() {}' }, root .. '/lib.rs')
+  open_tree()
+  tree_row('lib.rs')
+  child.type_keys('gh')
+  eq(child.lua([[
+    for _, w in ipairs(vim.api.nvim_list_wins()) do
+      if vim.api.nvim_win_get_config(w).relative ~= '' then
+        return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, -1, false)
+      end
+    end
+  ]]), { 'Parses orders.' })
+end
+
+T['a single click opens a file'] = function()
+  open_tree()
+  tree_row('README.md')
+  click()
+  eq(child.api.nvim_buf_get_name(0), root .. '/README.md')
+end
+
+-- Whether the dir under the tree cursor is expanded.
+local function expanded()
+  return child.lua_get([[require('nvim-tree.api').tree.get_node_under_cursor().open == true]])
+end
+
+T['a generated dir stays shut on enter and on click'] = function()
+  vim.fn.mkdir(root .. '/target/debug', 'p')
+  open_tree()
+  tree_row('target')
+  child.type_keys('<CR>')
+  child.lua('vim.wait(200)')
+  local after_enter = expanded()
+  click()
+  local after_click = expanded()
+  tree_row('src')
+  child.type_keys('<CR>')
+  child.lua('vim.wait(200)')
+  eq({ after_enter, after_click, expanded() }, { false, false, true })
+end
+
 return T
