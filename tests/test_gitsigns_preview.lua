@@ -1,5 +1,6 @@
--- utils.gitsigns_preview_hunk: the hunk float is clamped to the screen width
--- and soft-wraps, so it must grow to show every wrapped row.
+-- gitsigns helpers in config/utils.lua. The hunk float is clamped to the
+-- screen width and soft-wraps, so it must grow to show every wrapped row;
+-- ]g and [g walk the hunks.
 local H = require('tests.helpers')
 local eq = MiniTest.expect.equality
 local child = H.new_child()
@@ -68,6 +69,35 @@ T['preview shows every wrapped row'] = function()
     }
   ]])
   eq({ fits = got.width <= 48, all_rows = got.height == got.rows }, { fits = true, all_rows = true })
+end
+
+T[']g and [g walk the hunks of the file'] = function()
+  local tmp = vim.fn.tempname()
+  vim.fn.mkdir(tmp, 'p')
+  local dir = vim.uv.fs_realpath(tmp) or tmp
+  git(dir, 'init', '-q')
+  local lines = {}
+  for i = 1, 20 do lines[i] = 'line ' .. i end
+  vim.fn.writefile(lines, dir .. '/f.txt')
+  git(dir, 'add', '.')
+  git(dir, 'commit', '-q', '-m', 'base')
+  lines[5], lines[15] = 'five', 'fifteen'
+  vim.fn.writefile(lines, dir .. '/f.txt')
+  child.lua('vim.cmd.cd(...)', { dir })
+  child.cmd('edit f.txt')
+  eq(child.lua([[
+    local buf, u = vim.api.nvim_get_current_buf(), require('config.utils')
+    vim.wait(3000, function()
+      local h = require('gitsigns').get_hunks(buf)
+      return h and #h == 2
+    end)
+    local function at(jump)
+      u[jump]()
+      vim.wait(200)
+      return vim.api.nvim_win_get_cursor(0)[1]
+    end
+    return { at('git_hunk_next'), at('git_hunk_next'), at('git_hunk_prev') }
+  ]]), { 5, 15, 5 })
 end
 
 return T
