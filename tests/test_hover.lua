@@ -112,4 +112,28 @@ T['panel skips the type when it is the cursor'] = function()
   eq({ sections, count }, { 0, 1 })
 end
 
+T['the hover float puts line diagnostics above the docs'] = function()
+  child.api.nvim_buf_set_lines(0, 0, -1, false, { 'fn main() {}' })
+  child.cmd('noautocmd setlocal filetype=rust')
+  H.start_fake_lsp(child, { ['textDocument/hover'] = { contents = { kind = 'markdown', value = 'Entry.' } } },
+    { hoverProvider = true })
+  eq(child.lua([[
+    local ns = vim.api.nvim_create_namespace('test')
+    vim.diagnostic.set(ns, 0, { { lnum = 0, col = 0, message = 'unused', severity = 2 } })
+    require('config.utils').hover()
+    local lines
+    vim.wait(2000, function()
+      for _, w in ipairs(vim.api.nvim_list_wins()) do
+        if vim.api.nvim_win_get_config(w).relative ~= '' then
+          lines = vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, -1, false)
+        end
+      end
+      return lines ~= nil
+    end)
+    -- The rule spans the float, sized to its content.
+    lines[2] = lines[2]:gsub('\u{2500}', '') == '' and 'RULE' or lines[2]
+    return lines
+  ]]), { '**[WARN]** unused', 'RULE', 'Entry.' })
+end
+
 return T
