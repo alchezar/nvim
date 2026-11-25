@@ -1,26 +1,32 @@
--- Local PR review: collect inline comments while reading a checked-out PR branch,
--- then push them as one pending review via `gh`. Comments live only in memory and
--- ride extmarks so they follow edits in-session. Pairs with snacks (picker), which
--- shows the draft (gh_diff) and submits it (gh_submit_review).
---   <leader>gRc  add a comment on the current line / visual selection (RIGHT side)
---   <leader>gRs  push all comments as a pending draft review on GitHub
--- Only head-version lines (RIGHT) can be commented; deleted (LEFT) lines are out of scope.
--- GitHub accepts a comment only on a line that is part of the PR diff; an off-diff
--- comment makes the whole push 422 (atomic) - the store is kept so you can fix & retry.
--- If a pending draft already exists, push aborts so it never overwrites unsubmitted work.
+-- Local PR review of a checked-out PR branch. Comments live in memory and ride
+-- extmarks; <leader>gV comments a selection, <leader>gRs opens the summary.
 
 local theme = require('config.theme_colors')
 
 local M = {}
 local ns = vim.api.nvim_create_namespace('user_pr_review')
+local ui_ns = vim.api.nvim_create_namespace('user_pr_review_ui')
 
 -- list of { path, start_line, end_line, side='RIGHT', body, bufnr, extmark_id }
 M.comments = {}
+-- Review body, kept across window closes until a review goes out.
+M.summary = ''
 
 local SIGN = vim.fn.nr2char(0xF075) -- speech-bubble glyph
 vim.api.nvim_set_hl(0, 'PRReviewComment', { fg = theme.cyan })
+vim.api.nvim_set_hl(0, 'PRReviewLocation', { fg = theme.blue, bold = true })
+vim.api.nvim_set_hl(0, 'PRReviewSummary', { fg = theme.purple, bold = true })
+vim.api.nvim_set_hl(0, 'PRReviewCurrent', { fg = theme.yellow })
 
--- git helpers (same shape as branch_review; module is self-contained) ----------
+-- No `event` leaves the review pending on GitHub.
+local VERDICTS = {
+  { label = 'Comment',                         event = 'COMMENT' },
+  { label = 'Request changes',                 event = 'REQUEST_CHANGES' },
+  { label = 'Approve',                         event = 'APPROVE' },
+  { label = 'Pending draft (finish on GitHub)' },
+}
+
+-- git helpers (same shape as branch_review; module is self-contained) --------
 
 local function git(args)
   local out = vim.fn.systemlist(vim.list_extend({ 'git' }, args))
@@ -38,7 +44,7 @@ local function head_sha()
   return out and out[1] or nil
 end
 
--- Relative POSIX path of a buffer from the repo root, or nil if outside / unnamed.
+-- Relative POSIX path of a buffer from the repo root, nil if outside / unnamed.
 local function rel_path(buf)
   local name = vim.api.nvim_buf_get_name(buf)
   if name == '' then return nil end
@@ -65,7 +71,7 @@ end
 
 -- Live line range from the extmark (survives edits); fall back to stored lines.
 local function live_range(rec)
-  if vim.api.nvim_buf_is_valid(rec.bufnr) then
+  if rec.extmark_id and vim.api.nvim_buf_is_valid(rec.bufnr) then
     local p = vim.api.nvim_buf_get_extmark_by_id(rec.bufnr, ns, rec.extmark_id, { details = true })
     if p[1] then
       local s = p[1] + 1
@@ -76,12 +82,14 @@ local function live_range(rec)
   return rec.start_line, rec.end_line
 end
 
-local function clear_marks()
-  for _, rec in ipairs(M.comments) do
-    if vim.api.nvim_buf_is_valid(rec.bufnr) then
-      pcall(vim.api.nvim_buf_del_extmark, rec.bufnr, ns, rec.extmark_id)
-    end
+local function drop_mark(rec)
+  if rec.extmark_id and vim.api.nvim_buf_is_valid(rec.bufnr) then
+    pcall(vim.api.nvim_buf_del_extmark, rec.bufnr, ns, rec.extmark_id)
   end
+end
+
+local function clear_marks()
+  for _, rec in ipairs(M.comments) do drop_mark(rec) end
 end
 
 -- One comment object for the reviews API: single line uses line+side; a range
@@ -96,56 +104,24 @@ local function comment_for_api(rec)
   return c
 end
 
--- floating editor -------------------------------------------------------------
-
--- Compact scratch float at the cursor with full vim modes/motions.
--- :w (or :wq) saves the comment, :q quits without saving.
-local function open_editor(title, on_submit)
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[buf].filetype = 'markdown'
-  vim.bo[buf].buftype = 'acwrite'
-  vim.bo[buf].bufhidden = 'wipe'
-  pcall(vim.api.nvim_buf_set_name, buf, 'pr-review/' .. buf)
-  vim.api.nvim_open_win(buf, true, {
-    relative = 'cursor',
-    width = 50,
-    height = 6,
-    row = 1,
-    col = 0,
-    style = 'minimal',
-    border = 'rounded',
-    title = ' ' .. title .. ' ',
-    footer = ' :wq save | :q cancel ',
-    footer_pos = 'center',
-  })
-
-  local staged -- text captured by :w; stays nil on a plain :q (cancel)
-  -- Drop the modified flag right before any quit so :q never trips E37.
-  vim.api.nvim_create_autocmd('QuitPre', {
-    buffer = buf,
-    callback = function() vim.bo[buf].modified = false end,
-  })
-  vim.api.nvim_create_autocmd('BufWriteCmd', {
-    buffer = buf,
-    callback = function()
-      staged = vim.trim(table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), '\n'))
-      vim.bo[buf].modified = false
-    end,
-  })
-  -- Apply only when the window closes after a :w; a plain :q leaves staged nil.
-  vim.api.nvim_create_autocmd('BufWipeout', {
-    buffer = buf,
-    once = true,
-    callback = function()
-      if staged and staged ~= '' then on_submit(staged) end
-    end,
-  })
-  vim.cmd('startinsert')
+local function location(rec)
+  local s, e = live_range(rec)
+  return e > s and ('%s:%d-%d'):format(rec.path, s, e) or ('%s:%d'):format(rec.path, s)
 end
 
--- GitHub helpers (async; callbacks are schedule-wrapped for UI safety) ---------
+-- The commented lines as they are now. A closed buffer is read from disk.
+local function code_lines(rec)
+  local s, e = live_range(rec)
+  if vim.api.nvim_buf_is_valid(rec.bufnr) and vim.api.nvim_buf_is_loaded(rec.bufnr) then
+    return vim.api.nvim_buf_get_lines(rec.bufnr, s - 1, e, false)
+  end
+  local ok, lines = pcall(vim.fn.readfile, (repo_root() or '.') .. '/' .. rec.path)
+  return ok and vim.list_slice(lines, s, e) or {}
+end
 
--- Resolve owner/name/number of the current branch's PR from its URL (one call).
+-- GitHub helpers (async; callbacks are schedule-wrapped for UI safety) -------
+
+-- Resolve owner/name/number of the current branch's PR from its URL.
 local function current_pr(cb)
   vim.system({ 'gh', 'pr', 'view', '--json', 'url', '--jq', '.url' }, { text = true },
     vim.schedule_wrap(function(r)
@@ -157,7 +133,7 @@ local function current_pr(cb)
 end
 
 -- Does the viewer already have an unsubmitted (PENDING) review on this PR?
--- On any uncertainty returns false: GitHub's atomic POST still refuses a second draft.
+-- Unsure means false, since GitHub's atomic POST refuses a second draft anyway.
 local function has_pending(pr, cb)
   local query = [[
 query($owner:String!,$name:String!,$number:Int!){
@@ -185,16 +161,16 @@ query($owner:String!,$name:String!,$number:Int!){
   end))
 end
 
--- POST the comments as a pending review (no `event` field). On success clear the
--- store; on failure keep it so the user can fix an off-diff comment and retry.
-local function create_pending(pr, commit_id, comments)
+-- POST one review. On success the store is cleared; a failure keeps it, so an
+-- off-diff comment (GitHub rejects the whole review with 422) can be fixed.
+local function post_review(pr, payload, label, on_done)
   local tmp = vim.fn.tempname()
   local f = io.open(tmp, 'w')
   if not f then
     vim.notify('PR review: cannot write temp file', vim.log.levels.ERROR)
     return
   end
-  f:write(vim.json.encode({ commit_id = commit_id, comments = comments }))
+  f:write(vim.json.encode(payload))
   f:close()
   vim.system({
     'gh', 'api',
@@ -208,53 +184,21 @@ local function create_pending(pr, commit_id, comments)
     end
     clear_marks()
     M.comments = {}
-    vim.notify('PR review: draft pushed - view & submit in snacks (gh_pr)', vim.log.levels.INFO)
+    M.summary = ''
+    if on_done then on_done() end
+    vim.notify('PR review: ' .. label, vim.log.levels.INFO)
   end))
 end
 
--- public ----------------------------------------------------------------------
-
--- opts comes from the user command (range); a keymap call passes nothing.
-function M.add_comment(opts)
-  local buf = vim.api.nvim_get_current_buf()
-  local path = rel_path(buf)
-  if not path then
-    vim.notify('PR review: not a file inside the repo', vim.log.levels.WARN)
-    return
-  end
-  local s, e
-  if opts and opts.range and opts.range > 0 then
-    s, e = opts.line1, opts.line2
-  elseif vim.fn.mode():match('[vV\22]') then
-    vim.cmd('normal! \27') -- leave visual so '< / '> update
-    s, e = vim.fn.line("'<"), vim.fn.line("'>")
-  else
-    s = vim.fn.line('.')
-    e = s
-  end
-  if s > e then s, e = e, s end
-  open_editor(('%s:%d'):format(path, s), function(body)
-    if body == '' then return end
-    local id = set_mark(buf, s, e)
-    table.insert(M.comments, {
-      path = path,
-      start_line = s,
-      end_line = e,
-      side = 'RIGHT',
-      body = body,
-      bufnr = buf,
-      extmark_id = id,
-    })
-    vim.notify(('Review comment added (%d total)'):format(#M.comments), vim.log.levels.INFO)
-  end)
-end
-
-function M.push()
+-- Sends the store as one review. Without a verdict it is the pending draft.
+function M.push(verdict, on_done)
+  verdict = verdict or VERDICTS[#VERDICTS]
   if vim.fn.executable('gh') == 0 then
     vim.notify('PR review: gh CLI not found', vim.log.levels.ERROR)
     return
   end
-  if #M.comments == 0 then
+  local body = vim.trim(M.summary)
+  if #M.comments == 0 and body == '' and verdict.event ~= 'APPROVE' then
     vim.notify('PR review: no comments to push', vim.log.levels.INFO)
     return
   end
@@ -273,16 +217,376 @@ function M.push()
         vim.notify('PR review: a pending draft already exists - submit it in snacks first', vim.log.levels.WARN)
         return
       end
-      local comments = {}
-      for _, rec in ipairs(M.comments) do
-        comments[#comments + 1] = comment_for_api(rec)
+      local payload = { commit_id = commit_id, event = verdict.event }
+      if body ~= '' then payload.body = body end
+      -- An empty Lua table would encode as `{}`, so the key is left out.
+      if #M.comments > 0 then
+        payload.comments = vim.tbl_map(comment_for_api, M.comments)
       end
-      create_pending(pr, commit_id, comments)
+      local label = verdict.event and ('submitted as ' .. verdict.label:lower())
+          or 'draft pushed - view & submit in snacks (gh_pr)'
+      post_review(pr, payload, label, on_done)
     end)
   end)
 end
 
+-- review window ---------------------------------------------------------------
+
+-- Drafts on the left, the commented code over the editor on the right.
+-- `cur` is what the editor holds: { rec, new } or { summary = true }.
+local ui = { wins = {}, bufs = {}, cur = {}, rows = {} }
+
+local function is_open()
+  return ui.wins.edit ~= nil and vim.api.nvim_win_is_valid(ui.wins.edit)
+end
+
+local FOOTERS = {
+  list = ' <CR> edit | dd delete | q close ',
+  ctx = ' <Tab> editor | q close ',
+  edit = ' :wq save | :q close | <C-g> suggestion | <C-s> submit | <Tab> drafts ',
+}
+
+-- Geometry of the three floats inside one 90% box, like the lazygit float.
+local function layout(ctx_lines)
+  local editor_h = vim.o.lines - vim.o.cmdheight - (vim.o.laststatus > 0 and 1 or 0)
+  local height = math.max(8, math.floor(editor_h * 0.9))
+  local width = math.max(30, math.floor(vim.o.columns * 0.9))
+  local row = math.max(0, math.floor((editor_h - height) / 2))
+  local col = math.max(0, math.floor((vim.o.columns - width) / 2))
+  local list_w = math.max(10, math.floor(width * 0.35) - 2)
+  local right = { col = col + list_w + 2, width = math.max(10, width - list_w - 4) }
+  local ctx_h = math.max(1, math.min(ctx_lines, math.floor(height * 0.4)))
+  return {
+    list = { row = row, col = col, width = list_w, height = height - 2 },
+    ctx = { row = row, col = right.col, width = right.width, height = ctx_h },
+    edit = { row = row + ctx_h + 2, col = right.col, width = right.width, height = math.max(1, height - ctx_h - 4) },
+  }
+end
+
+local function win_config(name, geometry, title)
+  return vim.tbl_extend('force', geometry, {
+    relative = 'editor',
+    style = 'minimal',
+    border = 'rounded',
+    title = ' ' .. title .. ' ',
+    footer = FOOTERS[name],
+    footer_pos = 'center',
+  })
+end
+
+local function set_lines(buf, lines)
+  vim.bo[buf].modifiable = true
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+  vim.bo[buf].modifiable = false
+end
+
+local function editor_text()
+  return vim.trim(table.concat(vim.api.nvim_buf_get_lines(ui.bufs.edit, 0, -1, false), '\n'))
+end
+
+local function render_list()
+  local lines, marks, rows = {}, {}, {}
+  local function block(entry, title, hl, body)
+    local current = (entry.rec ~= nil and entry.rec == ui.cur.rec) or (entry.summary and ui.cur.summary)
+    lines[#lines + 1] = (current and '> ' or '  ') .. title
+    marks[#marks + 1] = { #lines - 1, hl, current, #lines[#lines] }
+    for _, l in ipairs(body ~= '' and vim.split(body, '\n') or {}) do
+      lines[#lines + 1] = '    ' .. l
+    end
+    lines[#lines + 1] = ''
+    for r = #rows + 1, #lines do rows[r] = entry end
+  end
+  for _, rec in ipairs(M.comments) do
+    block({ rec = rec }, location(rec), 'PRReviewLocation', rec.body)
+  end
+  if ui.cur.new then
+    block(ui.cur, location(ui.cur.rec) .. '  (new)', 'PRReviewLocation', '')
+  end
+  local total = ('Review summary (%d comment%s)'):format(#M.comments, #M.comments == 1 and '' or 's')
+  block({ summary = true }, total, 'PRReviewSummary', M.summary)
+  lines[#lines] = nil
+  ui.rows = rows
+  set_lines(ui.bufs.list, lines)
+  vim.api.nvim_buf_clear_namespace(ui.bufs.list, ui_ns, 0, -1)
+  for _, m in ipairs(marks) do
+    vim.api.nvim_buf_set_extmark(ui.bufs.list, ui_ns, m[1], 2, { end_col = m[4], hl_group = m[2] })
+    if m[3] then
+      vim.api.nvim_buf_set_extmark(ui.bufs.list, ui_ns, m[1], 0, { end_col = 1, hl_group = 'PRReviewCurrent' })
+      vim.api.nvim_win_set_cursor(ui.wins.list, { m[1] + 1, 0 })
+    end
+  end
+end
+
+-- Writes the editor into what it holds. An empty comment is never stored.
+local function save()
+  local text = editor_text()
+  local cur = ui.cur
+  if cur.summary then
+    M.summary = text
+  elseif text ~= '' then
+    cur.rec.body = text
+    if cur.new then
+      cur.rec.extmark_id = set_mark(cur.rec.bufnr, cur.rec.start_line, cur.rec.end_line)
+      table.insert(M.comments, cur.rec)
+      cur.new = nil
+      vim.notify(('Review comment added (%d total)'):format(#M.comments), vim.log.levels.INFO)
+    end
+  end
+  vim.bo[ui.bufs.edit].modified = false
+  render_list()
+end
+
+-- What goes out with the summary, shown in place of the code.
+local function summary_lines()
+  local counts, files = {}, {}
+  for _, rec in ipairs(M.comments) do
+    if not counts[rec.path] then files[#files + 1] = rec.path end
+    counts[rec.path] = (counts[rec.path] or 0) + 1
+  end
+  local lines = { ('%d comment%s in %d file%s'):format(#M.comments, #M.comments == 1 and '' or 's',
+    #files, #files == 1 and '' or 's') }
+  for _, path in ipairs(files) do lines[#lines + 1] = ('  %d  %s'):format(counts[path], path) end
+  return lines
+end
+
+local function set_title(name, title)
+  vim.api.nvim_win_set_config(ui.wins[name], { title = ' ' .. title .. ' ' })
+end
+
+-- Loads an entry into the right side and moves the editor onto it.
+local function show(cur)
+  ui.cur = cur
+  local code = cur.summary and summary_lines() or code_lines(cur.rec)
+  set_lines(ui.bufs.ctx, code)
+  -- Highlighted by parser, so no FileType autocmd fires on a scratch buffer.
+  pcall(vim.treesitter.stop, ui.bufs.ctx)
+  local ft = ''
+  if not cur.summary then
+    local src = cur.rec.bufnr
+    ft = vim.api.nvim_buf_is_valid(src) and vim.bo[src].filetype
+        or vim.filetype.match({ filename = cur.rec.path }) or ''
+  end
+  local parsed = ft ~= '' and pcall(vim.treesitter.start, ui.bufs.ctx, vim.treesitter.language.get_lang(ft) or ft)
+  vim.bo[ui.bufs.ctx].syntax = parsed and '' or ft
+
+  -- The loaded text is the editor's start, not an edit to undo.
+  local levels = vim.bo[ui.bufs.edit].undolevels
+  vim.bo[ui.bufs.edit].undolevels = -1
+  vim.api.nvim_buf_set_lines(ui.bufs.edit, 0, -1, false,
+    vim.split(cur.summary and M.summary or cur.rec.body or '', '\n'))
+  vim.bo[ui.bufs.edit].undolevels = levels
+  vim.bo[ui.bufs.edit].modified = false
+
+  local geometry = layout(#code)
+  for name, win in pairs(ui.wins) do
+    vim.api.nvim_win_set_config(win, vim.tbl_extend('force', geometry[name], { relative = 'editor' }))
+  end
+  set_title('ctx', cur.summary and (ui.pr or 'Review') or location(cur.rec))
+  set_title('edit', cur.summary and 'Review summary' or 'Comment')
+  render_list()
+
+  vim.api.nvim_set_current_win(ui.wins.edit)
+  vim.api.nvim_win_set_cursor(ui.wins.edit, { vim.api.nvim_buf_line_count(ui.bufs.edit), 0 })
+  if editor_text() == '' then vim.cmd('startinsert') else vim.cmd('stopinsert') end
+
+  if cur.summary and not ui.pr and vim.fn.executable('gh') == 1 then
+    current_pr(function(pr)
+      if not is_open() then return end
+      ui.pr = pr and ('%s/%s#%d'):format(pr.owner, pr.name, pr.number) or 'no PR for this branch'
+      if ui.cur.summary then set_title('ctx', ui.pr) end
+    end)
+  end
+end
+
+local function close()
+  -- A review may land after the window is gone.
+  if ui.closing or not ui.origin then return end
+  ui.closing = true
+  pcall(vim.api.nvim_del_augroup_by_name, 'PRReviewWindow')
+  vim.cmd('stopinsert')
+  -- Focus leaves first, or closing the focused float lands on a random window.
+  if ui.origin and vim.api.nvim_win_is_valid(ui.origin) then
+    pcall(vim.api.nvim_set_current_win, ui.origin)
+  end
+  for _, win in pairs(ui.wins) do
+    if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, true) end
+  end
+  ui = { wins = {}, bufs = {}, cur = {}, rows = {} }
+end
+
+-- Moves the editor to another entry; typed text is saved, never dropped.
+local function switch(cur)
+  save()
+  show(cur)
+end
+
+local function entry_at_cursor()
+  return ui.rows[vim.api.nvim_win_get_cursor(ui.wins.list)[1]]
+end
+
+local function edit_entry()
+  local entry = entry_at_cursor()
+  if not entry then return end
+  local same = (entry.summary and ui.cur.summary) or (entry.rec ~= nil and entry.rec == ui.cur.rec)
+  if same then return vim.api.nvim_set_current_win(ui.wins.edit) end
+  switch(entry)
+end
+
+local function delete_entry()
+  local entry = entry_at_cursor()
+  if not entry then return end
+  local row = vim.api.nvim_win_get_cursor(ui.wins.list)[1]
+  local loaded = (entry.summary and ui.cur.summary) or (entry.rec ~= nil and entry.rec == ui.cur.rec)
+  if entry.summary then
+    M.summary = ''
+  else
+    drop_mark(entry.rec)
+    M.comments = vim.tbl_filter(function(rec) return rec ~= entry.rec end, M.comments)
+  end
+  if loaded then
+    show({ summary = true })
+    vim.api.nvim_set_current_win(ui.wins.list)
+    vim.cmd('stopinsert')
+  else
+    render_list()
+  end
+  local last = vim.api.nvim_buf_line_count(ui.bufs.list)
+  vim.api.nvim_win_set_cursor(ui.wins.list, { math.min(row, last), 0 })
+end
+
+-- A suggestion block holding the commented code, ready to be rewritten. The
+-- fence outgrows any backtick run inside the code.
+local function suggest()
+  if ui.cur.summary then return end
+  local code = code_lines(ui.cur.rec)
+  local fence = '```'
+  for _, line in ipairs(code) do
+    for run in line:gmatch('`+') do
+      if #run >= #fence then fence = ('`'):rep(#run + 1) end
+    end
+  end
+  local block = { fence .. 'suggestion' }
+  vim.list_extend(block, code)
+  block[#block + 1] = fence
+  local row = vim.api.nvim_win_get_cursor(ui.wins.edit)[1]
+  -- An empty cursor line is replaced, else the block goes below it.
+  local blank = vim.api.nvim_buf_get_lines(ui.bufs.edit, row - 1, row, false)[1] == ''
+  local at = blank and row - 1 or row
+  vim.api.nvim_buf_set_lines(ui.bufs.edit, at, blank and row or at, false, block)
+  vim.api.nvim_win_set_cursor(ui.wins.edit, { at + 2, 0 })
+end
+
+-- First press moves to the summary, the next one asks for a verdict and sends.
+local function submit()
+  if not ui.cur.summary then return switch({ summary = true }) end
+  save()
+  vim.cmd('stopinsert')
+  vim.ui.select(VERDICTS, {
+    prompt = 'Submit review as',
+    format_item = function(item) return item.label end,
+  }, function(verdict)
+    if verdict then M.push(verdict, close) end
+  end)
+end
+
+local function open_window(cur)
+  ui = { wins = {}, bufs = {}, cur = {}, rows = {}, origin = vim.api.nvim_get_current_win() }
+  local geometry = layout(1)
+  for _, name in ipairs({ 'list', 'ctx', 'edit' }) do
+    local buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[buf].bufhidden = 'wipe'
+    ui.bufs[name] = buf
+    ui.wins[name] = vim.api.nvim_open_win(buf, false, win_config(name, geometry[name], name))
+    vim.w[ui.wins[name]].pr_review = name
+    vim.wo[ui.wins[name]].wrap = name ~= 'ctx'
+    vim.wo[ui.wins[name]].linebreak = true
+  end
+  vim.wo[ui.wins.list].cursorline = true
+  vim.wo[ui.wins.list].breakindent = true
+  set_title('list', 'Drafts')
+
+  local edit = ui.bufs.edit
+  vim.bo[edit].filetype = 'markdown'
+  vim.bo[edit].buftype = 'acwrite'
+  pcall(vim.api.nvim_buf_set_name, edit, 'pr-review/' .. edit)
+
+  local group = vim.api.nvim_create_augroup('PRReviewWindow', { clear = true })
+  vim.api.nvim_create_autocmd('BufWriteCmd', { group = group, buffer = edit, callback = save })
+  -- Drop the modified flag right before any quit so :q never trips E37.
+  vim.api.nvim_create_autocmd('QuitPre', {
+    group = group,
+    buffer = edit,
+    callback = function() vim.bo[edit].modified = false end,
+  })
+  -- The three floats are one window, so closing any of them closes all.
+  vim.api.nvim_create_autocmd('WinClosed', {
+    group = group,
+    pattern = vim.tbl_map(tostring, vim.tbl_values(ui.wins)),
+    callback = close,
+  })
+  vim.api.nvim_create_autocmd('VimResized', {
+    group = group,
+    callback = function()
+      local resized = layout(vim.api.nvim_buf_line_count(ui.bufs.ctx))
+      for name, win in pairs(ui.wins) do
+        vim.api.nvim_win_set_config(win, vim.tbl_extend('force', resized[name], { relative = 'editor' }))
+      end
+    end,
+  })
+
+  local function map(name, modes, lhs, rhs)
+    vim.keymap.set(modes, lhs, rhs, { buffer = ui.bufs[name], nowait = true, silent = true })
+  end
+  for _, name in ipairs({ 'list', 'ctx' }) do
+    map(name, 'n', 'q', close)
+    map(name, 'n', '<Esc>', close)
+    map(name, 'n', '<Tab>', function() vim.api.nvim_set_current_win(ui.wins.edit) end)
+  end
+  map('list', 'n', '<CR>', edit_entry)
+  map('list', 'n', 'dd', delete_entry)
+  map('list', 'n', '<C-s>', submit)
+  map('edit', 'n', '<Tab>', function() vim.api.nvim_set_current_win(ui.wins.list) end)
+  map('edit', { 'n', 'i' }, '<C-s>', submit)
+  map('edit', { 'n', 'i' }, '<C-g>', suggest)
+
+  show(cur)
+end
+
+-- public ----------------------------------------------------------------------
+
+-- opts comes from the user command (range); a keymap call passes nothing.
+function M.add_comment(opts)
+  if is_open() then return end
+  local buf = vim.api.nvim_get_current_buf()
+  local path = rel_path(buf)
+  if not path then
+    vim.notify('PR review: not a file inside the repo', vim.log.levels.WARN)
+    return
+  end
+  local s, e
+  if opts and opts.range and opts.range > 0 then
+    s, e = opts.line1, opts.line2
+  elseif vim.fn.mode():match('[vV\22]') then
+    vim.cmd('normal! \27') -- leave visual so '< / '> update
+    s, e = vim.fn.line("'<"), vim.fn.line("'>")
+  else
+    s = vim.fn.line('.')
+    e = s
+  end
+  if s > e then s, e = e, s end
+  -- Only head-version lines (RIGHT) can be commented; deleted lines are out.
+  local rec = { path = path, start_line = s, end_line = e, side = 'RIGHT', body = '', bufnr = buf }
+  open_window({ rec = rec, new = true })
+end
+
+-- Opens the window on the review summary, the step before sending.
+function M.review()
+  if is_open() then return end
+  open_window({ summary = true })
+end
+
 function M.clear()
+  close()
   clear_marks()
   M.comments = {}
   vim.notify('PR review: comments cleared', vim.log.levels.INFO)
@@ -290,8 +594,8 @@ end
 
 vim.api.nvim_create_user_command('PRReviewComment', M.add_comment,
   { range = true, desc = 'PR review: add comment on line/selection' })
-vim.api.nvim_create_user_command('PRReviewSubmit', M.push,
-  { desc = 'PR review: push comments as a pending draft' })
+vim.api.nvim_create_user_command('PRReviewSubmit', M.review,
+  { desc = 'PR review: open the drafts and submit the review' })
 vim.api.nvim_create_user_command('PRReviewClear', M.clear,
   { desc = 'PR review: discard all pending comments' })
 
