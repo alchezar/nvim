@@ -1,6 +1,6 @@
--- Local PR review from custom/pr_review.lua. Comments typed in a float ride
--- extmarks and go out as one pending review through a fake `gh` on PATH, which
--- logs its runs and keeps the posted review.
+-- Local PR review from custom/pr_review.lua. Comments typed in the review
+-- window ride extmarks and go out as one review through a fake `gh` on PATH,
+-- which logs its runs and keeps the posted review.
 local H = require('tests.helpers')
 local eq = MiniTest.expect.equality
 local child = H.new_child()
@@ -94,6 +94,12 @@ local function signs()
   ]])
 end
 
+-- The review the fake `gh` received, nil when none was posted.
+local function posted()
+  local f = bin .. '/posted'
+  return vim.uv.fs_stat(f) and vim.json.decode(table.concat(vim.fn.readfile(f), '\n')) or nil
+end
+
 -- Pushes the store and returns the posted review once the push reports back.
 local function push()
   child.lua([[
@@ -101,8 +107,36 @@ local function push()
     require('custom.pr_review').push()
     vim.wait(3000, function() return #_G.notes > seen end)
   ]])
-  local f = bin .. '/posted'
-  return vim.uv.fs_stat(f) and vim.json.decode(table.concat(vim.fn.readfile(f), '\n')) or nil
+  return posted()
+end
+
+-- Lines of one pane of the review window, false while it is closed.
+local function pane(name)
+  return child.lua([[
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if vim.w[win].pr_review == ... then
+        return vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(win), 0, -1, false)
+      end
+    end
+    return false
+  ]], { name })
+end
+
+-- Presses <C-s> on the summary, picks `verdict` and waits for the report.
+local function submit(verdict)
+  child.lua([[
+    local verdict = ...
+    vim.ui.select = function(items, opts, pick)
+      for _, item in ipairs(items) do
+        if opts.format_item(item) == verdict then return pick(item) end
+      end
+      pick(nil)
+    end
+    _G.seen = #_G.notes
+  ]], { verdict })
+  child.type_keys('<C-s>')
+  child.lua('vim.wait(3000, function() return #_G.notes > _G.seen end)')
+  return posted()
 end
 
 T['a comment goes out on its line with the pending review'] = function()
@@ -170,6 +204,101 @@ T['a rejected push keeps the comments for a retry'] = function()
   eq(stored(), { 'src/a.rs:2-2 retry me' })
   vim.fn.delete(bin .. '/fail')
   eq(push().comments[1].body, 'retry me')
+end
+
+T['the window lists the drafts beside the selected code'] = function()
+  open_repo(new_dir())
+  comment('1', 'first')
+  child.cmd('2,3PRReviewComment')
+  eq({ pane('ctx'), pane('list') }, {
+    { 'two',          'three' },
+    { '  src/a.rs:1', '    first', '', '> src/a.rs:2-3  (new)', '', '  Review summary (1 comment)' },
+  })
+  -- The old editor was a 50x6 float at the cursor.
+  local share = child.lua([[
+    local width, height = 0, 0
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      local name = vim.w[win].pr_review
+      if name == 'list' or name == 'edit' then width = width + vim.api.nvim_win_get_width(win) + 2 end
+      if name == 'list' then height = vim.api.nvim_win_get_height(win) + 2 end
+    end
+    return { width / vim.o.columns > 0.85, height / vim.o.lines > 0.75 }
+  ]])
+  eq(share, { true, true })
+  child.type_keys('<Esc>', ':q<CR>')
+  eq({ pane('list'), pane('ctx'), pane('edit'), child.fn.expand('%:t') }, { false, false, false, 'a.rs' })
+end
+
+T['<C-g> drafts a suggestion from the selected code'] = function()
+  open_repo(new_dir())
+  child.cmd('2,3PRReviewComment')
+  child.type_keys('<C-g>')
+  eq(pane('edit'), { '```suggestion', 'two', 'three', '```' })
+  -- The cursor waits on the code, so typing rewrites the suggestion.
+  child.type_keys('<Esc>', 'ciwtwo!<Esc>', ':wq<CR>')
+  eq(stored(), { 'src/a.rs:2-3 ```suggestion\ntwo!\nthree\n```' })
+end
+
+T['a suggestion fence outgrows backticks in the code'] = function()
+  open_repo(new_dir())
+  child.api.nvim_buf_set_lines(0, 0, 1, false, { 'a ``` b' })
+  child.cmd('1PRReviewComment')
+  child.type_keys('<C-g>')
+  eq(pane('edit'), { '````suggestion', 'a ``` b', '````' })
+end
+
+T['a review goes out with its summary and verdict'] = function()
+  local sha = open_repo(new_dir())
+  comment('2', 'looks off')
+  child.cmd('PRReviewSubmit')
+  eq(pane('ctx'), { '1 comment in 1 file', '  1  src/a.rs' })
+  child.type_keys('needs work', '<Esc>')
+  eq(submit('Request changes'), {
+    commit_id = sha,
+    event = 'REQUEST_CHANGES',
+    body = 'needs work',
+    comments = { { path = 'src/a.rs', line = 2, side = 'RIGHT', body = 'looks off' } },
+  })
+  eq({ stored(), signs(), pane('edit') }, { {}, {}, false })
+end
+
+T['the first <C-s> only moves to the summary'] = function()
+  open_repo(new_dir())
+  child.cmd('2PRReviewComment')
+  child.type_keys('typed', '<C-s>')
+  -- The comment in the editor is kept as a draft on the way.
+  eq({ stored(), pane('edit'), posted() }, { { 'src/a.rs:2-2 typed' }, { '' }, nil })
+end
+
+T['approving needs no comments'] = function()
+  local sha = open_repo(new_dir())
+  child.cmd('PRReviewSubmit')
+  child.type_keys('<Esc>')
+  eq(submit('Approve'), { commit_id = sha, event = 'APPROVE' })
+end
+
+T['drafts are edited and deleted from the list'] = function()
+  open_repo(new_dir())
+  comment('1', 'first')
+  comment('3', 'second')
+  child.cmd('PRReviewSubmit')
+  child.type_keys('<Esc>', '<Tab>', 'gg', '<CR>')
+  eq({ pane('ctx'), pane('edit') }, { { 'one' }, { 'first' } })
+  child.type_keys('A, reworded<Esc>', ':w<CR>')
+  eq(stored(), { 'src/a.rs:1-1 first, reworded', 'src/a.rs:3-3 second' })
+  child.type_keys('<Tab>', 'dd')
+  eq({ stored(), child.fn.mode(), child.w.pr_review }, { { 'src/a.rs:3-3 second' }, 'n', 'list' })
+  child.type_keys('q')
+  eq({ pane('list'), signs() }, { false, { 3 } })
+end
+
+T['a rejected review keeps the window and the drafts'] = function()
+  open_repo(new_dir())
+  comment('2', 'retry me')
+  vim.fn.writefile({}, bin .. '/fail')
+  child.cmd('PRReviewSubmit')
+  child.type_keys('summary', '<Esc>')
+  eq({ submit('Comment'), stored(), pane('edit') }, { nil, { 'src/a.rs:2-2 retry me' }, { 'summary' } })
 end
 
 return T
