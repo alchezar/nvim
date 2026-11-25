@@ -122,6 +122,16 @@ end
 
 T['the file picker starts on the endpoint around the cursor'] = function()
   file_picker(13)
+  rows()
+  -- The selection moves only once the results are in, a beat after they show.
+  child.lua([[vim.wait(1000, function()
+    for _, w in ipairs(vim.api.nvim_list_wins()) do
+      local b = vim.api.nvim_win_get_buf(w)
+      if vim.bo[b].filetype == 'TelescopeResults' then
+        return (vim.api.nvim_buf_get_lines(b, -2, -1, false)[1] or ''):sub(1, 1) == '>'
+      end
+    end
+  end)]])
   eq(vim.tbl_map(function(r) return r:sub(1, 1) end, rows()), { ' ', '>' })
 end
 
