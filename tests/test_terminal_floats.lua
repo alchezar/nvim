@@ -25,6 +25,8 @@ local T = MiniTest.new_set({
       -- lazygit rewrites $EDIT on its way out, as a commit or checkout would.
       vim.fn.writefile({
         '#!/bin/sh',
+        -- Asked for its config dir before the float opens; not a run.
+        '[ "$1" = --print-config-dir ] && exit',
         'echo "lazygit $(pwd -P)" >> "$LOG"',
         '[ -n "$EDIT" ] && echo changed > "$EDIT"',
         'sleep 0.2',
