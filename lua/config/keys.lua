@@ -34,6 +34,8 @@ map('n', '<leader>xx', ':Trouble diagnostics toggle<CR>', { desc = 'Diagnostics'
 map('n', '<leader>sm', ':messages<CR>', { desc = 'Show :messages' })                                                   -- Show :messages output
 map('n', '<leader>sl', utils.search_rust_idioms, { desc = 'Search Rust idioms mistakes' })
 map({ 'n', 'x' }, '<leader>ss', utils.speak_selection, { desc = 'Speak selection; again to stop' })
+-- A float with a buffer-local <Esc> (telescope, dbee) keeps its own.
+map('n', '<Esc>', utils.close_float, { desc = 'Close the focused floating window' })
 -- Swallow Ctrl+S/Ctrl+Q in :terminal so they never reach the pty as XOFF/XON (freezes output)
 map('t', '<C-s>', '<Nop>', { desc = 'Block XOFF (terminal output stop)' })
 map('t', '<C-q>', '<Nop>', { desc = 'Block XON (terminal output resume)' })

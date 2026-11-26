@@ -43,6 +43,9 @@ function M.open_yazi()
 
   vim.fn.jobstart({ 'yazi', '--chooser-file=' .. tmp, cwd }, {
     term = true,
+    -- Read by yazi's smart-escape plugin, so <Esc> with nothing left to
+    -- cancel quits here and stays a plain escape in yazi anywhere else.
+    env = { YAZI_ESC_QUITS = '1' },
     on_exit = function()
       if vim.api.nvim_win_is_valid(win) then
         vim.api.nvim_win_close(win, true)
@@ -64,12 +67,32 @@ function M.open_yazi()
   vim.cmd('startinsert')
 end
 
+-- Lazygit config list for the float. The user's own files come first, then
+-- `override`, a file written here that makes <Esc> quit at the top level.
+local lazygit_user_config
+local function lazygit_float_config(override)
+  if not lazygit_user_config then
+    lazygit_user_config = vim.env.LG_CONFIG_FILE or ''
+    if lazygit_user_config == '' then
+      local dir = vim.trim(vim.fn.system({ 'lazygit', '--print-config-dir' }))
+      lazygit_user_config = dir .. '/config.yml'
+    end
+  end
+  vim.fn.writefile({ 'quitOnTopLevelReturn: true' }, override)
+  -- Lazygit refuses to start on a listed file that does not exist.
+  local user = vim.tbl_filter(function(path) return vim.fn.filereadable(path) == 1 end,
+    vim.split(lazygit_user_config, ',', { trimempty = true }))
+  return table.concat(vim.list_extend(user, { override }), ',')
+end
+
 -- Float lazygit. Geometry is shifted slightly up.
 function M.open_lazygit()
   local cwd = vim.fn.expand('%:p:h')
   if cwd == '' or vim.fn.isdirectory(cwd) == 0 then
     cwd = vim.fn.getcwd()
   end
+  local override = vim.fn.tempname() .. '.yml'
+  local config = lazygit_float_config(override)
 
   local buf = vim.api.nvim_create_buf(false, true)
   local has_statusline = vim.o.laststatus > 0 and 1 or 0
@@ -90,7 +113,9 @@ function M.open_lazygit()
   vim.fn.jobstart({ 'lazygit' }, {
     cwd = cwd,
     term = true,
+    env = { LG_CONFIG_FILE = config },
     on_exit = function()
+      os.remove(override)
       if vim.api.nvim_win_is_valid(win) then
         vim.api.nvim_win_close(win, true)
       end
@@ -1017,6 +1042,21 @@ function M.focus_floating()
     end
   end
   vim.notify('No floating window', vim.log.levels.INFO)
+end
+
+-- <Esc> closes the focused float. A buffer that maps `q` (hover, gitsigns
+-- preview) closes by that mapping, so the float's own cleanup still runs.
+function M.close_float()
+  local win = vim.api.nvim_get_current_win()
+  if vim.api.nvim_win_get_config(win).relative == '' then return end
+  if vim.fn.maparg('q', 'n', false, true).buffer == 1 then
+    vim.api.nvim_feedkeys('q', 'm', false)
+    return
+  end
+  -- A terminal's job would live on, hidden, once its window is gone.
+  local buf = vim.api.nvim_win_get_buf(win)
+  if vim.bo[buf].buftype == 'terminal' then vim.fn.jobstop(vim.bo[buf].channel) end
+  if vim.api.nvim_win_is_valid(win) then pcall(vim.api.nvim_win_close, win, false) end
 end
 
 -- Gitsigns preview_hunk sizes the float to the longest line; clamp width and
